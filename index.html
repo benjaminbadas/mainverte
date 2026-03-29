@@ -2,298 +2,425 @@
 <html lang="fr">
 <head>
     <meta charset="UTF-8">
-    <title>La Main Verte - V2.5 Edition Intégrale</title>
+    <title>La Main Verte - V4.12 Défense Visible</title>
     <style>
-        :root { --p1: #2e7d32; --bot: #c62828; --bg: #f1f8e9; --warn: #ff9800; --serre: #e3f2fd; --haie: #e8f5e9; --verger: #fff8e1; }
-        body { font-family: 'Segoe UI', sans-serif; background: var(--bg); margin: 0; display: flex; flex-direction: column; height: 100vh; overflow: hidden; }
-        .header { background: white; padding: 10px 20px; display: flex; justify-content: space-between; align-items: center; box-shadow: 0 2px 10px rgba(0,0,0,0.1); z-index: 10; }
-        .meteo-box { background: #e3f2fd; padding: 8px 15px; border-radius: 20px; font-weight: bold; color: #1565c0; border: 1px solid #bbdefb; }
-        .game-container { display: flex; flex: 1; padding: 15px; gap: 15px; overflow: hidden; }
-        .player-side { flex: 1; display: flex; flex-direction: column; gap: 10px; border-radius: 12px; padding: 12px; background: rgba(255,255,255,0.7); border: 4px solid transparent; transition: 0.3s; }
-        .active { border-color: var(--p1); background: white; }
-        .bot-active { border-color: var(--bot); background: white; }
-        .grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; flex: 1; }
-        .slot { border: 2px dashed #a1887f; border-radius: 8px; display: flex; flex-direction: column; align-items: center; justify-content: center; font-size: 0.72em; position: relative; min-height: 125px; text-align: center; cursor: pointer; transition: 0.2s; }
-        .z-potager { background: var(--serre); border-color: #90caf9; }
-        .z-haie { background: var(--haie); border-color: #81c784; }
-        .z-verger { background: var(--verger); border-color: #ffd54f; }
-        .slot.occupied { background: white !important; border-style: solid; border-color: #8d6e63; }
-        .slot.selected { border: 4px solid var(--warn) !important; box-shadow: 0 0 10px rgba(255,152,0,0.5); }
-        .zone-bonus { font-weight: bold; font-size: 0.85em; color: #555; position: absolute; top: 5px; }
-        .card-content { display: flex; flex-direction: column; width: 100%; height: 100%; justify-content: space-between; }
-        .card-title { font-weight: bold; font-size: 1.05em; color: #1b5e20; border-bottom: 1px solid #eee; margin-bottom: 2px; }
-        .tag-s { color: #2e7d32; font-weight: bold; }
-        .tag-r { color: #d32f2f; font-weight: bold; }
-        .hand { display: flex; gap: 8px; overflow-x: auto; padding: 10px; background: #fff; border-radius: 8px; height: 145px; border: 1px solid #ddd; }
-        .card { width: 115px; flex-shrink: 0; border: 1px solid #ccc; border-radius: 6px; padding: 6px; font-size: 0.75em; text-align: center; cursor: pointer; background: #fff; }
-        .card.selected { border: 3px solid var(--p1); background: #e8f5e9; transform: translateY(-5px); }
-        .card.off-season { opacity: 0.4; filter: grayscale(80%); }
-        .controls { width: 340px; display: flex; flex-direction: column; gap: 10px; }
-        .log-container { flex: 1; background: #263238; color: #cfd8dc; padding: 10px; border-radius: 6px; font-family: 'Consolas', monospace; font-size: 0.72em; overflow-y: auto; border: 2px solid #37474f; }
-        button { padding: 10px; border: none; border-radius: 6px; background: #4caf50; color: white; font-weight: bold; cursor: pointer; }
-        .aux-badge { display: inline-block; background: #5c6bc0; color: white; padding: 2px 6px; border-radius: 4px; margin: 2px; font-size: 0.8em; cursor: help; }
-        [data-tooltip]:hover::after { content: attr(data-tooltip); position: absolute; bottom: 105%; left: 50%; transform: translateX(-50%); background: #333; color: white; padding: 8px; border-radius: 4px; width: 180px; z-index: 1000; }
+        :root { --p1: #2e7d32; --bg: #f4f7f1; --potager: #81c784; --verger: #fff176; --amenag: #ffccbc; --batiment: #455a64; --dark: #263238; --gold: #ffd700; --serre: #e1f5fe; }
+        body { font-family: 'Segoe UI', sans-serif; background: var(--bg); margin: 0; display: flex; height: 100vh; overflow: hidden; }
+        
+        .main-game { flex: 1; display: flex; flex-direction: column; padding: 10px; overflow-y: auto; }
+        .sidebar { width: 420px; background: white; border-left: 2px solid #ddd; padding: 10px; display: flex; flex-direction: column; }
+        
+        .hud { display: flex; justify-content: space-between; background: white; padding: 10px; border-radius: 8px; box-shadow: 0 2px 5px rgba(0,0,0,0.1); margin-bottom: 10px; font-weight: bold; }
+        .farm-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; background: #d7ccc8; padding: 10px; border-radius: 12px; }
+        
+        .zone { min-height: 155px; background: #efebe9; border: 2px dashed #bcaaa4; border-radius: 8px; display: flex; flex-direction: column; align-items: center; justify-content: center; position: relative; font-size: 0.72em; cursor: pointer; text-align: center; }
+        .zone.selected { border: 3px solid #ff9800 !important; box-shadow: 0 0 8px rgba(255,152,0,0.4); }
+        .tuile-potager { background: var(--potager) !important; border: 2px solid #2e7d32 !important; }
+        .tuile-verger { background: var(--verger) !important; border: 2px solid #fbc02d !important; }
+        .tuile-amenag { background: var(--amenag) !important; border: 2px solid #ff5722 !important; }
+        .tuile-batiment { background: var(--batiment) !important; border: 2px solid #263238 !important; color: white; }
+        .has-serre { box-shadow: inset 0 0 15px rgba(3, 169, 244, 0.6); border: 3px solid #03a9f4 !important; background: var(--serre) !important; }
+
+        .up-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 4px; margin-bottom: 10px; }
+        .up-card { background: #f1f1f1; padding: 6px; border-radius: 4px; border: 1px solid #ccc; font-size: 0.75em; cursor: help; }
+        .btn-up { width: 100%; font-size: 0.85em; cursor: pointer; margin-top: 4px; background: white; border: 1px solid #999; border-radius: 3px; font-weight: bold; }
+
+        .card { border: 1px solid #ddd; border-radius: 6px; padding: 8px; margin-bottom: 5px; background: white; font-size: 0.75em; cursor: help; position: relative; }
+        .scroll-area { flex: 1; overflow-y: auto; border: 1px solid #eee; padding: 5px; border-radius: 4px; }
+        .logs { height: 80px; background: var(--dark); color: #a5d6a7; padding: 8px; font-family: monospace; font-size: 0.7em; overflow-y: auto; border-radius: 6px; }
+        
+        .btn-action { width: 100%; padding: 8px; border: none; border-radius: 4px; font-weight: bold; color: white; cursor: pointer; font-size: 0.72em; margin-bottom: 4px; display: flex; flex-direction: column; align-items: center; justify-content: center; }
+        .btn-action:hover { filter: brightness(1.1); }
+        .btn-cost { font-size: 0.8em; font-weight: normal; margin-top: 2px; opacity: 0.9; }
+        .res-pill { background: #e8f5e9; padding: 2px 8px; border-radius: 10px; color: var(--p1); border: 1px solid var(--p1); }
+
+        /* AUXILIAIRES TRAY */
+        .aux-tray { display: flex; gap: 5px; margin-bottom: 8px; min-height: 25px; background: #e3f2fd; padding: 5px 10px; border-radius: 5px; border: 1px solid #90caf9; flex-wrap: wrap; align-items: center; }
+        .aux-icon { background: white; border: 1px solid #90caf9; padding: 2px 6px; border-radius: 4px; font-size: 0.75em; display: flex; align-items: center; font-weight: bold; color: #1565c0; cursor: help; }
+
+        /* MODALE JARDINERIE */
+        .modal-overlay { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.8); z-index: 100; align-items: center; justify-content: center; }
+        .modal-content { background: var(--bg); padding: 20px; border-radius: 12px; width: 90%; max-width: 900px; box-shadow: 0 5px 15px rgba(0,0,0,0.5); }
+        .modal-header { display: flex; justify-content: space-between; align-items: center; border-bottom: 2px solid #ddd; padding-bottom: 10px; margin-bottom: 15px; }
+        .rayon-grid { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 15px; }
+        .rayon { background: white; padding: 10px; border-radius: 8px; border: 1px solid #ccc; }
+        .rayon h3 { margin: 0 0 10px 0; text-align: center; color: var(--p1); font-size: 1.1em; }
+        .btn-jard-action { width: 100%; margin-bottom: 5px; padding: 6px; background: #e0e0e0; border: 1px solid #999; border-radius: 4px; cursor: help; font-weight: bold; }
+        .btn-jard-action:hover { background: #d5d5d5; }
+        .jard-card { border: 2px solid #ddd; padding: 10px; border-radius: 6px; margin-bottom: 8px; cursor: pointer; transition: 0.2s; background: #fafafa; position: relative; }
+        .jard-card:hover { border-color: var(--p1); background: #f1f8e9; }
+        .price-tag { position: absolute; top: -8px; right: -8px; background: var(--gold); color: black; font-weight: bold; padding: 3px 6px; border-radius: 10px; border: 1px solid #b8860b; font-size: 0.9em; }
     </style>
 </head>
 <body>
 
-<div class="header">
-    <div id="season-display" style="font-weight:bold; font-size:1.2em;">Chargement...</div>
-    <div class="meteo-box" id="meteo-display">Météo : --</div>
-    <div id="ravageur-display" style="font-weight:bold; color:#d32f2f;">👾 Aucun</div>
+<div class="main-game">
+    <div class="hud" title="Informations générales de votre exploitation">
+        <div id="season-display">📅 Printemps - An 1</div>
+        <div title="Sous gagnés par la vente et Temps restant pour agir">💰 <span id="res-money">5</span> | ⏳ <span id="res-time">10</span>/<span id="res-timemax">10</span>h</div>
+        <div title="Le compost sert à amender les cultures pour augmenter leur valeur de 1💰">💩 Compost: <span id="res-compost" class="res-pill">3</span></div>
+        <div id="meteo-display" style="color:#1565c0;" title="Dernier tirage des dés météo (Pluie / Soleil)">🎲 --</div>
+    </div>
+
+    <div id="ravageur-alert" style="background:#ffebee; color:#c62828; padding:5px; font-size:0.8em; text-align:center; display:none; border-radius:5px; margin-bottom:5px;"></div>
+    
+    <div id="aux-tray" class="aux-tray" style="display:none;">
+        <span style="font-size: 0.8em; color: #1565c0; margin-right:5px;">🛡️ Protections Actives :</span>
+        </div>
+
+    <div class="farm-grid" id="farm-grid"></div>
+    <div class="logs" id="game-logs">> Prêt. Les Auxiliaires sont de retour !</div>
+
+    <div style="display: grid; grid-template-columns: repeat(4, 1fr); gap:4px; margin-top:10px;">
+        <button class="btn-action" onclick="actionTuile('P')" style="background:#4caf50" title="Aménage une zone en POTAGER (Zones 1-2). Requis pour les Légumes.">
+            🏗️ Potager <span class="btn-cost">-3h | -<span id="c-s-p">2</span>💰</span>
+        </button>
+        <button class="btn-action" onclick="actionTuile('V')" style="background:#fbc02d; color:#333;" title="Aménage une zone en VERGER (Zones 2-5). Requis pour les Arbres.">
+            🏗️ Verger <span class="btn-cost">-3h | -<span id="c-s-v">2</span>💰</span>
+        </button>
+        <button class="btn-action" onclick="actionAmenager()" style="background:#ff5722" title="Aménage un espace Nature. Requis avant de construire un bâtiment local/composteur.">
+            🌳 Nature <span class="btn-cost">-3h | -3💰</span>
+        </button>
+        <button class="btn-action" onclick="actionConstruire()" style="background:#607d8b" title="Construit un bâtiment (Serre sur Potager, Composteur/Local sur Nature).">
+            🏠 Bâtiment <span class="btn-cost">-4h | -3 à 5💰</span>
+        </button>
+        <button class="btn-action" onclick="actionArroser()" style="background:#2196f3" title="Retire 2 cubes d'eau (💧) à la culture sélectionnée.">
+            💧 Arroser <span class="btn-cost">-1h</span>
+        </button>
+        <button class="btn-action" onclick="actionAmender()" style="background:#795548" title="Ajoute un bonus permanent de +1💰 au gain de la culture ciblée.">
+            💩 Amender <span class="btn-cost">-1h | -1💩</span>
+        </button>
+        <button class="btn-action" onclick="prochaineSaison()" style="background:#e53935; grid-column: span 2;" title="Lance la Météo, fait grandir les plantes et restaure le temps.">
+            💤 Fin de Saison <span class="btn-cost">Passe au tour suivant</span>
+        </button>
+    </div>
 </div>
 
-<div class="game-container">
-    <div id="p0-area" class="player-side active">
-        <div style="display:flex; justify-content:space-between; font-weight:bold;">
-            <span>👤 J1 (Potager de l'Expert)</span>
-            <span id="p0-money">💰 5</span>
-            <span id="p0-time">⏳ 10/10h</span>
-        </div>
-        <div id="p0-aux-list" style="margin:5px 0; min-height: 25px;"></div>
-        <div class="grid" id="p0-grid"></div>
-        <div class="hand" id="p0-hand"></div>
+<div class="sidebar">
+    <h3 style="margin:0 0 5px 0; font-size:0.9em;">⚙️ Améliorations</h3>
+    <div class="up-grid" id="up-grid"></div>
+    
+    <h3 style="margin:5px 0; font-size:0.9em;">🛒 Jardinerie (Emplacements)</h3>
+    <div style="display:grid; grid-template-columns: 1fr 1fr; gap:4px;">
+        <button class="btn-action" style="background:#8d6e63" onclick="ouvrirJardinerie(3, 5)" title="Ouvre la jardinerie pour récupérer 5 cartes parmi les rayons.">📦 Empl. 1 <span class="btn-cost">-<span id="jard-c1">3</span>h | 5 pioches</span></button>
+        <button class="btn-action" style="background:#8d6e63" onclick="ouvrirJardinerie(2, 3)" title="Ouvre la jardinerie pour récupérer 3 cartes parmi les rayons.">📦 Empl. 2 <span class="btn-cost">-<span id="jard-c2">2</span>h | 3 pioches</span></button>
+        <button class="btn-action" style="background:#8d6e63" onclick="ouvrirJardinerie(2, 2)" title="Ouvre la jardinerie pour récupérer 2 cartes parmi les rayons.">📦 Empl. 3 <span class="btn-cost">-<span id="jard-c3">2</span>h | 2 pioches</span></button>
+        <button class="btn-action" style="background:#8d6e63" onclick="ouvrirJardinerie(1, 1)" title="Ouvre la jardinerie pour récupérer 1 carte parmi les rayons.">📦 Empl. 4 <span class="btn-cost">-<span id="jard-c4">1</span>h | 1 pioche</span></button>
     </div>
+    
+    <h3 style="margin:5px 0; font-size:0.9em;">🎒 Ma Main</h3>
+    <div class="scroll-area" id="player-hand"></div>
+</div>
 
-    <div class="controls">
-        <button onclick="doAction('draw')">🛒 Jardinerie (2h) - Pioche 2</button>
-        <button onclick="doAction('plant')">🌱 Semer Sélection</button>
-        <button onclick="doAction('water')">💧 Arroser (1h) -2💧</button>
-        <button onclick="doAction('sun')">☀️ Entretenir (3h) -1☀️</button>
-        <button onclick="doAction('harvest')">🧺 Récolter (2h)</button>
-        <button onclick="doAction('upgrade')">⚙️ Temps Max (5s)</button>
-        <button onclick="doAction('buy_aux')" style="background:#5c6bc0;">🦊 Auxiliaire (3s)</button>
-        <div class="log-container" id="log-console"></div>
-        <button style="background:#e53935;" onclick="endHumanTurn()">💤 Terminer mon tour</button>
-    </div>
-
-    <div id="p1-area" class="player-side">
-        <div style="display:flex; justify-content:space-between; font-weight:bold;">
-            <span>🤖 IA GRAND MAÎTRE</span>
-            <span id="p1-money">💰 5</span>
-            <span id="p1-time">⏳ 10/10h</span>
+<div class="modal-overlay" id="jardinerie-modal">
+    <div class="modal-content">
+        <div class="modal-header">
+            <h2 style="margin:0; color:var(--p1);">🛒 La Jardinerie</h2>
+            <div style="font-size:1.2em; font-weight:bold; color:#d32f2f;" title="Nombre de cartes que vous pouvez encore prendre ou d'actions que vous pouvez faire.">Actions restantes : <span id="jard-picks">0</span></div>
+            <div>💰 Vous avez: <span id="jard-money" style="font-weight:bold; color:var(--gold);"></span> sous</div>
         </div>
-        <div id="p1-aux-list" style="margin:5px 0; min-height: 25px;"></div>
-        <div class="grid" id="p1-grid"></div>
+        <div class="rayon-grid">
+            <div class="rayon" id="ray-C"><h3>🌾 Cultures</h3></div>
+            <div class="rayon" id="ray-S"><h3>🛠️ Soutiens</h3></div>
+            <div class="rayon" id="ray-A"><h3>🦊 Auxiliaires</h3></div>
+        </div>
     </div>
 </div>
 
 <script>
-    // --- DECK COMPLET (44 CARTES) ---
-    const DECK = [
-        { nom: "Radis", e: 1, s: 1, t: 1, g: 3, cat: 'L', semis: ['P','E','A','H'], rec: ['P','E','A','H'] },
-        { nom: "Carotte N.", e: 4, s: 2, t: 1, g: 5, cat: 'L', semis: ['P','E'], rec: ['A','H'] },
-        { nom: "Betterave", e: 5, s: 2, t: 1, g: 5, cat: 'L', semis: ['P','E'], rec: ['A','H'] },
-        { nom: "Navet Milan", e: 4, s: 2, t: 1, g: 4, cat: 'L', semis: ['P','A'], rec: ['E','H'] },
-        { nom: "Oignon J.", e: 3, s: 2, t: 1, g: 4, cat: 'L', semis: ['P','A'], rec: ['E','A'] },
-        { nom: "Ail Rose", e: 2, s: 1, t: 1, g: 5, cat: 'L', semis: ['A','H'], rec: ['E'] },
-        { nom: "Patate", e: 6, s: 2, t: 2, g: 6, cat: 'L', semis: ['P'], rec: ['E','A'] },
-        { nom: "Panais", e: 6, s: 3, t: 2, g: 7, cat: 'L', semis: ['P'], rec: ['A','H'] },
-        { nom: "Tomate C.", e: 5, s: 3, t: 1, g: 5, cat: 'L', semis: ['P','E'], rec: ['E','A'] },
-        { nom: "Tomate A.", e: 7, s: 4, t: 2, g: 8, cat: 'L', semis: ['P'], rec: ['E','A'] },
-        { nom: "Aubergine", e: 4, s: 4, t: 1, g: 7, cat: 'L', semis: ['P'], rec: ['E','A'] },
-        { nom: "Poivron", e: 5, s: 4, t: 2, g: 7, cat: 'L', semis: ['P'], rec: ['E','A'] },
-        { nom: "Courgette", e: 6, s: 2, t: 1, g: 5, cat: 'L', semis: ['P','E'], rec: ['E','A'] },
-        { nom: "Concombre", e: 8, s: 2, t: 1, g: 5, cat: 'L', semis: ['P','E'], rec: ['E'] },
-        { nom: "Melon", e: 6, s: 5, t: 2, g: 9, cat: 'L', semis: ['P'], rec: ['E'] },
-        { nom: "Butternut", e: 5, s: 3, t: 2, g: 8, cat: 'L', semis: ['P','E'], rec: ['A'] },
-        { nom: "Potimarron", e: 5, s: 3, t: 2, g: 8, cat: 'L', semis: ['P','E'], rec: ['A'] },
-        { nom: "Laitue P.", e: 5, s: 1, t: 2, g: 4, cat: 'L', semis: ['P','E','A'], rec: ['E','A','H'] },
-        { nom: "Épinard", e: 4, s: 1, t: 1, g: 4, cat: 'L', semis: ['A','H'], rec: ['P'] },
-        { nom: "Chou-Fleur", e: 8, s: 2, t: 2, g: 7, cat: 'L', semis: ['P','A'], rec: ['A','H'] },
-        { nom: "Chou Kale", e: 5, s: 1, t: 1, g: 5, cat: 'L', semis: ['P','E'], rec: ['A','H'] },
-        { nom: "Poireau", e: 7, s: 2, t: 2, g: 6, cat: 'L', semis: ['P','E'], rec: ['H'] },
-        { nom: "Bette carde", e: 6, s: 2, t: 1, g: 5, cat: 'L', semis: ['P','E'], rec: ['E','A'] },
-        { nom: "Haricot V.", e: 4, s: 2, t: 1, g: 6, cat: 'L', semis: ['P','E'], rec: ['E','A'] },
-        { nom: "Petit Pois", e: 5, s: 1, t: 1, g: 5, cat: 'L', semis: ['P','A'], rec: ['P','E'] },
-        { nom: "Fève", e: 4, s: 1, t: 2, g: 6, cat: 'L', semis: ['A','H'], rec: ['P'] },
-        { nom: "Pommier G.", e: 11, s: 4, t: 3, g: 12, cat: 'A', semis: ['A','H'], rec: ['E','A'] },
-        { nom: "Poirier W.", e: 11, s: 4, t: 3, g: 11, cat: 'A', semis: ['A','H'], rec: ['E','A'] },
-        { nom: "Cerisier B.", e: 9, s: 3, t: 3, g: 10, cat: 'A', semis: ['A','H'], rec: ['P','E'] },
-        { nom: "Abricotier", e: 8, s: 5, t: 3, g: 13, cat: 'A', semis: ['A','H'], rec: ['E'] },
-        { nom: "Pêcher", e: 10, s: 5, t: 3, g: 13, cat: 'A', semis: ['P','A'], rec: ['E'] },
-        { nom: "Prunier Q.", e: 9, s: 3, t: 3, g: 10, cat: 'A', semis: ['A','H'], rec: ['E','A'] },
-        { nom: "Figuier", e: 7, s: 5, t: 3, g: 12, cat: 'A', semis: ['P','A'], rec: ['E','A'] },
-        { nom: "Cognassier", e: 10, s: 3, t: 3, g: 9, cat: 'A', semis: ['A','H'], rec: ['A'] },
-        { nom: "Framboise", e: 6, s: 2, t: 2, g: 7, cat: 'A', semis: ['A','H'], rec: ['E','A'] },
-        { nom: "Cassissier", e: 6, s: 2, t: 2, g: 7, cat: 'A', semis: ['A','H'], rec: ['E'] },
-        { nom: "Groseille", e: 6, s: 2, t: 2, g: 7, cat: 'A', semis: ['A','H'], rec: ['E'] },
-        { nom: "Vigne Ch.", e: 9, s: 5, t: 3, g: 11, cat: 'A', semis: ['P','A'], rec: ['A'] },
-        { nom: "Myrtillier", e: 8, s: 2, t: 2, g: 8, cat: 'A', semis: ['A','H'], rec: ['E'] },
-        { nom: "Fraisier", e: 5, s: 3, t: 1, g: 6, cat: 'L', semis: ['P','A'], rec: ['E','A'] },
-        { nom: "Artichaut", e: 9, s: 3, t: 2, g: 9, cat: 'L', semis: ['P','A'], rec: ['P','E'] },
-        { nom: "Asperge", e: 8, s: 2, t: 3, g: 12, cat: 'L', semis: ['P'], rec: ['P'] },
-        { nom: "Rhubarbe", e: 9, s: 2, t: 2, g: 8, cat: 'L', semis: ['P','A'], rec: ['P','E'] },
-        { nom: "Maïs Doux", e: 7, s: 4, t: 1, g: 6, cat: 'L', semis: ['P','E'], rec: ['E','A'] }
+    const DECKS = {
+        C: [
+            { nom: "Radis", prix: 0, e: 1, s: 1, t: 1, g: 3, cat: 'Cultures', semis: ['P','E','A','H'], rec: ['P','E','A','H'] },
+            { nom: "Carotte", prix: 1, e: 4, s: 2, t: 1, g: 5, cat: 'Cultures', semis: ['P','E'], rec: ['A','H'] },
+            { nom: "Tomate", prix: 1, e: 5, s: 5, t: 1, g: 8, cat: 'Cultures', semis: ['P'], rec: ['E','A'] },
+            { nom: "Pommier", prix: 2, e: 12, s: 5, t: 3, g: 15, cat: 'Cultures', semis: ['A','H'], rec: ['E','A'] }
+        ],
+        S: [
+            { nom: "Purin d'Ortie", prix: 1, t: 1, g: 0, cat: 'Soutien', desc: "Arrosage express: -4💧" },
+            { nom: "Fumier", prix: 2, t: 1, g: 0, cat: 'Soutien', desc: "Gain immédiat de +2💩 Compost." }
+        ],
+        A: [
+            { nom: "Hérisson", prix: 2, t: 1, g: 0, cat: 'Auxiliaire', prot: "Limaces" },
+            { nom: "Coccinelle", prix: 1, t: 1, g: 0, cat: 'Auxiliaire', prot: "Pucerons" }
+        ]
+    };
+
+    const UP_NAMES = ["Agrandissement", "Efficacité", "Formation", "Qualité Sol", "Microclimat", "Bricoleur", "Fidélité", "Pass VIP"];
+    const UP_DESC = [
+        "Débloque la Zone 4 (L2) et la Zone 5 (L3).",
+        "Passe le Temps Max à 14h (L2) et 18h (L3).",
+        "Réduit le temps pour semer/planter de 1h (L2) et 2h (L3).",
+        "Augmente tous les gains de récolte de +1💰 (L2) et +2💰 (L3).",
+        "Ajoute un bonus de +1 aux dés Pluie/Soleil (L2).",
+        "Réduit le coût des tuiles Potager/Verger à 1💰 (L2) et 0💰 (L3).",
+        "Réduit de 1h le temps passé à la Jardinerie (L2). Remplissage direct (L3)",
+        "Permet de nouvelles actions de revente."
     ];
 
-    // --- RAVAGEURS (8) & AUXILIAIRES ---
-    const RAVAGEURS = [
-        { nom: "Limace", d: 3, prot: "Hérisson", cat: 'L' },
-        { nom: "Puceron", d: 1, prot: "Coccinelle", cat: 'L' },
-        { nom: "Campagnol", d: 2, prot: "Rapace", cat: 'A' },
-        { nom: "Carpocapse", d: 4, prot: "Chauve-souris", cat: 'A' },
-        { nom: "Mouche Chou", d: 2, prot: "Staphylin", cat: 'L' },
-        { nom: "Chenille", d: 2, prot: "Guêpe", cat: 'L' },
-        { nom: "Doryphore", d: 3, prot: "Carabe", cat: 'L' },
-        { nom: "Araignée R.", d: 1, prot: "Araignée", cat: 'L' }
-    ];
-    const AUXS = ["Hérisson", "Coccinelle", "Rapace", "Chauve-souris", "Staphylin", "Guêpe", "Carabe", "Araignée"];
-    const AUX_DATA = {"Hérisson":"🦔 Limace","Coccinelle":"🐞 Puceron","Rapace":"🦅 Campagnol","Chauve-souris":"🦇 Carpocapse","Staphylin":"🪲 Mouche","Guêpe":"🐝 Chenille","Carabe":"🐜 Doryphore","Araignée":"🕷️ Araignée R."};
+    const RAV_LIST = [{n:"Limaces",d:3,c:'Cultures'}, {n:"Pucerons",d:1,c:'Cultures'}];
+    const ALL_SEASONS = ["P","E","A","H"];
 
-    const CODES = ["P", "E", "A", "H"];
-    const SAISONS = ["Printemps", "Été", "Automne", "Hiver"];
+    let state = {
+        annee: 1, saisonIdx: 0, money: 10, time: 10, timeMax: 10, compost: 3,
+        upgrades: Array(8).fill(1), hand: [], auxActifs: [],
+        zones: Array(6).fill(null).map((_, i) => ({ id: i, type: i === 0 ? "LIFE" : null, culture: null, batiment: null })),
+        selZoneId: null, currentRav: null,
+        market: { C: [], S: [], A: [] }, picksLeft: 0
+    };
 
-    let state = { annee: 1, saisonIdx: 0, currentPlayer: 0, meteo: { e: 0, s: 0 }, ravageur: null, players: [
-        { money: 5, time: 10, timeMax: 10, hand: [], slots: Array(6).fill(null), aux: [] },
-        { money: 5, time: 10, timeMax: 10, hand: [], slots: Array(6).fill(null), aux: [] }
-    ], selCardIdx: null, selSlotIdx: null };
+    function drawCard(cat) { return {...DECKS[cat][Math.floor(Math.random() * DECKS[cat].length)]}; }
+    function initMarket() { ['C','S','A'].forEach(cat => { state.market[cat] = [drawCard(cat), drawCard(cat)]; }); }
+    function addLog(m) { const l = document.getElementById('game-logs'); l.innerHTML = `<div>> ${m}</div>` + l.innerHTML; }
 
-    function auditLog(m, t='sys') {
-        const l = document.getElementById('log-console');
-        const line = document.createElement('div');
-        line.style.color = t === 'p0' ? '#81c784' : (t === 'p1' ? '#ff8a80' : (t === 'orange' ? '#ffb74d' : '#81d4fa'));
-        line.innerText = `[A${state.annee}-${CODES[state.saisonIdx]}] ${m}`;
-        l.prepend(line);
+    function calcSaisons(baseArr, isSerre, isSemis) {
+        if(!isSerre) return baseArr;
+        let res = new Set(baseArr);
+        baseArr.forEach(c => { let i = ALL_SEASONS.indexOf(c); if(isSemis) res.add(ALL_SEASONS[(i+3)%4]); else res.add(ALL_SEASONS[(i+1)%4]); });
+        return Array.from(res);
     }
 
     function render() {
-        const code = CODES[state.saisonIdx];
-        document.getElementById('season-display').innerText = `Année ${state.annee} - ${SAISONS[state.saisonIdx]}`;
-        document.getElementById('meteo-display').innerText = `🌧️ +${state.meteo.e} | ☀️ +${state.meteo.s}`;
-        document.getElementById('ravageur-display').innerText = state.ravageur ? `👾 ${state.ravageur.nom} (-${state.ravageur.d})` : "👾 Aucun";
+        document.getElementById('res-money').innerText = state.money;
+        document.getElementById('res-time').innerText = state.time;
+        document.getElementById('res-timemax').innerText = state.timeMax;
+        document.getElementById('res-compost').innerText = state.compost;
+        document.getElementById('season-display').innerText = `📅 ${["Printemps","Été","Automne","Hiver"][state.saisonIdx]} - An ${state.annee}`;
 
-        [0, 1].forEach(pIdx => {
-            const p = state.players[pIdx];
-            document.getElementById(`p${pIdx}-money`).innerText = `💰 ${p.money}`;
-            document.getElementById(`p${pIdx}-time`).innerText = `⏳ ${p.time}/${p.timeMax}h`;
-            document.getElementById(`p${pIdx}-aux-list`).innerHTML = p.aux.map(a => `<span class="aux-badge" data-tooltip="${AUX_DATA[a]}">${a}</span>`).join('');
+        let costTuile = state.upgrades[5] >= 2 ? (state.upgrades[5] === 3 ? 0 : 1) : 2;
+        document.getElementById('c-s-p').innerText = costTuile; document.getElementById('c-s-v').innerText = costTuile;
+        
+        let redJard = state.upgrades[6] >= 2 ? 1 : 0;
+        document.getElementById('jard-c1').innerText = Math.max(0, 3 - redJard);
+        document.getElementById('jard-c2').innerText = Math.max(0, 2 - redJard);
+        document.getElementById('jard-c3').innerText = Math.max(0, 2 - redJard);
+        document.getElementById('jard-c4').innerText = Math.max(0, 1 - redJard);
 
-            const grid = document.getElementById(`p${pIdx}-grid`);
-            grid.innerHTML = '';
-            p.slots.forEach((c, sIdx) => {
-                const s = document.createElement('div');
-                let zName, zClass, zTip, zBonus;
-                if(sIdx < 2) { zName = "Potager"; zClass = "z-potager"; zTip = "☀️ SERRE : +1 Soleil au semis."; zBonus = "+1 ☀️ Serre"; }
-                else if(sIdx < 4) { zName = "La Haie"; zClass = "z-haie"; zTip = "🛡️ HAIE : Dégâts 'L' divisés par 2."; zBonus = "🛡️ Haie"; }
-                else { zName = "Le Verger"; zClass = "z-verger"; zTip = "💰 VERGER : +2 sous récolte Arbre."; zBonus = "+2💰 Verger"; }
+        const alertBox = document.getElementById('ravageur-alert');
+        if(state.currentRav) { alertBox.style.display = "block"; alertBox.innerText = `👾 RAVAGEUR : ${state.currentRav.n} actif ! (-${state.currentRav.d}💰 si non protégé)`; }
+        else alertBox.style.display = "none";
 
-                s.className = `slot ${c ? 'occupied' : ''} ${state.selSlotIdx === sIdx && pIdx === 0 ? 'selected' : ''} ${zClass}`;
-                s.setAttribute('data-tooltip', zTip);
-                s.onclick = () => { if(state.currentPlayer === 0 && pIdx === 0) { state.selSlotIdx = sIdx; render(); }};
-
-                if (c) {
-                    const isMure = (c.e === 0 && c.s === 0);
-                    s.innerHTML = `
-                        <div class="card-content">
-                            <span class="card-title">${c.nom}</span>
-                            <span style="font-size:1.1em">💧${c.e} ☀️${c.s}</span>
-                            <div style="font-size:0.85em;margin-top:2px;"><span class="tag-s">S:</span>${c.semis} <span class="tag-r">R:</span>${c.rec}</div>
-                            <span style="font-weight:bold;color:#444;">💰${c.g} | ⏳${c.t}h</span>
-                            ${isMure ? '<span style="color:green;font-weight:bold;font-size:0.8em">MÛR</span>' : ''}
-                        </div>`;
-                } else { s.innerHTML = `<span class="zone-bonus">${zBonus}</span><br><b>${zName}</b><br>Zone ${sIdx+1}`; }
-                grid.appendChild(s);
+        // GESTION DU PLATEAU DES AUXILIAIRES
+        const auxTray = document.getElementById('aux-tray');
+        if (state.auxActifs.length > 0) {
+            auxTray.style.display = "flex";
+            let html = '<span style="font-size: 0.8em; color: #1565c0; margin-right:5px;">🛡️ Protections Actives :</span>';
+            state.auxActifs.forEach(prot => {
+                html += `<div class="aux-icon" title="Bloque les dégâts des ${prot}">🦊 Anti-${prot}</div>`;
             });
+            auxTray.innerHTML = html;
+        } else {
+            auxTray.style.display = "none";
+        }
+
+        const grid = document.getElementById('farm-grid'); grid.innerHTML = "";
+        state.zones.forEach(z => {
+            const d = document.createElement('div');
+            const accessible = z.id <= (state.upgrades[0] === 1 ? 3 : (state.upgrades[0] === 2 ? 4 : 5));
+            const isSerre = z.batiment === 'SERRE';
+            let tClass = z.type ? 'tuile-'+z.type.toLowerCase() : '';
+            if(z.batiment && !isSerre) tClass = 'tuile-batiment';
+            if(isSerre) tClass += ' has-serre'; 
+            
+            d.className = `zone ${tClass} ${state.selZoneId === z.id ? 'selected' : ''}`;
+            d.style.opacity = accessible ? "1" : "0.3";
+            d.onclick = () => { if(accessible) { state.selZoneId = z.id; render(); } };
+            
+            let tooltip = "";
+            if (z.id === 0) { tooltip = "Zone 0 (Maison)"; }
+            else if (!accessible) { tooltip = "Zone verrouillée 🔒"; }
+            else if (isSerre && !z.culture) { tooltip = `SERRE\nAvance les semis, retarde les récoltes.`; }
+            else if (z.batiment && !isSerre) { tooltip = `Bâtiment: ${z.batiment}`; }
+            else if (!z.type) { tooltip = `Zone ${z.id} vierge.`; }
+            else if (!z.culture) { tooltip = `Tuile ${z.type}\nPrête pour un semis.`; }
+            else { 
+                const s_valides = calcSaisons(z.culture.semis, isSerre, true);
+                const r_valides = calcSaisons(z.culture.rec, isSerre, false);
+                const gain = z.culture.g + (state.upgrades[3]-1) + (z.culture.amend || 0);
+                tooltip = `${z.culture.nom}\nGain base: ${gain}💰\nBesoins: ${z.culture.eCur}💧 ${z.culture.sCur}☀️\nSemis: ${s_valides.join(',')} | Récolte: ${r_valides.join(',')}`; 
+            }
+            d.title = tooltip;
+            
+            if(z.id === 0) d.innerHTML = "🏠 MAISON";
+            else if(!z.type) d.innerHTML = `ZONE ${z.id}${accessible ? '' : '<br>🔒'}`;
+            else {
+                let entete = z.batiment && !isSerre ? `🏗️ ${z.batiment}` : z.type;
+                if(isSerre) entete = "POTAGER + SERRE";
+                d.innerHTML = `<span style="font-size:0.75em; opacity:0.7; font-weight:bold;">${entete}</span>`;
+                
+                if(z.culture) {
+                    const s_valides = calcSaisons(z.culture.semis, isSerre, true);
+                    const r_valides = calcSaisons(z.culture.rec, isSerre, false);
+                    const mure = z.culture.eCur <= 0 && z.culture.sCur <= 0;
+                    const canRec = r_valides.includes(ALL_SEASONS[state.saisonIdx]);
+                    const gain = z.culture.g + (state.upgrades[3]-1) + (z.culture.amend || 0);
+                    
+                    d.innerHTML += `<br><b>${z.culture.nom}</b><br>💧${z.culture.eCur} ☀️${z.culture.sCur}<br>💰${gain}`;
+                    if(mure && canRec) d.innerHTML += `<button onclick="actionRecolter(${z.id})" style="background:var(--p1); color:white; border:none; cursor:pointer; font-size:0.9em; margin-top:4px; padding:4px; border-radius:3px;" title="Récolter cette culture">🧺 Récolter</button>`;
+                }
+            }
+            grid.appendChild(d);
         });
 
-        const h = document.getElementById('p0-hand');
-        h.innerHTML = state.players[0].hand.map((c, idx) => `
-            <div class="card ${state.selCardIdx===idx?'selected':''} ${!c.semis.includes(code)?'off-season':''}" onclick="state.selCardIdx=${idx}; render();">
-                <span class="card-title">${c.nom}</span>
-                <span>💧${c.e} ☀️${c.s}</span><br>
-                <div style="font-size:0.8em;margin:3px 0;"><span class="tag-s">S:</span>${c.semis} <span class="tag-r">R:</span>${c.rec}</div>
-                <span style="font-weight:bold;color:#2e7d32;">💰${c.g} | ⏳${c.t}h</span>
-            </div>`).join('');
+        const upDiv = document.getElementById('up-grid'); upDiv.innerHTML = "";
+        UP_NAMES.forEach((name, i) => {
+            const card = document.createElement('div'); card.className = "up-card";
+            let costLvl = state.upgrades[i] === 1 ? 3 : 5;
+            card.title = `Amélioration: ${name}\nCoût prochain niveau: ${costLvl}h\nAvantage: ${UP_DESC[i]}`;
+            card.innerHTML = `<b>${name}</b><br>L${state.upgrades[i]}`;
+            const btn = document.createElement('button'); btn.className = "btn-up"; 
+            if(state.upgrades[i] < 3) { btn.innerHTML = `UP`; btn.onclick = () => upgrade(i); } 
+            else { btn.innerHTML = "MAX"; btn.disabled = true; btn.style.background = "#ddd"; }
+            upDiv.appendChild(card); card.appendChild(btn);
+        });
+
+        const hDiv = document.getElementById('player-hand'); hDiv.innerHTML = "";
+        state.hand.forEach((c, i) => {
+            const d = document.createElement('div'); d.className = "card";
+            if(c.cat === 'Auxiliaire') { d.title = `Auxiliaire\nProtège contre les ${c.prot}\nCoût: ${c.t}h`; } 
+            else if(c.cat === 'Soutien') { d.title = `Soutien\nEffet: ${c.desc}\nCoût: ${c.t}h`; }
+            else { d.title = `Type: ${c.cat}\nSemis: ${c.semis}\nRécolte: ${c.rec}\nCoût Temps: ${c.t}h`; }
+            
+            let btnText = c.cat === 'Auxiliaire' ? "🦊 Activer" : (c.cat === 'Soutien' ? "✨ Utiliser" : "🌱 Jouer");
+            d.innerHTML = `<b>${c.nom}</b> [${c.cat}]<br>
+                <button onclick="jouerCarte(${i})" style="width:100%; margin-top:4px; padding:4px; cursor:pointer; border:1px solid #ccc; border-radius:3px; background:#e8eaf6;">${btnText} (-${c.t}h)</button>`;
+            hDiv.appendChild(d);
+        });
     }
 
-    function startNewSaison() {
-        state.ravageur = null;
-        state.meteo.e = [1,2,2][Math.floor(Math.random()*3)] + [1,2][Math.floor(Math.random()*2)];
-        state.meteo.s = [0,0,1][Math.floor(Math.random()*3)];
-        state.ravageur = Math.random() > 0.4 ? RAVAGEURS[Math.floor(Math.random()*RAVAGEURS.length)] : null;
-        state.players.forEach(p => p.slots.forEach(c => { if(c){ c.e=Math.max(0,c.e-state.meteo.e); c.s=Math.max(0,c.s-state.meteo.s); } }));
-        render();
+    function ouvrirJardinerie(cost, picks) {
+        let finalCost = state.upgrades[6] >= 2 ? Math.max(0, cost - 1) : cost;
+        if(state.time < finalCost) return addLog("Pas assez de temps !");
+        state.time -= finalCost; state.picksLeft = picks;
+        document.getElementById('jardinerie-modal').style.display = 'flex';
+        renderJardinerie();
     }
 
-    function doAction(type) {
-        if(state.currentPlayer !== 0 || state.gameOver) return;
-        let p = state.players[0];
-        let codeSaison = CODES[state.saisonIdx];
+    function renderJardinerie() {
+        document.getElementById('jard-picks').innerText = state.picksLeft;
+        document.getElementById('jard-money').innerText = state.money;
+        
+        ['C', 'S', 'A'].forEach(cat => {
+            const cont = document.getElementById('ray-' + cat);
+            let title = cat === 'C' ? '🌾 Cultures' : (cat === 'S' ? '🛠️ Soutiens' : '🦊 Auxiliaires');
+            cont.innerHTML = `<h3>${title}</h3>
+                <button class="btn-jard-action" title="Pioche la 1ère carte de la réserve à l'aveugle." onclick="piocheAveugle('${cat}')">❓ Pioche Aveugle (1 act)</button>
+                <button class="btn-jard-action" title="Défausse les cartes visibles et en révèle 2 nouvelles." onclick="renouvelerRayon('${cat}')">🔄 Renouveler (1 act)</button>
+                <hr style="border:0; border-top:1px solid #eee;">`;
+            
+            if(state.market[cat].length === 0) { cont.innerHTML += `<i>Rayon vide pour ce tour.</i>`; }
+            
+            state.market[cat].forEach((c, i) => {
+                const d = document.createElement('div'); d.className = "jard-card";
+                d.title = `Cliquez pour acheter (Coût: ${c.prix}💰)`;
+                if(c.prix > 0) d.innerHTML += `<div class="price-tag">${c.prix}💰</div>`;
+                let detail = c.cat === 'Cultures' ? `S:${c.semis} | R:${c.rec}` : `<i>${c.prot || c.desc}</i>`;
+                d.innerHTML += `<b>${c.nom}</b><br><span style="font-size:0.8em">${detail}<br>⏳${c.t}h</span>`;
+                d.onclick = () => acheterVisible(cat, i);
+                cont.appendChild(d);
+            });
+        });
+    }
 
-        if(type==='draw' && p.time >= 2){ 
-            p.time -= 2; p.hand.push({...DECK[Math.floor(Math.random()*DECK.length)]}, {...DECK[Math.floor(Math.random()*DECK.length)]}); 
-            auditLog("J1: Jardinerie - Pioche 2 cartes", "p0"); 
+    function consumePick() {
+        state.picksLeft--;
+        if(state.picksLeft <= 0) {
+            document.getElementById('jardinerie-modal').style.display = 'none';
+            ['C','S','A'].forEach(cat => { while(state.market[cat].length < 2) state.market[cat].push(drawCard(cat)); });
+            render(); addLog("Fin des achats à la Jardinerie.");
+        } else { renderJardinerie(); }
+    }
+
+    function renouvelerRayon(cat) { state.market[cat] = [drawCard(cat), drawCard(cat)]; addLog(`Rayon renouvelé.`); consumePick(); }
+    function acheterVisible(cat, idx) {
+        let c = state.market[cat][idx]; if(state.money < c.prix) return alert("Pas assez de sous !");
+        state.money -= c.prix; state.hand.push(c); state.market[cat].splice(idx, 1);
+        if(state.upgrades[6] >= 3) state.market[cat].push(drawCard(cat)); 
+        consumePick();
+    }
+    function piocheAveugle(cat) {
+        let c = drawCard(cat);
+        if(c.prix > 0) {
+            if(state.money >= c.prix && confirm(`Pioche : ${c.nom} (${c.prix}💰). L'acheter ?`)) { state.money -= c.prix; state.hand.push(c); alert("Achetée !"); } 
+            else { alert(`Défaussée.`); }
+        } else { state.hand.push(c); alert(`Pioche gratuite : ${c.nom} !`); }
+        consumePick();
+    }
+
+    function actionConstruire() {
+        if(state.selZoneId === null) return addLog("Sélectionnez une zone.");
+        let z = state.zones[state.selZoneId];
+        if(z.type !== 'AMÉNAGEMENT') return addLog("Erreur: Aménagez d'abord en 'Nature'.");
+        if(z.batiment) return addLog("Erreur: Bâtiment déjà présent.");
+        if(state.time >= 4) {
+            const nom = prompt("Nom du bâtiment (Serre, Composteur, Local...) :");
+            if(!nom) return; state.time -= 4; z.batiment = nom.toUpperCase(); render();
         }
-        else if(type==='plant' && state.selCardIdx!==null && state.selSlotIdx!==null){
-            let c = p.hand[state.selCardIdx];
-            if(!c.semis.includes(codeSaison)) return auditLog("Pas la saison de semis !", "orange");
-            if(p.slots[state.selSlotIdx]) return auditLog("Zone déjà occupée !", "orange");
-            if(p.time < c.t) return auditLog("Temps insuffisant !", "orange");
-            p.time -= c.t; let nc = p.hand.splice(state.selCardIdx, 1)[0];
-            if(state.selSlotIdx < 2) nc.s = Math.max(0, nc.s - 1);
-            p.slots[state.selSlotIdx] = nc; auditLog(`J1: Plante ${nc.nom} Z${state.selSlotIdx+1}`, "p0"); state.selCardIdx = null;
+    }
+
+    function actionAmenager() { if(state.selZoneId && state.money >= 3 && state.time >= 3) { state.money -= 3; state.time -= 3; state.zones[state.selZoneId].type = 'AMÉNAGEMENT'; render(); } }
+    function actionTuile(t) { let cost = state.upgrades[5] >= 2 ? (state.upgrades[5] === 3 ? 0 : 1) : 2; if(state.selZoneId && state.money >= cost && state.time >= 3) { state.money -= cost; state.time -= 3; state.zones[state.selZoneId].type = t === 'P' ? 'POTAGER' : 'VERGER'; render(); } }
+
+    function jouerCarte(i) {
+        let c = state.hand[i];
+        if(state.time < c.t) return addLog("Pas assez de temps.");
+        
+        if(c.cat === 'Auxiliaire') { state.time -= c.t; state.auxActifs.push(c.prot); state.hand.splice(i,1); addLog(`🦊 Protection Anti-${c.prot} ajoutée !`); render(); }
+        else if(c.cat === 'Soutien') {
+            state.time -= c.t; state.hand.splice(i,1);
+            if(c.nom === "Fumier") { state.compost += 2; addLog("+2 Compost !"); }
+            if(c.nom === "Purin d'Ortie" && state.selZoneId) { let z = state.zones[state.selZoneId]; if(z.culture) z.culture.eCur = Math.max(0, z.culture.eCur - 4); }
+            render();
+        } else {
+            let z = state.zones[state.selZoneId];
+            if(!z || !z.type || z.culture) return addLog("Sélectionnez une zone vierge adaptée.");
+            state.time -= c.t; z.culture = {...c, eCur: c.e, sCur: c.s, amend:0}; state.hand.splice(i,1); render();
         }
-        else if(type==='water' && state.selSlotIdx!==null && p.slots[state.selSlotIdx] && p.time>=1){
-            p.time -= 1; p.slots[state.selSlotIdx].e = Math.max(0, p.slots[state.selSlotIdx].e - 2); auditLog("J1: Arrosage", "p0");
+    }
+
+    function actionRecolter(id) { 
+        let z = state.zones[id]; if(state.time < 2) return; 
+        state.time -= 2; 
+        let gain = z.culture.g + (state.upgrades[3]-1) + (z.culture.amend || 0);
+        
+        // GESTION DES DÉGÂTS RAVAGEURS
+        if(state.currentRav && state.currentRav.c === z.culture.cat) {
+            if(!state.auxActifs.includes(state.currentRav.n)) {
+                gain -= state.currentRav.d;
+                addLog(`Dégâts subis par les ${state.currentRav.n} (-${state.currentRav.d}💰)`);
+            } else {
+                addLog(`🦊 Protection auxiliaire efficace contre les ${state.currentRav.n} !`);
+            }
         }
-        else if(type==='sun' && state.selSlotIdx!==null && p.slots[state.selSlotIdx] && p.time>=3){
-            p.time -= 3; p.slots[state.selSlotIdx].s = Math.max(0, p.slots[state.selSlotIdx].s - 1); auditLog("J1: Entretien -1☀️", "p0");
-        }
-        else if(type==='harvest' && state.selSlotIdx!==null){
-            let c = p.slots[state.selSlotIdx];
-            if(!c) return;
-            const isMure = (c.e === 0 && c.s === 0);
-            const isSeason = c.rec.includes(codeSaison);
-            if(isMure && isSeason && p.time >= 2) {
-                let gain = c.g; if(c.cat === 'A' && state.selSlotIdx >= 4) gain += 2;
-                if(state.ravageur && !p.aux.includes(state.ravageur.prot)) {
-                    let d = state.ravageur.d; if(state.selSlotIdx >= 2 && state.selSlotIdx <= 3 && state.ravageur.cat === 'L') d = Math.ceil(d/2);
-                    gain = Math.max(1, gain - d); auditLog("Ravageur ! Gain réduit.", "orange");
+        
+        state.money += Math.max(1, gain); z.culture = null; 
+        addLog(`Récolte vendue pour ${Math.max(1, gain)}💰 !`); render(); 
+    }
+
+    function actionAmender() { let z = state.zones[state.selZoneId]; if(z && z.culture && state.time >= 1 && state.compost > 0) { state.time -= 1; state.compost -= 1; z.culture.amend = (z.culture.amend || 0) + 1; render(); } }
+    function actionArroser() { let z = state.zones[state.selZoneId]; if(z && z.culture && state.time >= 1) { state.time -= 1; z.culture.eCur = Math.max(0, z.culture.eCur - 2); render(); } }
+    function upgrade(idx) { let cost = state.upgrades[idx] === 1 ? 3 : 5; if(state.time >= cost && state.upgrades[idx] < 3) { state.time -= cost; state.upgrades[idx]++; if(idx === 1) state.timeMax += 4; render(); } }
+
+    function prochaineSaison() {
+        state.saisonIdx++; if(state.saisonIdx > 3) { state.saisonIdx = 0; state.annee++; }
+        let p = Math.floor(Math.random()*2)+1; let s = Math.floor(Math.random()*2);
+        document.getElementById('meteo-display').innerText = `🎲 🌧️${p} ☀️${s}`;
+        state.currentRav = Math.random() > 0.6 ? RAV_LIST[Math.floor(Math.random()*RAV_LIST.length)] : null;
+        
+        state.zones.forEach(z => { 
+            if(z.culture) { 
+                z.culture.eCur = Math.max(0, z.culture.eCur-p); z.culture.sCur = Math.max(0, z.culture.sCur-s);
+                const isSerre = z.batiment === 'SERRE';
+                const s_valides = calcSaisons(z.culture.semis, isSerre, true);
+                const r_valides = calcSaisons(z.culture.rec, isSerre, false);
+                if(!r_valides.includes(ALL_SEASONS[state.saisonIdx]) && !s_valides.includes(ALL_SEASONS[state.saisonIdx])) {
+                    addLog(`🥀 ${z.culture.nom} a péri (hors saison).`); z.culture = null;
                 }
-                p.money += gain; p.time -= 2; p.slots[state.selSlotIdx] = null; auditLog(`J1: Récolte (+${gain}💰)`, "p0"); state.selSlotIdx = null;
-            } else { auditLog("Non récoltable (Saison/Maturité)", "orange"); }
-        }
-        else if(type==='upgrade' && p.money>=5){ if(p.timeMax < 17) { p.money -= 5; p.timeMax = Math.min(17, p.timeMax + 4); auditLog(`J1: Upgrade Temps Max: ${p.timeMax}h`, "p0"); } }
-        else if(type==='buy_aux' && p.money>=3){ 
-            let next = AUXS.find(a => !p.aux.includes(a));
-            if(next) { p.money -= 3; p.aux.push(next); auditLog("J1: Auxiliaire " + next, "p0"); }
-        }
-        render();
+            }
+        });
+        state.time = state.timeMax; state.compost += 1; render();
     }
 
-    async function botAI() {
-        let b = state.players[1]; let code = CODES[state.saisonIdx];
-        const wait = ms => new Promise(r => setTimeout(r, ms));
-        for(let i=0; i<6; i++) {
-            let c = b.slots[i];
-            if(c && c.e===0 && c.s===0 && b.time>=2 && c.rec.includes(code)) {
-                let gain = (c.cat === 'A' && i >= 4) ? c.g+2 : c.g; b.money += gain; b.time -= 2; b.slots[i] = null; auditLog("Bot: Récolte", "p1"); render(); await wait(600);
-            }
-        }
-        if(b.money>=5 && b.timeMax<17 && b.time>=2){ b.money -= 5; b.timeMax = Math.min(17, b.timeMax + 4); auditLog("Bot: Upgrade Temps", "p1"); render(); await wait(600); }
-        for(let i=0; i<6; i++) {
-            let c = b.slots[i]; if(c && c.e===0 && c.s > 0 && c.s <= 2 && b.time>=5 && c.rec.includes(code)) { b.time -= 3; c.s--; auditLog("Bot: Forçage Soleil", "p1"); render(); await wait(800); }
-        }
-        if(b.hand.length < 2 && b.time >= 2) { b.time -= 2; b.hand.push({...DECK[Math.floor(Math.random()*DECK.length)]}); render(); await wait(600); }
-        let empty = b.slots.findIndex(s => s === null);
-        if(empty !== -1 && b.time >= 3) { 
-            let nc = {...DECK[Math.floor(Math.random()*DECK.length)]};
-            if(nc.semis.includes(code) && (state.annee < 3 || nc.cat !== 'A')) {
-                if(empty < 2) nc.s = Math.max(0, nc.s - 1); b.time -= nc.t; b.slots[empty] = nc; auditLog(`Bot: Plante ${nc.nom}`, "p1"); render(); await wait(600); 
-            }
-        }
-        while(b.time >= 1) { let t = b.slots.find(s => s && s.e > 0); if(t) { t.e = Math.max(0, t.e - 2); b.time -= 1; render(); await wait(300); } else break; }
-        setTimeout(finalize, 800);
-    }
-
-    function endHumanTurn() { state.currentPlayer = 1; render(); auditLog("IA en cours...", "sys"); setTimeout(botAI, 800); }
-    function finalize() {
-        state.saisonIdx++; if(state.saisonIdx > 3){ state.saisonIdx=0; state.annee++; }
-        if(state.annee > 3){ state.gameOver = true; render(); auditLog(`FIN DE PARTIE - J1: ${state.players[0].money} | IA: ${state.players[1].money}`, "sys"); return; }
-        state.players.forEach(p => p.time = p.timeMax); state.currentPlayer = 0; startNewSaison();
-    }
-    window.onload = () => { startNewSaison(); render(); auditLog("Partie prête ! Bonne chance."); };
+    initMarket(); render();
 </script>
 </body>
 </html>
