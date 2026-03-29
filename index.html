@@ -2,7 +2,7 @@
 <html lang="fr">
 <head>
     <meta charset="UTF-8">
-    <title>La Main Verte - V4.12 Défense Visible</title>
+    <title>La Main Verte - V4.14 Marché Ouvert</title>
     <style>
         :root { --p1: #2e7d32; --bg: #f4f7f1; --potager: #81c784; --verger: #fff176; --amenag: #ffccbc; --batiment: #455a64; --dark: #263238; --gold: #ffd700; --serre: #e1f5fe; }
         body { font-family: 'Segoe UI', sans-serif; background: var(--bg); margin: 0; display: flex; height: 100vh; overflow: hidden; }
@@ -33,6 +33,9 @@
         .btn-action:hover { filter: brightness(1.1); }
         .btn-cost { font-size: 0.8em; font-weight: normal; margin-top: 2px; opacity: 0.9; }
         .res-pill { background: #e8f5e9; padding: 2px 8px; border-radius: 10px; color: var(--p1); border: 1px solid var(--p1); }
+
+        .market-preview { background: #fffde7; padding: 6px; border: 1px solid #ffd54f; border-radius: 6px; font-size: 0.75em; margin-bottom: 6px; line-height: 1.4; }
+        .market-preview b { color: #555; }
 
         /* AUXILIAIRES TRAY */
         .aux-tray { display: flex; gap: 5px; margin-bottom: 8px; min-height: 25px; background: #e3f2fd; padding: 5px 10px; border-radius: 5px; border: 1px solid #90caf9; flex-wrap: wrap; align-items: center; }
@@ -66,22 +69,22 @@
     
     <div id="aux-tray" class="aux-tray" style="display:none;">
         <span style="font-size: 0.8em; color: #1565c0; margin-right:5px;">🛡️ Protections Actives :</span>
-        </div>
+    </div>
 
     <div class="farm-grid" id="farm-grid"></div>
-    <div class="logs" id="game-logs">> Prêt. Les Auxiliaires sont de retour !</div>
+    <div class="logs" id="game-logs">> Prêt. La vitrine du marché est de retour.</div>
 
     <div style="display: grid; grid-template-columns: repeat(4, 1fr); gap:4px; margin-top:10px;">
-        <button class="btn-action" onclick="actionTuile('P')" style="background:#4caf50" title="Aménage une zone en POTAGER (Zones 1-2). Requis pour les Légumes.">
+        <button class="btn-action" onclick="actionTuile('P')" style="background:#4caf50" title="Aménage une zone en POTAGER. Requis pour les Légumes.">
             🏗️ Potager <span class="btn-cost">-3h | -<span id="c-s-p">2</span>💰</span>
         </button>
-        <button class="btn-action" onclick="actionTuile('V')" style="background:#fbc02d; color:#333;" title="Aménage une zone en VERGER (Zones 2-5). Requis pour les Arbres.">
+        <button class="btn-action" onclick="actionTuile('V')" style="background:#fbc02d; color:#333;" title="Aménage une zone en VERGER. Requis pour les Arbres.">
             🏗️ Verger <span class="btn-cost">-3h | -<span id="c-s-v">2</span>💰</span>
         </button>
-        <button class="btn-action" onclick="actionAmenager()" style="background:#ff5722" title="Aménage un espace Nature. Requis avant de construire un bâtiment local/composteur.">
+        <button class="btn-action" onclick="actionAmenager()" style="background:#ff5722" title="Aménage un espace Nature.">
             🌳 Nature <span class="btn-cost">-3h | -3💰</span>
         </button>
-        <button class="btn-action" onclick="actionConstruire()" style="background:#607d8b" title="Construit un bâtiment (Serre sur Potager, Composteur/Local sur Nature).">
+        <button class="btn-action" onclick="actionConstruire()" style="background:#607d8b" title="Serre: sur Potager uniquement.&#10;Composteur/Local: sur Potager ou Nature.">
             🏠 Bâtiment <span class="btn-cost">-4h | -3 à 5💰</span>
         </button>
         <button class="btn-action" onclick="actionArroser()" style="background:#2196f3" title="Retire 2 cubes d'eau (💧) à la culture sélectionnée.">
@@ -100,12 +103,15 @@
     <h3 style="margin:0 0 5px 0; font-size:0.9em;">⚙️ Améliorations</h3>
     <div class="up-grid" id="up-grid"></div>
     
-    <h3 style="margin:5px 0; font-size:0.9em;">🛒 Jardinerie (Emplacements)</h3>
+    <h3 style="margin:5px 0 2px 0; font-size:0.9em;">🛒 Jardinerie (En Vitrine)</h3>
+    <div class="market-preview" id="market-preview">
+        </div>
+    
     <div style="display:grid; grid-template-columns: 1fr 1fr; gap:4px;">
-        <button class="btn-action" style="background:#8d6e63" onclick="ouvrirJardinerie(3, 5)" title="Ouvre la jardinerie pour récupérer 5 cartes parmi les rayons.">📦 Empl. 1 <span class="btn-cost">-<span id="jard-c1">3</span>h | 5 pioches</span></button>
-        <button class="btn-action" style="background:#8d6e63" onclick="ouvrirJardinerie(2, 3)" title="Ouvre la jardinerie pour récupérer 3 cartes parmi les rayons.">📦 Empl. 2 <span class="btn-cost">-<span id="jard-c2">2</span>h | 3 pioches</span></button>
-        <button class="btn-action" style="background:#8d6e63" onclick="ouvrirJardinerie(2, 2)" title="Ouvre la jardinerie pour récupérer 2 cartes parmi les rayons.">📦 Empl. 3 <span class="btn-cost">-<span id="jard-c3">2</span>h | 2 pioches</span></button>
-        <button class="btn-action" style="background:#8d6e63" onclick="ouvrirJardinerie(1, 1)" title="Ouvre la jardinerie pour récupérer 1 carte parmi les rayons.">📦 Empl. 4 <span class="btn-cost">-<span id="jard-c4">1</span>h | 1 pioche</span></button>
+        <button class="btn-action" style="background:#8d6e63" onclick="ouvrirJardinerie(3, 5)" title="Ouvre la jardinerie pour récupérer 5 cartes.">📦 Empl. 1 <span class="btn-cost">-<span id="jard-c1">3</span>h | 5 pioches</span></button>
+        <button class="btn-action" style="background:#8d6e63" onclick="ouvrirJardinerie(2, 3)" title="Ouvre la jardinerie pour récupérer 3 cartes.">📦 Empl. 2 <span class="btn-cost">-<span id="jard-c2">2</span>h | 3 pioches</span></button>
+        <button class="btn-action" style="background:#8d6e63" onclick="ouvrirJardinerie(2, 2)" title="Ouvre la jardinerie pour récupérer 2 cartes.">📦 Empl. 3 <span class="btn-cost">-<span id="jard-c3">2</span>h | 2 pioches</span></button>
+        <button class="btn-action" style="background:#8d6e63" onclick="ouvrirJardinerie(1, 1)" title="Ouvre la jardinerie pour récupérer 1 carte.">📦 Empl. 4 <span class="btn-cost">-<span id="jard-c4">1</span>h | 1 pioche</span></button>
     </div>
     
     <h3 style="margin:5px 0; font-size:0.9em;">🎒 Ma Main</h3>
@@ -116,7 +122,7 @@
     <div class="modal-content">
         <div class="modal-header">
             <h2 style="margin:0; color:var(--p1);">🛒 La Jardinerie</h2>
-            <div style="font-size:1.2em; font-weight:bold; color:#d32f2f;" title="Nombre de cartes que vous pouvez encore prendre ou d'actions que vous pouvez faire.">Actions restantes : <span id="jard-picks">0</span></div>
+            <div style="font-size:1.2em; font-weight:bold; color:#d32f2f;" title="Actions restantes.">Actions restantes : <span id="jard-picks">0</span></div>
             <div>💰 Vous avez: <span id="jard-money" style="font-weight:bold; color:var(--gold);"></span> sous</div>
         </div>
         <div class="rayon-grid">
@@ -179,6 +185,19 @@
         return Array.from(res);
     }
 
+    function updateMarketPreview() {
+        const previewDiv = document.getElementById('market-preview');
+        const cCards = state.market.C.map(c => `${c.nom}(<span style="color:#b8860b;font-weight:bold">${c.prix}💰</span>)`).join(', ') || "<i>Vide</i>";
+        const sCards = state.market.S.map(c => `${c.nom}(<span style="color:#b8860b;font-weight:bold">${c.prix}💰</span>)`).join(', ') || "<i>Vide</i>";
+        const aCards = state.market.A.map(c => `${c.nom}(<span style="color:#b8860b;font-weight:bold">${c.prix}💰</span>)`).join(', ') || "<i>Vide</i>";
+        
+        previewDiv.innerHTML = `
+            🌾 <b>Cultures:</b> ${cCards}<br>
+            🛠️ <b>Soutiens:</b> ${sCards}<br>
+            🦊 <b>Auxiliaires:</b> ${aCards}
+        `;
+    }
+
     function render() {
         document.getElementById('res-money').innerText = state.money;
         document.getElementById('res-time').innerText = state.time;
@@ -195,22 +214,19 @@
         document.getElementById('jard-c3').innerText = Math.max(0, 2 - redJard);
         document.getElementById('jard-c4').innerText = Math.max(0, 1 - redJard);
 
+        updateMarketPreview(); // <-- LA VITRINE EST ICI
+
         const alertBox = document.getElementById('ravageur-alert');
         if(state.currentRav) { alertBox.style.display = "block"; alertBox.innerText = `👾 RAVAGEUR : ${state.currentRav.n} actif ! (-${state.currentRav.d}💰 si non protégé)`; }
         else alertBox.style.display = "none";
 
-        // GESTION DU PLATEAU DES AUXILIAIRES
         const auxTray = document.getElementById('aux-tray');
         if (state.auxActifs.length > 0) {
             auxTray.style.display = "flex";
             let html = '<span style="font-size: 0.8em; color: #1565c0; margin-right:5px;">🛡️ Protections Actives :</span>';
-            state.auxActifs.forEach(prot => {
-                html += `<div class="aux-icon" title="Bloque les dégâts des ${prot}">🦊 Anti-${prot}</div>`;
-            });
+            state.auxActifs.forEach(prot => { html += `<div class="aux-icon" title="Bloque les dégâts des ${prot}">🦊 Anti-${prot}</div>`; });
             auxTray.innerHTML = html;
-        } else {
-            auxTray.style.display = "none";
-        }
+        } else { auxTray.style.display = "none"; }
 
         const grid = document.getElementById('farm-grid'); grid.innerHTML = "";
         state.zones.forEach(z => {
@@ -236,7 +252,7 @@
                 const s_valides = calcSaisons(z.culture.semis, isSerre, true);
                 const r_valides = calcSaisons(z.culture.rec, isSerre, false);
                 const gain = z.culture.g + (state.upgrades[3]-1) + (z.culture.amend || 0);
-                tooltip = `${z.culture.nom}\nGain base: ${gain}💰\nBesoins: ${z.culture.eCur}💧 ${z.culture.sCur}☀️\nSemis: ${s_valides.join(',')} | Récolte: ${r_valides.join(',')}`; 
+                tooltip = `${z.culture.nom}\nGain: ${gain}💰\nBesoins: ${z.culture.eCur}💧 ${z.culture.sCur}☀️\nS: ${s_valides.join(',')} | R: ${r_valides.join(',')}`; 
             }
             d.title = tooltip;
             
@@ -255,7 +271,8 @@
                     const gain = z.culture.g + (state.upgrades[3]-1) + (z.culture.amend || 0);
                     
                     d.innerHTML += `<br><b>${z.culture.nom}</b><br>💧${z.culture.eCur} ☀️${z.culture.sCur}<br>💰${gain}`;
-                    if(mure && canRec) d.innerHTML += `<button onclick="actionRecolter(${z.id})" style="background:var(--p1); color:white; border:none; cursor:pointer; font-size:0.9em; margin-top:4px; padding:4px; border-radius:3px;" title="Récolter cette culture">🧺 Récolter</button>`;
+                    if(mure && canRec) d.innerHTML += `<button onclick="actionRecolter(${z.id})" style="background:var(--p1); color:white; border:none; cursor:pointer; font-size:0.9em; margin-top:4px; padding:4px; border-radius:3px;">🧺 Récolter</button>`;
+                    else if(mure) d.innerHTML += `<br><i style="color:#e65100; font-size:0.9em;">Attend Saison R</i>`;
                 }
             }
             grid.appendChild(d);
@@ -276,7 +293,7 @@
         const hDiv = document.getElementById('player-hand'); hDiv.innerHTML = "";
         state.hand.forEach((c, i) => {
             const d = document.createElement('div'); d.className = "card";
-            if(c.cat === 'Auxiliaire') { d.title = `Auxiliaire\nProtège contre les ${c.prot}\nCoût: ${c.t}h`; } 
+            if(c.cat === 'Auxiliaire') { d.title = `Auxiliaire\nProtège: ${c.prot}\nCoût: ${c.t}h`; } 
             else if(c.cat === 'Soutien') { d.title = `Soutien\nEffet: ${c.desc}\nCoût: ${c.t}h`; }
             else { d.title = `Type: ${c.cat}\nSemis: ${c.semis}\nRécolte: ${c.rec}\nCoût Temps: ${c.t}h`; }
             
@@ -327,7 +344,7 @@
             document.getElementById('jardinerie-modal').style.display = 'none';
             ['C','S','A'].forEach(cat => { while(state.market[cat].length < 2) state.market[cat].push(drawCard(cat)); });
             render(); addLog("Fin des achats à la Jardinerie.");
-        } else { renderJardinerie(); }
+        } else { renderJardinerie(); updateMarketPreview(); }
     }
 
     function renouvelerRayon(cat) { state.market[cat] = [drawCard(cat), drawCard(cat)]; addLog(`Rayon renouvelé.`); consumePick(); }
@@ -346,15 +363,34 @@
         consumePick();
     }
 
+    // --- ACTIONS CLASSIQUES ---
     function actionConstruire() {
-        if(state.selZoneId === null) return addLog("Sélectionnez une zone.");
+        if(state.selZoneId === null || state.selZoneId === 0) return addLog("Sélectionnez une zone (1 à 5).");
         let z = state.zones[state.selZoneId];
-        if(z.type !== 'AMÉNAGEMENT') return addLog("Erreur: Aménagez d'abord en 'Nature'.");
-        if(z.batiment) return addLog("Erreur: Bâtiment déjà présent.");
-        if(state.time >= 4) {
-            const nom = prompt("Nom du bâtiment (Serre, Composteur, Local...) :");
-            if(!nom) return; state.time -= 4; z.batiment = nom.toUpperCase(); render();
-        }
+        
+        if(z.batiment) return addLog("Erreur: Bâtiment déjà présent sur cette zone.");
+        if(z.type !== 'POTAGER' && z.type !== 'AMÉNAGEMENT') return addLog("Erreur: Nécessite un Potager ou une zone Nature.");
+        if(state.time < 4) return addLog("Pas assez de temps (4h requises) !");
+
+        const choix = prompt("Construire (4h) - Tapez le chiffre :\n1: Serre (3💰) -> Sur Potager uniquement\n2: Composteur (4💰) -> Sur Potager ou Nature\n3: Local Outils (5💰) -> Sur Potager ou Nature");
+        if(!choix) return;
+
+        if(choix === "1") {
+            if(z.type !== 'POTAGER') return addLog("Erreur: La Serre se construit uniquement sur un Potager.");
+            if(state.money < 3) return addLog("Pas assez de sous (3💰).");
+            state.money -= 3; state.time -= 4; z.batiment = "SERRE";
+        } 
+        else if(choix === "2") {
+            if(state.money < 4) return addLog("Pas assez de sous (4💰).");
+            state.money -= 4; state.time -= 4; z.batiment = "COMPOSTEUR";
+        } 
+        else if(choix === "3") {
+            if(state.money < 5) return addLog("Pas assez de sous (5💰).");
+            state.money -= 5; state.time -= 4; z.batiment = "LOCAL OUTILS";
+        } 
+        else { return addLog("Choix annulé ou invalide."); }
+        
+        addLog(`🏠 Construction terminée : ${z.batiment}`); render();
     }
 
     function actionAmenager() { if(state.selZoneId && state.money >= 3 && state.time >= 3) { state.money -= 3; state.time -= 3; state.zones[state.selZoneId].type = 'AMÉNAGEMENT'; render(); } }
@@ -382,18 +418,12 @@
         state.time -= 2; 
         let gain = z.culture.g + (state.upgrades[3]-1) + (z.culture.amend || 0);
         
-        // GESTION DES DÉGÂTS RAVAGEURS
         if(state.currentRav && state.currentRav.c === z.culture.cat) {
-            if(!state.auxActifs.includes(state.currentRav.n)) {
-                gain -= state.currentRav.d;
-                addLog(`Dégâts subis par les ${state.currentRav.n} (-${state.currentRav.d}💰)`);
-            } else {
-                addLog(`🦊 Protection auxiliaire efficace contre les ${state.currentRav.n} !`);
-            }
+            if(!state.auxActifs.includes(state.currentRav.n)) { gain -= state.currentRav.d; addLog(`Dégâts subis (-${state.currentRav.d}💰)`); } 
+            else { addLog(`🦊 Protection efficace contre les ${state.currentRav.n} !`); }
         }
         
-        state.money += Math.max(1, gain); z.culture = null; 
-        addLog(`Récolte vendue pour ${Math.max(1, gain)}💰 !`); render(); 
+        state.money += Math.max(1, gain); z.culture = null; addLog(`Récolte vendue pour ${Math.max(1, gain)}💰 !`); render(); 
     }
 
     function actionAmender() { let z = state.zones[state.selZoneId]; if(z && z.culture && state.time >= 1 && state.compost > 0) { state.time -= 1; state.compost -= 1; z.culture.amend = (z.culture.amend || 0) + 1; render(); } }
