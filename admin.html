@@ -2,68 +2,59 @@
 <html lang="fr">
 <head>
     <meta charset="UTF-8">
-    <title>Admin Tableur - La Main Verte</title>
+    <title>Admin Balance - La Main Verte</title>
     <script src="https://www.gstatic.com/firebasejs/9.17.1/firebase-app-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/9.17.1/firebase-database-compat.js"></script>
     <style>
         body { font-family: 'Segoe UI', sans-serif; background: #eceff1; margin: 0; padding: 20px; color: #263238; }
         .header { display: flex; justify-content: space-between; align-items: center; background: white; padding: 15px 25px; border-radius: 8px; box-shadow: 0 2px 4px rgba(0,0,0,0.1); margin-bottom: 20px; }
         h1 { margin: 0; color: #2e7d32; }
+        .panel { background: white; padding: 20px; border-radius: 8px; box-shadow: 0 2px 4px rgba(0,0,0,0.1); margin-bottom: 20px; overflow-x: auto; }
         
-        .btn-danger { background: #d32f2f; color: white; border: none; padding: 8px 12px; border-radius: 5px; cursor: pointer; font-weight: bold; }
-        .btn-primary { background: #1976d2; color: white; border: none; padding: 10px 20px; border-radius: 5px; cursor: pointer; font-weight: bold; font-size: 1.1em; }
-        .btn-success { background: #4caf50; color: white; border: none; padding: 8px 12px; border-radius: 5px; cursor: pointer; font-weight: bold; }
-        
-        .panel { background: white; padding: 20px; border-radius: 8px; box-shadow: 0 2px 4px rgba(0,0,0,0.1); overflow-x: auto; }
-        
-        .tabs { display: flex; gap: 10px; margin-bottom: 15px; border-bottom: 2px solid #ddd; padding-bottom: 10px; }
-        .tab { background: #e0e0e0; border: none; padding: 10px 20px; border-radius: 5px; cursor: pointer; font-weight: bold; font-size: 1em; }
-        .tab.active { background: #2e7d32; color: white; }
-
-        table { width: 100%; border-collapse: collapse; margin-bottom: 20px; }
-        th { background: #cfd8dc; padding: 10px; text-align: left; font-size: 0.9em; border: 1px solid #b0bec5; }
+        table { width: 100%; border-collapse: collapse; }
+        th { background: #cfd8dc; padding: 10px; text-align: left; font-size: 0.85em; border: 1px solid #b0bec5; }
         td { padding: 4px; border: 1px solid #eceff1; }
         
-        input[type="text"], input[type="number"], select { 
-            width: 100%; padding: 6px; border: 1px solid transparent; border-radius: 3px; 
-            box-sizing: border-box; background: transparent; font-family: inherit; font-size: 0.95em;
-        }
-        input[type="text"]:focus, input[type="number"]:focus, select:focus {
-            border: 1px solid #1976d2; background: #fff; outline: none;
-        }
-        input[type="number"] { width: 60px; text-align: center; }
-        .input-wide { width: 100% !important; text-align: left !important; }
+        input { width: 100%; padding: 6px; border: 1px solid transparent; box-sizing: border-box; background: transparent; font-size: 0.9em; }
+        input:focus { border: 1px solid #1976d2; background: #fff; outline: none; }
+
+        .btn-primary { background: #1976d2; color: white; border: none; padding: 10px 20px; border-radius: 5px; cursor: pointer; font-weight: bold; }
+        .btn-danger { background: #d32f2f; color: white; border: none; padding: 8px 12px; border-radius: 5px; cursor: pointer; }
         
-        .action-bar { display: flex; justify-content: space-between; align-items: center; margin-top: 10px; }
-        .notice { font-size: 0.85em; color: #546e7a; }
+        /* STYLE BALANCE */
+        .balance-box { display: grid; grid-template-columns: repeat(auto-fill, minmax(300px, 1fr)); gap: 15px; margin-top: 20px; }
+        .stat-card { background: #fff; border-left: 5px solid #ccc; padding: 15px; border-radius: 4px; box-shadow: 0 2px 5px rgba(0,0,0,0.1); }
+        .score-good { border-left-color: #4caf50; }
+        .score-bad { border-left-color: #f44336; }
+        .score-warn { border-left-color: #ff9800; }
+        .rank { float: right; font-size: 1.5em; font-weight: bold; opacity: 0.3; }
+        .stat-label { font-size: 0.8em; color: #666; text-transform: uppercase; }
+        .stat-value { font-weight: bold; font-size: 1.1em; color: #2e7d32; }
+        
+        .tabs { display: flex; gap: 10px; margin-bottom: 15px; }
+        .tab { background: #e0e0e0; border: none; padding: 10px 20px; border-radius: 5px; cursor: pointer; font-weight: bold; }
+        .tab.active { background: #2e7d32; color: white; }
     </style>
 </head>
 <body>
 
 <div class="header">
-    <h1>⚙️ Base de Données - Mode Tableur</h1>
-    <div>
-        <button class="btn-danger" onclick="injectDefaultData()">⚠️ Injecter le Deck de Base</button>
-    </div>
+    <h1>⚖️ Analyseur de Balance & Tableur</h1>
+    <button class="btn-primary" onclick="saveTable()">💾 Sauvegarder & Calculer</button>
 </div>
 
 <div class="panel">
     <div class="tabs">
         <button class="tab active" onclick="switchTab('C', this)">🌾 Cultures</button>
-        <button class="tab" onclick="switchTab('S', this)">🛠️ Soutiens</button>
-        <button class="tab" onclick="switchTab('A', this)">🦊 Auxiliaires</button>
         <button class="tab" onclick="switchTab('RAV', this)">👾 Ravageurs</button>
     </div>
-
-    <table id="data-table">
-        </table>
-
-    <div class="action-bar">
-        <button class="btn-success" onclick="addRow()">➕ Ajouter une ligne</button>
-        <span class="notice">Saisons acceptées : P (Printemps), E (Été), A (Automne), H (Hiver). Séparez par des virgules (ex: P, E).</span>
-        <button class="btn-primary" onclick="saveTable()">💾 Enregistrer les modifications</button>
-    </div>
+    <table id="data-table"></table>
+    <button class="btn-primary" style="margin-top:10px; background:#4caf50;" onclick="addRow()">➕ Ajouter une ligne</button>
 </div>
+
+<h2 id="balance-title">📊 Rapport de rentabilité théorique</h2>
+<div id="balance-results" class="balance-box">
+    </div>
 
 <script>
     const firebaseConfig = {
@@ -81,173 +72,139 @@
     let currentData = { decks: { C: [], S: [], A: [] }, ravageurs: [] };
     let currentTab = 'C';
 
-    // Récupération unique au chargement
-    dbConfig.once("value").then(snap => {
-        if(snap.exists()) {
-            currentData = snap.val();
-            if(!currentData.decks) currentData.decks = { C: [], S: [], A: [] };
-            if(!currentData.ravageurs) currentData.ravageurs = [];
-        }
+    dbConfig.on("value", snap => {
+        if(snap.exists()) currentData = snap.val();
         renderTable();
+        if(currentTab === 'C') calculateBalance();
     });
-
-    function switchTab(tab, btn) {
-        // Sauvegarde silencieuse de l'onglet actuel avant de changer
-        saveTableToArray();
-        currentTab = tab;
-        document.querySelectorAll('.tab').forEach(b => b.classList.remove('active'));
-        btn.classList.add('active');
-        renderTable();
-    }
 
     function renderTable() {
         const table = document.getElementById('data-table');
         let html = '';
-
         if(currentTab === 'C') {
-            html += `<tr><th>Nom</th><th>Qté</th><th>Cat</th><th>Prix💰</th><th>Tps⏳</th><th>Eau💧</th><th>Sol☀️</th><th>Gain💰</th><th>Semis (P,E,A,H)</th><th>Récolte (P,E,A,H)</th><th>🗑️</th></tr>`;
+            html = `<tr><th>Nom</th><th>Qté</th><th>Prix💰</th><th>Tps⏳</th><th>Eau💧</th><th>Sol☀️</th><th>Gain💰</th><th>Semis</th><th>Récolte</th><th>🗑️</th></tr>`;
             (currentData.decks.C || []).forEach((c, i) => {
                 html += `<tr>
                     <td><input type="text" class="v-nom" value="${c.nom}"></td>
-                    <td><input type="number" class="v-qte" value="${c.qte || 2}"></td>
-                    <td><select class="v-cat"><option value="L" ${c.cat==='L'?'selected':''}>L</option><option value="A" ${c.cat==='A'?'selected':''}>A</option><option value="F" ${c.cat==='F'?'selected':''}>F</option><option value="M" ${c.cat==='M'?'selected':''}>M</option></select></td>
+                    <td><input type="number" class="v-qte" value="${c.qte}"></td>
                     <td><input type="number" class="v-p" value="${c.p}"></td>
                     <td><input type="number" class="v-t" value="${c.t}"></td>
                     <td><input type="number" class="v-e" value="${c.e}"></td>
                     <td><input type="number" class="v-s" value="${c.s}"></td>
                     <td><input type="number" class="v-g" value="${c.g}"></td>
-                    <td><input type="text" class="v-sm input-wide" value="${(c.sm||[]).join(', ')}"></td>
-                    <td><input type="text" class="v-rc input-wide" value="${(c.rc||[]).join(', ')}"></td>
-                    <td><button class="btn-danger" onclick="removeRow(this)">X</button></td>
+                    <td><input type="text" class="v-sm" value="${(c.sm||[]).join(',')}"></td>
+                    <td><input type="text" class="v-rc" value="${(c.rc||[]).join(',')}"></td>
+                    <td><button class="btn-danger" onclick="this.closest('tr').remove()">X</button></td>
                 </tr>`;
             });
-        } 
-        else if(currentTab === 'S') {
-            html += `<tr><th>Nom</th><th>Qté</th><th>Prix💰</th><th>Tps⏳</th><th>Effet / Description</th><th>🗑️</th></tr>`;
-            (currentData.decks.S || []).forEach((c, i) => {
+        } else {
+            html = `<tr><th>Nom</th><th>Qté</th><th>Dégâts💰</th><th>🗑️</th></tr>`;
+            (currentData.ravageurs || []).forEach((r, i) => {
                 html += `<tr>
-                    <td><input type="text" class="v-nom input-wide" value="${c.nom}"></td>
-                    <td><input type="number" class="v-qte" value="${c.qte || 2}"></td>
-                    <td><input type="number" class="v-p" value="${c.p}"></td>
-                    <td><input type="number" class="v-t" value="${c.t}"></td>
-                    <td><input type="text" class="v-desc input-wide" value="${c.desc}"></td>
-                    <td><button class="btn-danger" onclick="removeRow(this)">X</button></td>
-                </tr>`;
-            });
-        }
-        else if(currentTab === 'A') {
-            html += `<tr><th>Nom</th><th>Qté</th><th>Prix💰</th><th>Tps⏳</th><th>Protège contre</th><th>🗑️</th></tr>`;
-            (currentData.decks.A || []).forEach((c, i) => {
-                html += `<tr>
-                    <td><input type="text" class="v-nom input-wide" value="${c.nom}"></td>
-                    <td><input type="number" class="v-qte" value="${c.qte || 2}"></td>
-                    <td><input type="number" class="v-p" value="${c.p}"></td>
-                    <td><input type="number" class="v-t" value="${c.t}"></td>
-                    <td><input type="text" class="v-prot input-wide" value="${c.prot}"></td>
-                    <td><button class="btn-danger" onclick="removeRow(this)">X</button></td>
-                </tr>`;
-            });
-        }
-        else if(currentTab === 'RAV') {
-            html += `<tr><th>Nom du Ravageur</th><th>Probabilité (Qté)</th><th>Dégâts💰</th><th>🗑️</th></tr>`;
-            (currentData.ravageurs || []).forEach((c, i) => {
-                html += `<tr>
-                    <td><input type="text" class="v-nom input-wide" value="${c.n || c.nom}"></td>
-                    <td><input type="number" class="v-qte" value="${c.qte || 2}"></td>
-                    <td><input type="number" class="v-d" value="${c.d}"></td>
-                    <td><button class="btn-danger" onclick="removeRow(this)">X</button></td>
+                    <td><input type="text" class="v-nom" value="${r.n}"></td>
+                    <td><input type="number" class="v-qte" value="${r.qte}"></td>
+                    <td><input type="number" class="v-d" value="${r.d}"></td>
+                    <td><button class="btn-danger" onclick="this.closest('tr').remove()">X</button></td>
                 </tr>`;
             });
         }
         table.innerHTML = html;
     }
 
-    function addRow() {
-        // Ajoute un objet vide par défaut selon l'onglet
-        if(currentTab === 'C') currentData.decks.C.push({nom:"Nouveau", qte:2, p:1, t:1, cat:'L', e:1, s:1, g:3, sm:['P'], rc:['E']});
-        else if(currentTab === 'S') currentData.decks.S.push({nom:"Nouveau", qte:2, p:1, t:1, desc:"Effet", cat:'S'});
-        else if(currentTab === 'A') currentData.decks.A.push({nom:"Nouveau", qte:2, p:1, t:1, prot:"Cible", cat:'X'});
-        else if(currentTab === 'RAV') currentData.ravageurs.push({n:"Nouveau", qte:2, d:3});
-        renderTable();
-    }
-
-    function removeRow(btn) {
-        if(confirm("Supprimer cette ligne ?")) {
-            btn.closest('tr').remove();
-        }
-    }
-
-    function parseSeasons(str) {
-        // Transforme "p, E, a " en ["P", "E", "A"]
-        if(!str) return [];
-        return str.toUpperCase().split(',').map(s => s.trim()).filter(s => ['P','E','A','H'].includes(s));
-    }
-
-    // Lit le HTML du tableau et le transforme en tableau JS
-    function saveTableToArray() {
-        const rows = document.querySelectorAll('#data-table tr');
-        let arr = [];
+    function calculateBalance() {
+        const results = document.getElementById('balance-results');
+        results.innerHTML = "";
         
-        for(let i=1; i<rows.length; i++) { // Skip header (i=0)
-            const r = rows[i];
-            const getVal = (cls) => { const el = r.querySelector('.'+cls); return el ? el.value : ''; };
-            const getNum = (cls) => { const el = r.querySelector('.'+cls); return el ? parseInt(el.value)||0 : 0; };
+        // MOYENNE DES DES : Pluie (1-3) = 2 | Soleil (1-2) = 1.5
+        const AVG_WATER = 2;
+        const AVG_SUN = 1.5;
+
+        (currentData.decks.C || []).forEach(c => {
+            // 1. Calcul du temps de pousse moyen (en saisons)
+            const seasonsToGrow = Math.max(Math.ceil(c.e / AVG_WATER), Math.ceil(c.s / AVG_SUN));
             
-            if(currentTab === 'C') {
-                arr.push({
-                    nom: getVal('v-nom'), qte: getNum('v-qte'), cat: getVal('v-cat'),
-                    p: getNum('v-p'), t: getNum('v-t'), e: getNum('v-e'), s: getNum('v-s'), g: getNum('v-g'),
-                    sm: parseSeasons(getVal('v-sm')), rc: parseSeasons(getVal('v-rc'))
-                });
-            } else if(currentTab === 'S') {
-                arr.push({ nom: getVal('v-nom'), qte: getNum('v-qte'), p: getNum('v-p'), t: getNum('v-t'), desc: getVal('v-desc'), cat: 'S' });
-            } else if(currentTab === 'A') {
-                arr.push({ nom: getVal('v-nom'), qte: getNum('v-qte'), p: getNum('v-p'), t: getNum('v-t'), prot: getVal('v-prot'), cat: 'X' });
-            } else if(currentTab === 'RAV') {
-                arr.push({ n: getVal('v-nom'), qte: getNum('v-qte'), d: getNum('v-d') });
-            }
-        }
-        
-        if(currentTab === 'RAV') currentData.ravageurs = arr;
-        else currentData.decks[currentTab] = arr;
+            // 2. Calcul du ROI Temporel (Gain Net / Temps investi)
+            // Temps investi = Heures de semis + (Heures récolte = 2)
+            const hoursInvested = parseInt(c.t) + 2; 
+            const profit = c.g - c.p;
+            const moneyPerHour = (profit / hoursInvested).toFixed(2);
+
+            // 3. Score de Risque (Nombre de saisons vs Fenêtre de récolte)
+            // Plus une plante est longue à pousser, plus elle risque l'Hiver.
+            const risk = seasonsToGrow > 2 ? "ÉLEVÉ" : "FAIBLE";
+            
+            // 4. Score Final (0 à 100)
+            let score = Math.round((moneyPerHour * 20) - (seasonsToGrow * 5));
+            let colorClass = score > 40 ? "score-good" : (score < 20 ? "score-bad" : "score-warn");
+
+            results.innerHTML += `
+                <div class="stat-card ${colorClass}">
+                    <div class="rank">#${score}</div>
+                    <div style="font-weight:bold; font-size:1.2em;">${c.nom}</div>
+                    <div style="display:grid; grid-template-columns: 1fr 1fr; margin-top:10px; gap:10px;">
+                        <div>
+                            <div class="stat-label">Rentabilité</div>
+                            <div class="stat-value">${moneyPerHour} 💰/h</div>
+                        </div>
+                        <div>
+                            <div class="stat-label">Croissance</div>
+                            <div class="stat-value">~${seasonsToGrow} Saisons</div>
+                        </div>
+                        <div>
+                            <div class="stat-label">Risque Saison</div>
+                            <div class="stat-value">${risk}</div>
+                        </div>
+                        <div>
+                            <div class="stat-label">Investissement</div>
+                            <div class="stat-value">${hoursInvested}h / ${c.p}💰</div>
+                        </div>
+                    </div>
+                </div>
+            `;
+        });
     }
 
     function saveTable() {
-        saveTableToArray(); // Capture les dernières modifs de l'écran actif
+        const rows = document.querySelectorAll('#data-table tr');
+        let deckC = []; let ravs = [];
         
-        // Envoi à Firebase
-        dbConfig.set(currentData)
-            .then(() => alert("✅ Enregistrement réussi ! Le jeu utilisera ces données au prochain redémarrage."))
-            .catch(err => alert("Erreur : " + err.message));
+        for(let i=1; i<rows.length; i++) {
+            const r = rows[i];
+            const getVal = (cls) => r.querySelector('.'+cls).value;
+            const getNum = (cls) => parseInt(r.querySelector('.'+cls).value) || 0;
+
+            if(currentTab === 'C') {
+                deckC.push({
+                    nom: getVal('v-nom'), qte: getNum('v-qte'), p: getNum('v-p'), t: getNum('v-t'),
+                    e: getNum('v-e'), s: getNum('v-s'), g: getNum('v-g'),
+                    sm: getVal('v-sm').toUpperCase().split(',').map(s=>s.trim()),
+                    rc: getVal('v-rc').toUpperCase().split(',').map(s=>s.trim()),
+                    cat: deckC.length < 15 ? 'L' : 'A' // Simplification cat
+                });
+            } else {
+                ravs.push({ n: getVal('v-nom'), qte: getNum('v-qte'), d: getNum('v-d') });
+            }
+        }
+
+        if(currentTab === 'C') currentData.decks.C = deckC;
+        else currentData.ravageurs = ravs;
+
+        dbConfig.set(currentData).then(() => alert("Données sauvegardées et balance recalculée !"));
     }
 
-    function injectDefaultData() {
-        if(!confirm("⚠️ Attention : Écraser tout par le deck par défaut ?")) return;
+    function switchTab(tab, btn) {
+        currentTab = tab;
+        document.querySelectorAll('.tab').forEach(b => b.classList.remove('active'));
+        btn.classList.add('active');
+        renderTable();
+        document.getElementById('balance-results').style.display = tab === 'C' ? 'grid' : 'none';
+        document.getElementById('balance-title').style.display = tab === 'C' ? 'block' : 'none';
+    }
 
-        const defaultData = {
-            decks: {
-                C: [
-                    {nom:"Radis",qte:2,p:0,e:1,s:1,t:1,g:3,cat:'L',sm:['P','E','A','H'],rc:['P','E','A','H']}, {nom:"Laitue",qte:2,p:0,e:2,s:1,t:1,g:4,cat:'L',sm:['P','A'],rc:['P','E','A']}, 
-                    {nom:"Carotte",qte:2,p:1,e:4,s:2,t:1,g:6,cat:'L',sm:['P','E'],rc:['A','H']}, {nom:"Tomate",qte:2,p:1,e:6,s:5,t:1,g:9,cat:'L',sm:['P'],rc:['E','A']}, 
-                    {nom:"Courgette",qte:2,p:1,e:5,s:4,t:1,g:8,cat:'L',sm:['P'],rc:['E','A']}, {nom:"Aubergine",qte:2,p:2,e:7,s:6,t:1,g:11,cat:'L',sm:['P'],rc:['E','A']},
-                    {nom:"Poireau",qte:2,p:1,e:4,s:2,t:1,g:6,cat:'L',sm:['P','A'],rc:['E','H']}, {nom:"Patate",qte:2,p:1,e:3,s:4,t:1,g:8,cat:'L',sm:['P','E'],rc:['A','H']},
-                    {nom:"Pommier",qte:2,p:3,e:12,s:6,t:3,g:18,cat:'A',sm:['A','H'],rc:['E','A']}, {nom:"Cerisier",qte:2,p:3,e:10,s:6,t:3,g:18,cat:'A',sm:['A','H'],rc:['E']},
-                    {nom:"Fraise",qte:2,p:2,e:3,s:4,t:1,g:8,cat:'A',sm:['P','A'],rc:['E']}, {nom:"Noisetier",qte:2,p:2,e:8,s:4,t:3,g:12,cat:'A',sm:['A','H'],rc:['A']},
-                    {nom:"Épinard",qte:2,p:0,e:2,s:1,t:1,g:4,cat:'L',sm:['P','A'],rc:['P','A','H']}, {nom:"Navet",qte:2,p:1,e:3,s:2,t:1,g:5,cat:'L',sm:['P','A'],rc:['A','H']},
-                    {nom:"Oignon",qte:2,p:1,e:2,s:3,t:1,g:6,cat:'L',sm:['P','A'],rc:['E','A']}, {nom:"Haricot",qte:2,p:1,e:3,s:3,t:1,g:6,cat:'L',sm:['P','E'],rc:['E','A']},
-                    {nom:"Tournesol",qte:2,p:1,e:3,s:6,t:1,g:7,cat:'F',sm:['P'],rc:['E','A']}, {nom:"Pleurote",qte:2,p:2,e:6,s:0,t:1,g:8,cat:'M',sm:['A'],rc:['H']}
-                ],
-                S: [{nom:"Fumier",qte:2,p:2,t:1,cat:'S',desc:'+2💩 Compost'}, {nom:"Purin d'Ortie",qte:2,p:1,t:1,cat:'S',desc:'-4💧 (Zone)'}, {nom:"Corne Broyée",qte:2,p:2,t:1,cat:'S',desc:'+2💰 récolte (Zone)'}, {nom:"Paillage",qte:2,p:1,t:1,cat:'S',desc:'-2💧 -1☀️ (Zone)'}],
-                A: [{nom:"Hérisson",qte:2,p:2,t:1,cat:'X',prot:'Limaces'}, {nom:"Coccinelle",qte:2,p:1,t:1,cat:'X',prot:'Pucerons'}, {nom:"Mésange",qte:2,p:2,t:1,cat:'X',prot:'Carpocapses'}, {nom:"Crapaud",qte:2,p:1,t:1,cat:'X',prot:'Campagnols'}]
-            },
-            ravageurs: [{n:"Limaces",qte:2,d:3}, {n:"Pucerons",qte:2,d:2}, {n:"Carpocapses",qte:2,d:4}, {n:"Campagnols",qte:2,d:4}]
-        };
-
-        dbConfig.set(defaultData).then(() => {
-            currentData = defaultData;
-            renderTable();
-            alert("✅ Données injectées.");
-        });
+    function addRow() {
+        if(currentTab === 'C') currentData.decks.C.push({nom:"Nouveau", qte:2, p:1, t:1, e:2, s:2, g:6, sm:['P'], rc:['E']});
+        else currentData.ravageurs.push({n:"Nouveau", qte:2, d:3});
+        renderTable();
     }
 </script>
 </body>
