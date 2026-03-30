@@ -2,10 +2,9 @@
 <html lang="fr">
 <head>
     <meta charset="UTF-8">
-    <title>La Main Verte - Multijoueur Live (Reset)</title>
+    <title>La Main Verte - V5.5 Multijoueur Complet</title>
     <script src="https://www.gstatic.com/firebasejs/9.17.1/firebase-app-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/9.17.1/firebase-database-compat.js"></script>
-    
     <style>
         :root { --p1: #2e7d32; --bg: #f4f7f1; --potager: #81c784; --verger: #fff176; --amenag: #ffccbc; --batiment: #455a64; --dark: #263238; --gold: #ffd700; --serre: #e1f5fe; }
         body { font-family: 'Segoe UI', sans-serif; background: var(--bg); margin: 0; display: flex; height: 100vh; overflow: hidden; }
@@ -13,7 +12,7 @@
         .sidebar { width: 420px; background: white; border-left: 2px solid #ddd; padding: 10px; display: flex; flex-direction: column; }
         .hud { display: flex; justify-content: space-between; align-items: center; background: white; padding: 10px; border-radius: 8px; box-shadow: 0 2px 5px rgba(0,0,0,0.1); margin-bottom: 10px; font-weight: bold; }
         .farm-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; background: #d7ccc8; padding: 10px; border-radius: 12px; }
-        .zone { min-height: 155px; background: #efebe9; border: 2px dashed #bcaaa4; border-radius: 8px; display: flex; flex-direction: column; align-items: center; justify-content: center; position: relative; font-size: 0.72em; cursor: pointer; text-align: center; transition: 0.2s; }
+        .zone { min-height: 155px; background: #efebe9; border: 2px dashed #bcaaa4; border-radius: 8px; display: flex; flex-direction: column; align-items: center; justify-content: center; position: relative; font-size: 0.72em; cursor: pointer; text-align: center; }
         .zone.selected { border: 3px solid #ff9800 !important; box-shadow: 0 0 8px rgba(255,152,0,0.4); }
         .tuile-potager { background: var(--potager) !important; border: 2px solid #2e7d32 !important; }
         .tuile-verger { background: var(--verger) !important; border: 2px solid #fbc02d !important; }
@@ -30,15 +29,15 @@
         .btn-cost { font-size: 0.8em; font-weight: normal; margin-top: 2px; opacity: 0.9; }
         button:disabled { background: #cfd8dc !important; color: #78909c !important; cursor: not-allowed !important; }
         .btn-reset { background: #ff5252; color: white; border: none; border-radius: 4px; padding: 5px 10px; cursor: pointer; font-size: 0.8em; }
-        .btn-reset:hover { background: #d32f2f; }
         .market-preview { background: #fffde7; padding: 6px; border: 1px solid #ffd54f; border-radius: 6px; font-size: 0.72em; margin-bottom: 6px; }
         .modal-overlay { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.8); z-index: 100; align-items: center; justify-content: center; }
         .modal-content { background: #fff; padding: 20px; border-radius: 12px; width: 90%; max-width: 900px; }
         .rayon-grid { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 15px; }
         .rayon { background: #f9f9f9; padding: 10px; border-radius: 8px; border: 1px solid #ccc; }
-        .btn-jard-action { width: 100%; margin-bottom: 5px; padding: 6px; background: #e0e0e0; border: 1px solid #999; border-radius: 4px; font-weight: bold; }
         .jard-card { border: 2px solid #ddd; padding: 10px; border-radius: 6px; margin-bottom: 8px; cursor: pointer; position: relative; background: white; }
         .price-tag { position: absolute; top: -8px; right: -8px; background: var(--gold); padding: 2px 6px; border-radius: 10px; font-size: 0.85em; font-weight: bold; border: 1px solid #b8860b; }
+        .aux-tray { display: flex; gap: 5px; margin-bottom: 8px; min-height: 25px; background: #e3f2fd; padding: 5px 10px; border-radius: 5px; border: 1px solid #90caf9; flex-wrap: wrap; align-items: center; }
+        .aux-icon { background: white; border: 1px solid #90caf9; padding: 2px 6px; border-radius: 4px; font-size: 0.75em; font-weight: bold; color: #1565c0; }
     </style>
 </head>
 <body>
@@ -46,14 +45,15 @@
 <div class="main-game">
     <div class="hud">
         <div id="season-display">📅 Chargement...</div>
-        <div>💰 <span id="res-money">0</span> | ⏳ <span id="res-time">0</span>/<span id="res-timemax">0</span>h</div>
+        <div>💰 <span id="res-money">0</span> | ⏳ <span id="res-time">0</span>/<span id="res-timemax">10</span>h</div>
         <div>💩 Compost: <span id="res-compost" class="res-pill">0</span></div>
-        <div id="meteo-display" style="color:#1565c0;">🎲 --</div>
-        <button class="btn-reset" onclick="confirmReset()" title="Remettre la partie à zéro pour TOUS les joueurs">🧹 Reset</button>
+        <div id="meteo-display" style="color:#1565c0;" title="Dernier tirage météo">🎲 --</div>
+        <button class="btn-reset" onclick="confirmReset()">🧹 Reset</button>
     </div>
     <div id="ravageur-alert" style="background:#ffebee; color:#c62828; padding:5px; font-size:0.8em; text-align:center; display:none; border-radius:5px; margin-bottom:5px;"></div>
+    <div id="aux-tray" class="aux-tray" style="display:none;"></div>
     <div class="farm-grid" id="farm-grid"></div>
-    <div class="logs" id="game-logs">> Session connectée.</div>
+    <div class="logs" id="game-logs">> Prêt.</div>
     <div id="action-buttons-container" style="display: grid; grid-template-columns: repeat(4, 1fr); gap:4px; margin-top:10px;"></div>
 </div>
 
@@ -72,6 +72,7 @@
 </div>
 
 <script>
+    // CONFIGURATION FIREBASE
     const firebaseConfig = {
         apiKey: "AIzaSyA_OHv6TDiVsn4PwM9s25gij8lBwQH8xrg",
         authDomain: "main-verte-72483.firebaseapp.com",
@@ -79,23 +80,42 @@
         projectId: "main-verte-72483",
         storageBucket: "main-verte-72483.firebasestorage.app",
         messagingSenderId: "633454274346",
-        appId: "1:633454274346:web:7261efcfe1b9cecdd6e053",
-        measurementId: "G-5EWS2ZMBCV"
+        appId: "1:633454274346:web:7261efcfe1b9cecdd6e053"
     };
 
     firebase.initializeApp(firebaseConfig);
     const db = firebase.database().ref("game-session-001");
 
+    // ENCYCLOPEDIE DES CARTES
     const DECKS = {
         C: [
             { nom: "Radis", prix: 0, e: 1, s: 1, t: 1, g: 3, cat: 'L', semis: ['P','E','A','H'], rec: ['P','E','A','H'] },
+            { nom: "Laitue", prix: 0, e: 2, s: 1, t: 1, g: 4, cat: 'L', semis: ['P','A'], rec: ['P','E','A'] },
             { nom: "Carotte", prix: 1, e: 4, s: 2, t: 1, g: 6, cat: 'L', semis: ['P','E'], rec: ['A','H'] },
+            { nom: "Courgette", prix: 1, e: 5, s: 4, t: 1, g: 8, cat: 'L', semis: ['P'], rec: ['E','A'] },
             { nom: "Tomate", prix: 1, e: 6, s: 5, t: 1, g: 9, cat: 'L', semis: ['P'], rec: ['E','A'] },
-            { nom: "Pommier", prix: 2, e: 12, s: 5, t: 3, g: 15, cat: 'A', semis: ['A','H'], rec: ['E','A'] }
+            { nom: "Aubergine", prix: 2, e: 7, s: 6, t: 1, g: 11, cat: 'L', semis: ['P'], rec: ['E','A'] },
+            { nom: "Poireau", prix: 1, e: 3, s: 2, t: 1, g: 6, cat: 'L', semis: ['P','E'], rec: ['A','H'] },
+            { nom: "Noisetier", prix: 2, e: 8, s: 4, t: 3, g: 12, cat: 'A', semis: ['A','H'], rec: ['A'] },
+            { nom: "Pommier", prix: 2, e: 12, s: 5, t: 3, g: 15, cat: 'A', semis: ['A','H'], rec: ['E','A'] },
+            { nom: "Cerisier", prix: 3, e: 10, s: 6, t: 3, g: 18, cat: 'A', semis: ['A','H'], rec: ['E'] }
         ],
-        S: [{ nom: "Fumier", prix: 2, t: 1, cat: 'Soutien', desc: "+2💩 Compost" }],
-        A: [{ nom: "Hérisson", prix: 2, t: 1, cat: 'Auxiliaire', prot: "Limaces" }]
+        S: [
+            { nom: "Fumier", prix: 2, t: 1, cat: 'Soutien', desc: "+2💩 Compost" },
+            { nom: "Purin d'Ortie", prix: 1, t: 1, cat: 'Soutien', desc: "-4💧 sur zone" },
+            { nom: "Paillage", prix: 1, t: 1, cat: 'Soutien', desc: "-2💧 -1☀️ sur zone" },
+            { nom: "Corne Broyée", prix: 3, t: 1, cat: 'Soutien', desc: "+2💰 sur récolte" }
+        ],
+        A: [
+            { nom: "Hérisson", prix: 2, t: 1, cat: 'Auxiliaire', prot: "Limaces" },
+            { nom: "Coccinelle", prix: 1, t: 1, cat: 'Auxiliaire', prot: "Pucerons" },
+            { nom: "Crapaud", prix: 1, t: 1, cat: 'Auxiliaire', prot: "Campagnols" },
+            { nom: "Mésange", prix: 2, t: 1, cat: 'Auxiliaire', prot: "Carpocapses" }
+        ]
     };
+    const RAV_LIST = [
+        {n:"Limaces", d:3, c:'L'}, {n:"Pucerons", d:2, c:'L'}, {n:"Campagnols", d:4, c:'L'}, {n:"Carpocapses", d:5, c:'A'}
+    ];
     const UP_NAMES = ["Agrandissement", "Efficacité", "Formation", "Qualité Sol", "Microclimat", "Bricoleur", "Fidélité", "Pass VIP"];
     const ALL_SEASONS = ["P","E","A","H"];
 
@@ -116,20 +136,21 @@
             upgrades: Array(8).fill(1), hand: [], auxActifs: [],
             zones: Array(6).fill(null).map((_, i) => ({ id: i, type: i === 0 ? "LIFE" : null, culture: null, batiment: null })),
             market: { C: [draw('C'), draw('C')], S: [draw('S'), draw('S')], A: [draw('A'), draw('A')] },
-            picksLeft: 0, modalOpen: false
+            picksLeft: 0, modalOpen: false, currentMeteo: {p:0, s:0}, currentRav: null
         };
-        addLog("🧹 Partie réinitialisée.");
+        addLog("🧹 Reset complet effectué.");
         sync();
     }
 
-    function confirmReset() {
-        if(confirm("⚠️ ATTENTION : Cela va effacer la partie en cours pour tout le monde. Continuer ?")) {
-            initNewGame();
-        }
-    }
-
+    function confirmReset() { if(confirm("Voulez-vous réinitialiser la partie ?")) initNewGame(); }
     function draw(cat) { return {...DECKS[cat][Math.floor(Math.random()*DECKS[cat].length)]}; }
     function addLog(m) { const l = document.getElementById('game-logs'); l.innerHTML = `<div>> ${m}</div>` + l.innerHTML; }
+
+    function calcSaisons(arr, isS, isSem) {
+        if(!isS) return arr; let res = new Set(arr);
+        arr.forEach(c => { let i = ALL_SEASONS.indexOf(c); if(isSem) res.add(ALL_SEASONS[(i+3)%4]); else res.add(ALL_SEASONS[(i+1)%4]); });
+        return Array.from(res);
+    }
 
     function render() {
         if(!state) return;
@@ -138,6 +159,16 @@
         document.getElementById('res-timemax').innerText = state.timeMax;
         document.getElementById('res-compost').innerText = state.compost;
         document.getElementById('season-display').innerText = `📅 ${["Printemps","Été","Automne","Hiver"][state.saisonIdx]} - An ${state.annee}`;
+        document.getElementById('meteo-display').innerText = `🎲 🌧️${state.currentMeteo.p} ☀️${state.currentMeteo.s}`;
+
+        const alertBox = document.getElementById('ravageur-alert');
+        if(state.currentRav) { alertBox.style.display="block"; alertBox.innerText=`👾 RAVAGEUR : ${state.currentRav.n} actif ! (-${state.currentRav.d}💰)`; }
+        else alertBox.style.display="none";
+
+        const tray = document.getElementById('aux-tray');
+        if(state.auxActifs && state.auxActifs.length > 0) {
+            tray.style.display="flex"; tray.innerHTML = '🛡️ Protections : ' + state.auxActifs.map(a => `<div class="aux-icon">🦊 ${a}</div>`).join('');
+        } else tray.style.display="none";
 
         const grid = document.getElementById('farm-grid'); grid.innerHTML = "";
         state.zones.forEach(z => {
@@ -156,26 +187,30 @@
                 d.innerHTML = `<span style="font-size:0.7em; font-weight:bold;">${isS ? "SERRE" : (z.batiment || z.type)}</span>`;
                 if(z.culture) {
                     d.innerHTML += `<br><b>${z.culture.nom}</b><br>💧${z.culture.eCur} ☀️${z.culture.sCur}`;
-                    if(z.culture.eCur<=0 && z.culture.sCur<=0) d.innerHTML += `<br><button onclick="actionRecolter(${z.id})" style="background:var(--p1); color:white; border:none; padding:2px 5px; font-size:0.8em; cursor:pointer;" ${state.time<2?'disabled':''}>Récolter</button>`;
+                    const r_val = calcSaisons(z.culture.rec, isS, false);
+                    if(z.culture.eCur<=0 && z.culture.sCur<=0 && r_val.includes(ALL_SEASONS[state.saisonIdx])) {
+                        d.innerHTML += `<br><button onclick="actionRecolter(${z.id})" style="background:var(--p1); color:white; border:none; padding:2px 5px; font-size:0.8em; cursor:pointer;" ${state.time<2?'disabled':''}>🧺 Récolter</button>`;
+                    }
                 }
             }
             grid.appendChild(d);
         });
 
-        renderButtons();
-        document.getElementById('market-preview').innerHTML = `🌾 <b>C:</b> ${state.market.C.map(c=>c.nom).join(', ')} | 🦊 <b>A:</b> ${state.market.A.map(c=>c.nom).join(', ')}`;
+        renderActionButtons();
+        document.getElementById('market-preview').innerHTML = `🌾 <b>C:</b> ${state.market.C.map(c=>c.nom).join(', ')}<br>🦊 <b>A:</b> ${state.market.A.map(c=>c.nom).join(', ')}`;
+        
         const hDiv = document.getElementById('player-hand'); hDiv.innerHTML = "";
         if(state.hand) {
             state.hand.forEach((c, i) => {
                 const cost = Math.max(0, (c.t||1) - (state.upgrades[2]-1));
-                hDiv.innerHTML += `<div class="card"><b>${c.nom}</b><br><button onclick="playC(${i})" ${state.time<cost?'disabled':''}>Jouer (-${cost}h)</button></div>`;
+                hDiv.innerHTML += `<div class="card"><b>${c.nom}</b> [${c.cat}]<br><button onclick="playC(${i})" ${state.time<cost?'disabled':''}>Jouer (-${cost}h)</button></div>`;
             });
         }
         document.getElementById('jardinerie-modal').style.display = state.modalOpen ? 'flex' : 'none';
         if(state.modalOpen) renderJardModal();
     }
 
-    function renderButtons() {
+    function renderActionButtons() {
         const costT = state.upgrades[5] >= 2 ? (state.upgrades[5] === 3 ? 0 : 1) : 2;
         const btnCont = document.getElementById('action-buttons-container');
         btnCont.innerHTML = `
@@ -200,11 +235,11 @@
         });
     }
 
-    // --- ACTIONS MODALE ---
+    // ACTIONS MODALE JARDINERIE
     function openJard(h, p) { state.time -= h; state.picksLeft = p; state.modalOpen = true; sync(); }
     function renderJardModal() {
         const inner = document.getElementById('modal-content-inner');
-        inner.innerHTML = `<div style="display:flex;justify-content:space-between;"><h2>🛒 Jardinerie</h2><b>Actions: ${state.picksLeft}</b></div><div class="rayon-grid"></div>`;
+        inner.innerHTML = `<div style="display:flex;justify-content:space-between;align-items:center;"><h2>🛒 Jardinerie</h2><b>Actions: ${state.picksLeft} | 💰 ${state.money}</b></div><div class="rayon-grid"></div>`;
         const grid = inner.querySelector('.rayon-grid');
         ['C','S','A'].forEach(cat => {
             const r = document.createElement('div'); r.className = "rayon";
@@ -213,8 +248,8 @@
                 const can = state.money >= c.prix;
                 const d = document.createElement('div'); d.className = "jard-card";
                 d.style.opacity = can ? "1" : "0.4";
-                d.innerHTML = `${c.prix>0?`<div class="price-tag">${c.prix}💰</div>`:''}<b>${c.nom}</b>`;
-                d.onclick = () => { if(can) { state.money -= c.prix; if(!state.hand) state.hand=[]; state.hand.push(c); state.market[cat].splice(idx,1); if(state.upgrades[6]>=3) state.market[cat].push(draw(cat)); consm(); } };
+                d.innerHTML = `${c.prix>0?`<div class="price-tag">${c.prix}💰</div>`:''}<b>${c.nom}</b><br><small>${c.cat==='S'?c.desc:''}</small>`;
+                d.onclick = () => { if(can) { state.money -= c.prix; state.hand.push(c); state.market[cat].splice(idx,1); if(state.upgrades[6]>=3) state.market[cat].push(draw(cat)); consm(); } };
                 r.appendChild(d);
             });
             grid.appendChild(r);
@@ -224,16 +259,69 @@
     function jardR(cat) { state.market[cat] = [draw(cat), draw(cat)]; consm(); }
     function consm() { state.picksLeft--; if(state.picksLeft <= 0) { state.modalOpen = false; ['C','S','A'].forEach(cat => { while(state.market[cat].length<2) state.market[cat].push(draw(cat)); }); } sync(); }
 
-    // --- ACTIONS JEU ---
+    // ACTIONS JEU
     function actT(t) { if(!localSelectedId || localSelectedId === 0) return; const cost = state.upgrades[5] >= 2 ? (state.upgrades[5] === 3 ? 0 : 1) : 2; state.money -= cost; state.time -= 3; state.zones[localSelectedId].type = (t==='P'?'POTAGER':'VERGER'); sync(); }
     function actN() { if(!localSelectedId) return; state.money -= 3; state.time -= 3; state.zones[localSelectedId].type = 'AMÉNAGEMENT'; sync(); }
-    function actB() { const z = state.zones[localSelectedId]; if(!z || z.batiment) return; const ch = prompt("1: Serre(3💰) Potager | 2: Composteur(4💰) | 3: Local(5💰)"); if(ch==="1" && z.type==="POTAGER" && state.money>=3) { state.money-=3; state.time-=4; z.batiment="SERRE"; } else if(ch==="2" && state.money>=4) { state.money-=4; state.time-=4; z.batiment="COMPOSTEUR"; } else if(ch==="3" && state.money>=5) { state.money-=5; state.time-=4; z.batiment="LOCAL OUTILS"; } sync(); }
+    function actB() { 
+        const z = state.zones[localSelectedId]; if(!z || z.batiment) return;
+        const ch = prompt("1: Serre(3💰) Potager | 2: Composteur(4💰) | 3: Local(5💰)");
+        if(ch==="1" && z.type==="POTAGER" && state.money>=3) { state.money-=3; state.time-=4; z.batiment="SERRE"; }
+        else if(ch==="2" && state.money>=4) { state.money-=4; state.time-=4; z.batiment="COMPOSTEUR"; }
+        else if(ch==="3" && state.money>=5) { state.money-=5; state.time-=4; z.batiment="LOCAL OUTILS"; }
+        sync();
+    }
     function actArr() { const z = state.zones[localSelectedId]; if(z && z.culture) { state.time -= 1; z.culture.eCur = Math.max(0, z.culture.eCur-2); sync(); } }
     function actAmd() { const z = state.zones[localSelectedId]; if(z && z.culture) { state.time -= 1; state.compost -= 1; z.culture.amd = (z.culture.amd||0)+1; sync(); } }
     function upgr(i) { const cost = state.upgrades[i]===1?3:5; state.time -= cost; state.upgrades[i]++; if(i===1) state.timeMax += 4; sync(); }
-    function actionRecolter(id) { const z = state.zones[id]; state.time -= 2; state.money += (z.culture.g + (state.upgrades[3]-1) + (z.culture.amd||0)); z.culture = null; sync(); }
-    function playC(idx) { const c = state.hand[idx]; const cost = Math.max(0, (c.t||1)-(state.upgrades[2]-1)); const z = state.zones[localSelectedId]; if(c.cat==='Auxiliaire'){ state.time-=cost; if(!state.auxActifs) state.auxActifs=[]; state.auxActifs.push(c.prot); state.hand.splice(idx,1); } else if(c.cat==='Soutien'){ state.time-=cost; if(c.nom==="Fumier") state.compost+=2; state.hand.splice(idx,1); } else { if(!z || z.culture || (c.cat==='L'&&z.type!=='POTAGER') || (c.cat==='A'&&z.type!=='VERGER')) return; state.time-=cost; z.culture={...c, eCur:c.e, sCur:c.s, amd:0}; state.hand.splice(idx,1); } sync(); }
-    function actFin() { state.saisonIdx++; if(state.saisonIdx > 3) { state.saisonIdx = 0; state.annee++; } state.zones.forEach(z => { if(z && z.culture) { z.culture.eCur = Math.max(0, z.culture.eCur-2); z.culture.sCur = Math.max(0, z.culture.sCur-1); }}); state.time = state.timeMax; state.compost++; sync(); }
+    
+    function actionRecolter(id) { 
+        const z = state.zones[id]; state.time -= 2; 
+        let g = z.culture.g + (state.upgrades[3]-1) + (z.culture.amd||0);
+        if(state.currentRav && state.currentRav.c === z.culture.cat && !state.auxActifs.includes(state.currentRav.n)) {
+            g -= state.currentRav.d; addLog(`Dégâts des ${state.currentRav.n} subis !`);
+        }
+        state.money += Math.max(1, g); z.culture = null; sync(); 
+    }
+
+    function playC(idx) { 
+        const c = state.hand[idx]; const cost = Math.max(0, (c.t||1)-(state.upgrades[2]-1)); const z = state.zones[localSelectedId];
+        if(c.cat==='Auxiliaire'){ state.time-=cost; if(!state.auxActifs) state.auxActifs=[]; state.auxActifs.push(c.prot); state.hand.splice(idx,1); }
+        else if(c.cat==='Soutien'){ 
+            state.time-=cost; if(c.nom==="Fumier") state.compost+=2; 
+            if(c.nom.includes("Ortie") && z && z.culture) z.culture.eCur = Math.max(0, z.culture.eCur-4);
+            if(c.nom==="Paillage" && z && z.culture) { z.culture.eCur = Math.max(0, z.culture.eCur-2); z.culture.sCur = Math.max(0, z.culture.sCur-1); }
+            if(c.nom==="Corne Broyée" && z && z.culture) z.culture.amd = (z.culture.amd||0)+2;
+            state.hand.splice(idx,1); 
+        } else {
+            if(!z || z.culture || (c.cat==='L'&&z.type!=='POTAGER') || (c.cat==='A'&&z.type!=='VERGER')) return;
+            const s_v = calcSaisons(c.semis, z.batiment==='SERRE', true);
+            if(!s_v.includes(ALL_SEASONS[state.saisonIdx])) { alert("Pas la bonne saison de semis !"); return; }
+            state.time-=cost; z.culture={...c, eCur:c.e, sCur:c.s, amd:0}; state.hand.splice(idx,1); 
+        }
+        sync(); 
+    }
+
+    function actFin() {
+        state.saisonIdx++; if(state.saisonIdx > 3) { state.saisonIdx = 0; state.annee++; }
+        // Dés de météo (Pluie 1-3, Soleil 1-2)
+        let p = Math.floor(Math.random()*3)+1; 
+        let s = Math.floor(Math.random()*2)+1;
+        state.currentMeteo = {p: p, s: s};
+        
+        state.zones.forEach(z => { if(z && z.culture) { 
+            z.culture.eCur = Math.max(0, z.culture.eCur - p); 
+            z.culture.sCur = Math.max(0, z.culture.sCur - s);
+            const isSerre = z.batiment === 'SERRE';
+            const r_v = calcSaisons(z.culture.rec, isSerre, false);
+            const s_v = calcSaisons(z.culture.semis, isSerre, true);
+            if(!r_v.includes(ALL_SEASONS[state.saisonIdx]) && !s_v.includes(ALL_SEASONS[state.saisonIdx])) {
+                addLog(`${z.culture.nom} a péri hors-saison.`); z.culture = null;
+            }
+        }});
+        
+        state.currentRav = Math.random() > 0.5 ? RAV_LIST[Math.floor(Math.random()*RAV_LIST.length)] : null;
+        state.time = state.timeMax; state.compost++; sync();
+    }
 </script>
 </body>
 </html>
