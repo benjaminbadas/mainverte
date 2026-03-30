@@ -9,11 +9,11 @@ function toggleBot() {
     botEnabled = !botEnabled;
     const btn = document.getElementById('bot-btn');
     if(btn) {
-        btn.innerText = botEnabled ? "🤖 Bot: ON" : "🤖 Bot: OFF";
+        btn.innerText = botEnabled ? "🤖 Auto-J1: ON" : "🤖 Auto-J1: OFF";
         btn.style.background = botEnabled ? "#4caf50" : "#9c27b0";
     }
     
-    if(botEnabled) addLog("🤖 Intelligence Artificielle activée.");
+    if(botEnabled) addLog("🤖 Mode Auto-Battler activé pour ce joueur.");
     else addLog("🤖 Mode manuel repris.");
     
     if(botEnabled && state && state.turn === myId && !state.gameOver) triggerBot();
@@ -21,12 +21,13 @@ function toggleBot() {
 
 function triggerBot() {
     if(botTimeout) clearTimeout(botTimeout);
-    botTimeout = setTimeout(() => { botThinkAndAct(); }, 1200); // 1.2s de réflexion (pour voir l'action)
+    botTimeout = setTimeout(() => { botThinkAndAct(); }, 1200); 
 }
 
 function botThinkAndAct() {
-    if(!botEnabled || !state || state.turn !== myId || state.gameOver) return;
+    if(!state || state.gameOver) return;
     
+    // Le bot analyse le joueur actuellement actif (myId)
     const me = state['p'+myId];
     let bestAction = { type: 'FIN_TOUR', score: 10 };
     
@@ -127,6 +128,7 @@ function botThinkAndAct() {
             me.hand.push(c);
             state.market['C'] = state.market['C'].filter(mc => mc.nom !== c.nom);
             addLog(`🤖 Achat Marché : ${c.nom}`);
+            if(!state.market['C']) state.market['C'] = [];
             while(state.market['C'].length < 2) { let nv = draw('C'); if(nv) state.market['C'].push(nv); else break; }
             sync();
         } else {
@@ -134,7 +136,7 @@ function botThinkAndAct() {
         }
     }
     else {
-        addLog("🤖 Fin de tour stratégique.");
+        addLog("🤖 Fin de tour.");
         actFin();
     }
 }
