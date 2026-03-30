@@ -2,7 +2,7 @@
 <html lang="fr">
 <head>
     <meta charset="UTF-8">
-    <title>La Main Verte - V11 (Scores & Modules)</title>
+    <title>La Main Verte - V12 (Modes Solo & IA)</title>
     <script src="https://www.gstatic.com/firebasejs/9.17.1/firebase-app-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/9.17.1/firebase-database-compat.js"></script>
     <style>
@@ -10,11 +10,9 @@
         body { font-family: 'Segoe UI', sans-serif; background: var(--bg); margin: 0; display: flex; height: 100vh; overflow: hidden; }
         
         #lobby { position: fixed; top:0; left:0; width:100%; height:100%; background:rgba(0,0,0,0.9); z-index: 1000; display: flex; flex-direction: column; align-items: center; justify-content: center; color: white; }
-        .btn-lobby { background: var(--p1); color: white; border: none; padding: 15px 30px; font-size: 1.2em; border-radius: 8px; margin: 10px; cursor: pointer; width: 300px; transition: 0.2s; font-weight: bold;}
+        .btn-lobby { background: var(--p1); color: white; border: none; padding: 12px 25px; font-size: 1.1em; border-radius: 8px; margin: 8px; cursor: pointer; width: 320px; transition: 0.2s; font-weight: bold;}
         .btn-lobby:hover { filter: brightness(1.2); transform: scale(1.05); }
-        .btn-lobby.j2 { background: var(--p2); }
 
-        /* ECRAN DE FIN */
         #game-over-screen { position: fixed; top:0; left:0; width:100%; height:100%; background:rgba(0,0,0,0.85); z-index: 3000; display: none; flex-direction: column; align-items: center; justify-content: center; color: white; }
         .score-box { background: white; color: #263238; padding: 40px; border-radius: 12px; text-align: center; box-shadow: 0 10px 40px rgba(0,0,0,0.5); min-width: 400px; }
         .score-row { display: flex; justify-content: space-between; font-size: 1.5em; margin: 15px 0; padding: 10px; background: #f0f4f7; border-radius: 8px; font-weight: bold; }
@@ -65,11 +63,16 @@
 
 <div id="lobby">
     <h1 style="font-size: 3em; margin-bottom: 10px;">🌱 La Main Verte</h1>
-    <p style="font-size: 1.2em; margin-bottom: 40px;">Mode Multijoueur & IA</p>
-    <button class="btn-lobby" onclick="joinGame(1)">Rejoindre en tant que JOUEUR 1</button>
-    <button class="btn-lobby j2" onclick="joinGame(2)">Rejoindre en tant que JOUEUR 2</button>
-    <hr style="width: 50%; border-color: #555; margin: 30px 0;">
-    <button class="btn-lobby" style="background:#d32f2f; width:250px; font-size:0.9em;" onclick="confirmReset(true)">⚠️ Forcer le Reset Global</button>
+    <p style="font-size: 1.2em; margin-bottom: 30px;">Choisissez un mode de jeu :</p>
+    
+    <button class="btn-lobby" onclick="startNewGame('SOLO')">👤 Jouer en Solo</button>
+    <button class="btn-lobby" style="background:#0288d1" onclick="startNewGame('VS_IA')">🤖 Jouer contre l'Ordinateur</button>
+    <button class="btn-lobby" style="background:#ff9800" onclick="startNewGame('IA_VS_IA')">🍿 Mode Spectateur (IA vs IA)</button>
+    <button class="btn-lobby" style="background:var(--p1)" onclick="startNewGame('MULTI')">🌍 Créer une partie à 2 Joueurs</button>
+    
+    <hr style="width: 50%; border-color: #555; margin: 15px 0;">
+    <button class="btn-lobby" style="background:#546e7a;" onclick="joinGame(2)">🚜 Rejoindre la partie (Joueur 2)</button>
+    <button class="btn-lobby" style="background:#d32f2f; width:250px; font-size:0.9em; margin-top:20px;" onclick="confirmReset(true)">⚠️ Reset Global du Serveur</button>
 </div>
 
 <div id="game-over-screen">
@@ -77,8 +80,8 @@
         <h1 style="margin-top:0;">🏁 Fin de la Partie !</h1>
         <div id="winner-text" class="score-winner"></div>
         <div class="score-row"><span>Joueur 1 :</span> <span id="final-score-1">0💰</span></div>
-        <div class="score-row"><span>Joueur 2 :</span> <span id="final-score-2">0💰</span></div>
-        <button class="btn-lobby" style="margin-top:30px;" onclick="confirmReset(true)">Rejouer une partie</button>
+        <div class="score-row" id="score-row-2"><span>Joueur 2 :</span> <span id="final-score-2">0💰</span></div>
+        <button class="btn-lobby" style="margin-top:30px;" onclick="document.getElementById('lobby').style.display='flex'">Retour au menu</button>
     </div>
 </div>
 
@@ -154,20 +157,26 @@
     let localPicksLeft = 0;
     let isInitializing = false;
 
+    function startNewGame(mode) {
+        myId = 1;
+        document.getElementById('lobby').style.display = 'none';
+        document.getElementById('my-hud').style.borderTopColor = 'var(--p1)';
+        initNewGame(1, mode);
+    }
+
     function joinGame(id) {
         myId = id;
         document.getElementById('lobby').style.display = 'none';
         document.getElementById('my-hud').style.borderTopColor = id === 1 ? 'var(--p1)' : 'var(--p2)';
-        if(!state) initNewGame(myId);
-        else render();
+        if(state) render();
     }
 
     db.on("value", snap => {
         const val = snap.val();
         if(!val || !val.p1) {
-            if(myId !== null && !isInitializing) initNewGame(myId);
+            // Attente de l'hôte
         } else {
-            if (state && (state.saisonIdx !== val.saisonIdx || state.annee !== val.annee)) {
+            if (state && (state.saisonIdx !== val.saisonIdx || state.annee !== val.annee) && !val.gameOver) {
                 playSeasonAnimation(val.saisonIdx, val.annee);
             }
             state = val; 
@@ -177,9 +186,9 @@
 
     function sync() { if(state) db.set(state); }
 
-    function addLog(msg) {
+    function addLog(msg, pid = myId) {
         if(!state.gameLogs) state.gameLogs = [];
-        state.gameLogs.unshift(`[J${myId}] ` + msg);
+        state.gameLogs.unshift(`[J${pid}] ` + msg);
         if(state.gameLogs.length > 25) state.gameLogs.pop();
     }
 
@@ -187,28 +196,34 @@
         return { money: 10, time: 10, timeMax: 10, compost: 3, upgrades: Array(8).fill(1), hand: [], auxActifs: [], zones: Array(6).fill(null).map((_, i) => ({ id: i, type: i === 0 ? "LIFE" : null, culture: null, batiment: null })) };
     }
 
-    async function initNewGame(creatorId = null) {
+    async function initNewGame(creatorId = null, mode = 'MULTI') {
         if(isInitializing) return;
         isInitializing = true;
-        let msg = creatorId ? `> 🧹 Partie réinitialisée par le Joueur ${creatorId}.` : "> Nouvelle partie initialisée.";
+        let msg = creatorId ? `> 🧹 Partie (Mode: ${mode}) initialisée.` : "> Nouvelle partie initialisée.";
 
         try {
             const snapConf = await dbConfig.once("value");
             let config = snapConf.val();
-            if(!config || !config.decks) { alert("ERREUR: Base de données Admin vide !"); isInitializing = false; return; }
+            if(!config || !config.decks) { alert("ERREUR: Base Admin vide !"); isInitializing = false; return; }
 
             let builtDecks = { C: [], S: [], A: [] };
             ['C','S','A'].forEach(cat => { (config.decks[cat] || []).forEach(c => { let q = c.qte || 1; for(let i=0; i<q; i++) builtDecks[cat].push({...c}); }); });
             let builtRavs = [];
             (config.ravageurs || []).forEach(r => { let q = r.qte || 1; for(let i=0; i<q; i++) builtRavs.push({...r}); });
 
-            state = { turn: 1, annee: 1, saisonIdx: 0, gameOver: false, decks: builtDecks, ravPool: builtRavs, market: { C: [], S: [], A: [] }, currentMeteo: {p:0, s:0}, currentRav: null, p1: generatePlayer(), p2: generatePlayer(), gameLogs: [msg] };
+            state = { 
+                mode: mode, turn: 1, annee: 1, saisonIdx: 0, gameOver: false, 
+                decks: builtDecks, ravPool: builtRavs, market: { C: [], S: [], A: [] }, 
+                currentMeteo: {p:0, s:0}, currentRav: null, p1: generatePlayer(), p2: generatePlayer(), gameLogs: [msg] 
+            };
             ['C','S','A'].forEach(cat => { for(let i=0; i<2; i++) { let d = draw(cat); if(d) state.market[cat].push(d); } });
             
-            document.getElementById('game-over-screen').style.display = 'none'; // Masquer écran fin
+            document.getElementById('game-over-screen').style.display = 'none';
+            if (typeof botEnabled !== 'undefined') { botEnabled = false; } 
+            
             await db.set(state);
         } catch(e) { console.error(e); }
-        isInitializing = false;
+        finally { isInitializing = false; } // C'EST ICI LA CORRECTION DU CADENAS DE RESET
     }
 
     function draw(cat) {
@@ -229,31 +244,41 @@
     function showGameOver() {
         document.getElementById('game-over-screen').style.display = 'flex';
         document.getElementById('final-score-1').innerText = state.p1.money + " 💰";
-        document.getElementById('final-score-2').innerText = state.p2.money + " 💰";
         
-        let w = "Égalité !";
-        if(state.p1.money > state.p2.money) w = "🏆 Le Joueur 1 Gagne !";
-        if(state.p2.money > state.p1.money) w = "🏆 Le Joueur 2 Gagne !";
-        document.getElementById('winner-text').innerText = w;
+        if(state.mode === 'SOLO') {
+            document.getElementById('score-row-2').style.display = 'none';
+            document.getElementById('winner-text').innerText = "🎉 Ferme terminée !";
+        } else {
+            document.getElementById('score-row-2').style.display = 'flex';
+            document.getElementById('final-score-2').innerText = state.p2.money + " 💰";
+            let w = "Égalité !";
+            if(state.p1.money > state.p2.money) w = "🏆 Le Joueur 1 Gagne !";
+            if(state.p2.money > state.p1.money) w = "🏆 Le Joueur 2 Gagne !";
+            document.getElementById('winner-text').innerText = w;
+        }
     }
 
     function render() {
         if(!state || !myId) return;
         
-        if(state.gameOver) {
-            showGameOver();
-            return; // Bloque le reste de l'UI
-        } else {
-            document.getElementById('game-over-screen').style.display = 'none';
-        }
+        if(state.gameOver) { showGameOver(); return; } 
+        else { document.getElementById('game-over-screen').style.display = 'none'; }
 
         const me = state['p'+myId];
         const opp = state['p'+(myId === 1 ? 2 : 1)];
         const isMyTurn = state.turn === myId;
 
+        // GESTION HUD SOLO
+        if(state.mode === 'SOLO') {
+            document.getElementById('opp-hud').style.display = 'none';
+        } else {
+            document.getElementById('opp-hud').style.display = 'flex';
+        }
+
+        // MAJ TEXTES
         const banner = document.getElementById('turn-banner');
         if(isMyTurn) { banner.innerText = "🎮 C'est à votre tour !"; banner.className = "turn-banner active"; }
-        else { banner.innerText = `⏳ Veuillez patienter, le Joueur ${state.turn} réfléchit...`; banner.className = "turn-banner"; }
+        else { banner.innerText = `⏳ Veuillez patienter, c'est le tour du Joueur ${state.turn}...`; banner.className = "turn-banner"; }
 
         const setTxt = (id, txt) => { const el = document.getElementById(id); if(el) el.innerText = txt; };
         setTxt('res-money', me.money); setTxt('res-time', me.time); setTxt('res-timemax', me.timeMax); setTxt('res-compost', me.compost);
@@ -314,13 +339,24 @@
         document.getElementById('jardinerie-modal').style.display = localModalOpen ? 'flex' : 'none';
         if(localModalOpen) renderJardModal(me);
 
-        // Si le bot est activé, on lui passe la main
-        if(isMyTurn && botEnabled && !localModalOpen && typeof triggerBot === "function") triggerBot();
+        // --- GESTION DES BOTS (Hooks) ---
+        if(typeof triggerBot === "function") {
+            let shouldRunBot = false;
+            if(state.turn === myId && botEnabled) shouldRunBot = true; // Mon bot local
+            if(state.mode === 'VS_IA' && state.turn === 2 && myId === 1) shouldRunBot = true; // Je gère l'IA P2
+            if(state.mode === 'IA_VS_IA' && myId === 1) shouldRunBot = true; // Je gère les deux IA
+
+            if(shouldRunBot && !localModalOpen) triggerBot(state.turn);
+        }
     }
 
     function renderButtons(me, isMyTurn) {
         const costT = me.upgrades[5] >= 2 ? (me.upgrades[5] === 3 ? 0 : 1) : 2;
-        const dis = !isMyTurn || botEnabled; 
+        // Si je suis en spectateur ou que mon bot joue, je ne peux pas cliquer
+        const dis = !isMyTurn || botEnabled || (state.mode === 'IA_VS_IA'); 
+        
+        let finTexte = state.mode === 'SOLO' ? '💤 Fin de Saison' : (state.turn===1 ? '⏭️ Terminer le Tour' : '💤 Fin de Saison');
+
         document.getElementById('action-buttons-container').innerHTML = `
             <button class="btn-action" style="background:#4caf50" onclick="actT('POTAGER')" ${dis||me.time<3||me.money<costT?'disabled':''}>🏗️ Potager (-${costT}💰)</button>
             <button class="btn-action" style="background:#fbc02d;color:#333" onclick="actT('VERGER')" ${dis||me.time<3||me.money<costT?'disabled':''}>🏗️ Verger (-${costT}💰)</button>
@@ -328,7 +364,7 @@
             <button class="btn-action" style="background:#607d8b" onclick="actB()" ${dis||me.time<4?'disabled':''}>🏠 Bâtiment</button>
             <button class="btn-action" style="background:#2196f3" onclick="actArr()" ${dis||me.time<1?'disabled':''}>💧 Arroser (-1h)</button>
             <button class="btn-action" style="background:#795548" onclick="actAmd()" ${dis||me.time<1||(me.compost||0)<1?'disabled':''}>☀️ Amender (-1h)</button>
-            <button class="btn-action" style="background:#e53935; grid-column:span 2; font-size:1em;" onclick="actFin()" ${dis?'disabled':''}>${state.turn===1 ? '⏭️ Terminer le Tour' : '💤 Fin de Saison'}</button>
+            <button class="btn-action" style="background:#e53935; grid-column:span 2; font-size:1em;" onclick="actFin()" ${dis?'disabled':''}>${finTexte}</button>
         `;
 
         const upG = document.getElementById('up-grid'); upG.innerHTML = "";
@@ -345,8 +381,8 @@
         });
     }
 
-    // ACTIONS CLASSIQUES (Sécurisées pour Firebase)
-    function openJard(h, p) { const me = state['p'+myId]; me.time -= h; localPicksLeft = p; localModalOpen = true; addLog(`📦 Jardinerie.`); sync(); }
+    // --- ACTIONS DYNAMIQUES (Supportent le bot en P2) ---
+    function openJard(h, p) { const me = state['p'+state.turn]; me.time -= h; localPicksLeft = p; localModalOpen = true; addLog(`📦 Jardinerie.`, state.turn); sync(); }
     
     function renderJardModal(me) {
         const inner = document.getElementById('modal-content-inner');
@@ -361,40 +397,40 @@
                 const d = document.createElement('div'); d.className = "jard-card"; d.style.opacity = can?"1":"0.4";
                 let details = c.cat==='S' ? c.desc : (c.cat==='X' ? c.prot : `💧${c.e} ☀️${c.s}<br>🌱 ${(c.sm||[]).join(',')} | 🧺 ${(c.rc||[]).join(',')}`);
                 d.innerHTML = `<div class="price-tag">${c.p}💰</div><b>${c.nom}</b><br><small>${details}</small>`;
-                d.onclick = () => { if(can) { me.money-=c.p; if(!me.hand) me.hand=[]; me.hand.push(c); state.market[cat].splice(idx,1); if(!state.market[cat]) state.market[cat] = []; if(me.upgrades[6]>=3) { let nc = draw(cat); if(nc) state.market[cat].push(nc); } addLog(`🛒 Achat : ${c.nom}`); consm(); } };
+                d.onclick = () => { if(can) { me.money-=c.p; if(!me.hand) me.hand=[]; me.hand.push(c); state.market[cat].splice(idx,1); if(!state.market[cat]) state.market[cat] = []; if(me.upgrades[6]>=3) { let nc = draw(cat); if(nc) state.market[cat].push(nc); } addLog(`🛒 Achat : ${c.nom}`, state.turn); consm(); } };
                 r.appendChild(d);
             });
             inner.querySelector('.rayon-grid').appendChild(r);
         });
     }
 
-    function jardP(cat) { const me=state['p'+myId], c=draw(cat); if(c) { if(c.p<=me.money) { if(confirm(`Tiré : ${c.nom} (${c.p}💰). L'acheter ?`)) { me.money-=c.p; if(!me.hand) me.hand=[]; me.hand.push(c); addLog(`🛒 Pioche : ${c.nom}`); consm(); } else { consm(); } } else { alert(`Fonds insuffisants.`); consm(); } } else alert("Pioche vide !"); }
-    function jardR(cat) { state.market[cat] = []; for(let i=0; i<2; i++) { let d = draw(cat); if(d) state.market[cat].push(d); } addLog(`🔄 Rayon renouvelé.`); consm(); }
+    function jardP(cat) { const pId=state.turn, me=state['p'+pId], c=draw(cat); if(c) { if(c.p<=me.money) { if(confirm(`Tiré : ${c.nom} (${c.p}💰). L'acheter ?`)) { me.money-=c.p; if(!me.hand) me.hand=[]; me.hand.push(c); addLog(`🛒 Pioche : ${c.nom}`, pId); consm(); } else { consm(); } } else { alert(`Fonds insuffisants.`); consm(); } } else alert("Pioche vide !"); }
+    function jardR(cat) { state.market[cat] = []; for(let i=0; i<2; i++) { let d = draw(cat); if(d) state.market[cat].push(d); } addLog(`🔄 Rayon renouvelé.`, state.turn); consm(); }
     function consm() { localPicksLeft--; if(localPicksLeft<=0) { localModalOpen=false; ['C','S','A'].forEach(cat => { if(!state.market[cat]) state.market[cat] = []; while(state.market[cat].length < 2) { let c = draw(cat); if(c) state.market[cat].push(c); else break; } }); } sync(); }
 
-    function actT(t) { const me=state['p'+myId]; if(!localSelectedId || localSelectedId===0) return; const cost = me.upgrades[5]>=2 ? (me.upgrades[5]===3?0:1) : 2; me.money -= (t==='AMÉNAGEMENT'?3:cost); me.time -= 3; me.zones[localSelectedId].type = t; addLog(`🏗️ Aménagement : ${t}.`); sync(); }
-    function actB() { 
-        const me=state['p'+myId], z=me.zones[localSelectedId]; if(!z || z.batiment) return;
+    function actT(t, zId = localSelectedId) { const pId = state.turn; const me = state['p'+pId]; if(!zId || zId===0) return; const cost = me.upgrades[5]>=2 ? (me.upgrades[5]===3?0:1) : 2; if(me.money < (t==='AMÉNAGEMENT'?3:cost)) return; me.money -= (t==='AMÉNAGEMENT'?3:cost); me.time -= 3; me.zones[zId].type = t; addLog(`🏗️ Aménagement : ${t}.`, pId); sync(); }
+    function actB(zId = localSelectedId) { 
+        const pId = state.turn; const me = state['p'+pId], z=me.zones[zId]; if(!z || z.batiment) return;
         const ch = prompt("1: Serre (3💰)\n2: Composteur (4💰)\n3: Local Outils (5💰)");
-        if(ch==="1" && z.type==="POTAGER") { if(me.money<3) return; me.money-=3; me.time-=4; z.batiment="SERRE"; addLog("🏠 Serre."); }
-        else if(ch==="2" && (z.type==="POTAGER"||z.type==="AMÉNAGEMENT")) { if(me.money<4) return; me.money-=4; me.time-=4; z.batiment="COMPOSTEUR"; addLog("🏠 Composteur."); }
-        else if(ch==="3" && (z.type==="POTAGER"||z.type==="AMÉNAGEMENT")) { if(me.money<5) return; me.money-=5; me.time-=4; z.batiment="LOCAL OUTILS"; addLog("🏠 Local Outils."); }
+        if(ch==="1" && z.type==="POTAGER") { if(me.money<3) return; me.money-=3; me.time-=4; z.batiment="SERRE"; addLog("🏠 Serre.", pId); }
+        else if(ch==="2" && (z.type==="POTAGER"||z.type==="AMÉNAGEMENT")) { if(me.money<4) return; me.money-=4; me.time-=4; z.batiment="COMPOSTEUR"; addLog("🏠 Composteur.", pId); }
+        else if(ch==="3" && (z.type==="POTAGER"||z.type==="AMÉNAGEMENT")) { if(me.money<5) return; me.money-=5; me.time-=4; z.batiment="LOCAL OUTILS"; addLog("🏠 Local Outils.", pId); }
         sync(); 
     }
-    function actArr() { const me=state['p'+myId], z=me.zones[localSelectedId]; if(z && z.culture) { me.time--; z.culture.eCur = Math.max(0, z.culture.eCur-2); addLog(`💧 Arrosage.`); sync(); } }
-    function actAmd() { const me=state['p'+myId], z=me.zones[localSelectedId]; if(z && z.culture && me.compost>0) { me.time--; me.compost--; z.culture.sCur = Math.max(0, z.culture.sCur-1); addLog(`☀️ Amendement.`); sync(); } }
-    function upgr(i) { const me=state['p'+myId]; me.time -= (me.upgrades[i]===1?3:5); me.upgrades[i]++; if(i===1) me.timeMax += 4; addLog(`⚙️ Upgrade : ${UP_NAMES[i]}`); sync(); }
-    function actionRecolter(id) { const me=state['p'+myId], z=me.zones[id]; me.time-=2; me.money += (z.culture.g + (me.upgrades[3]-1) + (z.culture.amd||0)); addLog(`🧺 Récolte : ${z.culture.nom} !`); z.culture = null; sync(); }
+    function actArr(zId = localSelectedId) { const pId = state.turn; const me=state['p'+pId], z=me.zones[zId]; if(z && z.culture) { me.time--; z.culture.eCur = Math.max(0, z.culture.eCur-2); addLog(`💧 Arrosage.`, pId); sync(); } }
+    function actAmd(zId = localSelectedId) { const pId = state.turn; const me=state['p'+pId], z=me.zones[zId]; if(z && z.culture && me.compost>0) { me.time--; me.compost--; z.culture.sCur = Math.max(0, z.culture.sCur-1); addLog(`☀️ Amendement.`, pId); sync(); } }
+    function upgr(i) { const pId = state.turn; const me=state['p'+pId]; me.time -= (me.upgrades[i]===1?3:5); me.upgrades[i]++; if(i===1) me.timeMax += 4; addLog(`⚙️ Upgrade : ${UP_NAMES[i]}`, pId); sync(); }
+    function actionRecolter(id) { const pId = state.turn; const me=state['p'+pId], z=me.zones[id]; me.time-=2; me.money += (z.culture.g + (me.upgrades[3]-1) + (z.culture.amd||0)); addLog(`🧺 Récolte : ${z.culture.nom} !`, pId); z.culture = null; sync(); }
 
-    function playC(idx) { 
-        const me = state['p'+myId], c = me.hand[idx], z = me.zones[localSelectedId], cost = Math.max(0, (c.t||1)-(me.upgrades[2]-1));
-        if(c.cat === 'X') { me.time-=cost; if(!me.auxActifs) me.auxActifs=[]; me.auxActifs.push(c.prot); me.hand.splice(idx,1); addLog(`🦊 Anti-${c.prot} activé.`); } 
+    function playC(idx, zId = localSelectedId) { 
+        const pId = state.turn; const me = state['p'+pId], c = me.hand[idx], z = me.zones[zId], cost = Math.max(0, (c.t||1)-(me.upgrades[2]-1));
+        if(c.cat === 'X') { me.time-=cost; if(!me.auxActifs) me.auxActifs=[]; me.auxActifs.push(c.prot); me.hand.splice(idx,1); addLog(`🦊 Anti-${c.prot} activé.`, pId); } 
         else if(c.cat === 'S') { 
             me.time-=cost; 
-            if(c.nom.includes("Fumier")) { me.compost=(me.compost||0)+2; addLog("✨ +2 Compost"); }
-            if(c.nom.includes("Ortie") && z && z.culture) { z.culture.eCur = Math.max(0, z.culture.eCur-4); addLog("✨ Arrosage Express"); }
-            if(c.nom.includes("Paillage") && z && z.culture) { z.culture.eCur = Math.max(0, z.culture.eCur-2); z.culture.sCur = Math.max(0, z.culture.sCur-1); addLog("✨ Paillage posé"); }
-            if(c.nom.includes("Corne") && z && z.culture) { z.culture.amd = (z.culture.amd||0)+2; addLog("✨ Corne Broyée"); }
+            if(c.nom.includes("Fumier")) { me.compost=(me.compost||0)+2; addLog("✨ +2 Compost", pId); }
+            if(c.nom.includes("Ortie") && z && z.culture) { z.culture.eCur = Math.max(0, z.culture.eCur-4); addLog("✨ Arrosage Express", pId); }
+            if(c.nom.includes("Paillage") && z && z.culture) { z.culture.eCur = Math.max(0, z.culture.eCur-2); z.culture.sCur = Math.max(0, z.culture.sCur-1); addLog("✨ Paillage", pId); }
+            if(c.nom.includes("Corne") && z && z.culture) { z.culture.amd = (z.culture.amd||0)+2; addLog("✨ Corne Broyée", pId); }
             me.hand.splice(idx,1); 
         } else { 
             if(!z || !z.type || z.culture) return;
@@ -403,70 +439,101 @@
             let curS = ALL_SEASONS[state.saisonIdx];
             let smValid = z.batiment === 'SERRE' ? (c.sm||[]).map(s => ALL_SEASONS[(ALL_SEASONS.indexOf(s)+3)%4]).concat(c.sm||[]) : (c.sm||[]);
             if(!smValid.includes(curS)) return;
-            me.time-=cost; z.culture={...c, eCur:c.e, sCur:c.s, amd:0}; me.hand.splice(idx,1); addLog(`🌱 Semis : ${c.nom}`);
+            me.time-=cost; z.culture={...c, eCur:c.e, sCur:c.s, amd:0}; me.hand.splice(idx,1); addLog(`🌱 Semis : ${c.nom}`, pId);
         }
         sync(); 
     }
 
-    // --- GESTION DU TEMPS ET FIN DE JEU ---
-    function actFin() {
-        if(state.turn === 1) {
-            state.turn = 2;
-            addLog(`⏭️ Tour terminé.`);
-            sync();
-        } else {
-            // C'est P2 qui termine. On résout la saison.
-            state.saisonIdx++; 
-            if(state.saisonIdx > 3) { 
-                state.saisonIdx = 0; 
-                state.annee++; 
-            }
+    // --- LE MOTEUR CENTRAL (RÉSOLUTIONS DE SAISON) ---
+    function resolveSeason() {
+        let curS = ALL_SEASONS[state.saisonIdx];
+        let pBase = Math.floor(Math.random()*3)+1; 
+        let sBase = Math.floor(Math.random()*2)+1;
+        state.currentMeteo = {p: pBase, s: sBase};
+
+        let ravPool = state.ravPool || [];
+        if(ravPool.length > 0 && Math.random() < 0.3) { 
+            state.currentRav = ravPool[Math.floor(Math.random()*ravPool.length)]; 
+        } else { state.currentRav = null; }
+
+        let isFinalTurn = (state.saisonIdx === 3 && state.annee === 3);
+
+        [1, 2].forEach(pid => {
+            let pData = state['p'+pid];
+            let bClimat = pData.upgrades[4] > 1 ? 1 : 0; 
             
-            // CONDITION DE VICTOIRE : Fin de l'année 3 (quand l'année passe à 4)
-            if(state.annee > 3) {
-                state.gameOver = true;
-                addLog("🏁 Fin des 3 Années de jeu !");
-                sync();
-                return; // Bloque l'avancée supplémentaire
-            }
-
-            let curS = ALL_SEASONS[state.saisonIdx];
-            let pBase = Math.floor(Math.random()*3)+1; 
-            let sBase = Math.floor(Math.random()*2)+1;
-            state.currentMeteo = {p: pBase, s: sBase};
-
-            let ravPool = state.ravPool || [];
-            if(ravPool.length > 0 && Math.random() < 0.3) { 
-                state.currentRav = ravPool[Math.floor(Math.random()*ravPool.length)]; 
-            } else { state.currentRav = null; }
-
-            [1, 2].forEach(pid => {
-                let pData = state['p'+pid];
-                let bClimat = pData.upgrades[4] > 1 ? 1 : 0; 
-                
-                pData.zones.forEach(z => { 
-                    if(z && z.culture) { 
-                        z.culture.eCur = Math.max(0, z.culture.eCur - (pBase + bClimat)); 
-                        z.culture.sCur = Math.max(0, z.culture.sCur - (sBase + bClimat)); 
-                        
-                        let rc = z.culture.rc || [];
-                        let sm = z.culture.sm || [];
-                        let survie = z.batiment === 'SERRE' ? rc.map(s => ALL_SEASONS[(ALL_SEASONS.indexOf(s)+3)%4]).concat(rc).concat(sm) : rc.concat(sm);
-                        if(!survie.includes(curS)) z.culture = null;
-                    } 
-                });
-
-                if(state.currentRav && (!pData.auxActifs || !pData.auxActifs.includes(state.currentRav.n || state.currentRav.nom))) {
-                    pData.money = Math.max(0, pData.money - state.currentRav.d);
-                }
-
-                pData.time = pData.timeMax; 
-                pData.compost = (pData.compost||0)+1;
+            pData.zones.forEach(z => { 
+                if(z && z.culture) { 
+                    z.culture.eCur = Math.max(0, z.culture.eCur - (pBase + bClimat)); 
+                    z.culture.sCur = Math.max(0, z.culture.sCur - (sBase + bClimat)); 
+                    
+                    // Récolte automatique d'urgence à la fin du jeu
+                    if (isFinalTurn && z.culture.eCur === 0 && z.culture.sCur === 0) {
+                        pData.money += (z.culture.g + (pData.upgrades[3]-1) + (z.culture.amd||0));
+                        z.culture = null; 
+                    }
+                } 
             });
 
-            state.turn = 1;
-            addLog(`💤 Résolution saisonnière.`);
+            if(state.currentRav && (!pData.auxActifs || !pData.auxActifs.includes(state.currentRav.n || state.currentRav.nom))) {
+                pData.money = Math.max(0, pData.money - state.currentRav.d);
+            }
+
+            pData.time = pData.timeMax; 
+            pData.compost = (pData.compost||0)+1;
+        });
+
+        // Avancement du calendrier
+        state.saisonIdx++; 
+        if(state.saisonIdx > 3) { 
+            state.saisonIdx = 0; 
+            state.annee++; 
+        }
+
+        // Vérification Fin de Partie Absolute
+        if(state.annee > 3) {
+            state.gameOver = true;
+            addLog("🏁 Fin de la partie !", myId);
             sync();
+            return;
+        }
+
+        // Mort des plantes hors-saison
+        let newSeason = ALL_SEASONS[state.saisonIdx];
+        [1, 2].forEach(pid => {
+            let pData = state['p'+pid];
+            pData.zones.forEach(z => { 
+                if(z && z.culture) { 
+                    let rc = z.culture.rc || []; let sm = z.culture.sm || [];
+                    let survie = z.batiment === 'SERRE' ? rc.map(s => ALL_SEASONS[(ALL_SEASONS.indexOf(s)+3)%4]).concat(rc).concat(sm) : rc.concat(sm);
+                    if(!survie.includes(newSeason)) z.culture = null;
+                }
+            });
+        });
+
+        state.turn = 1;
+        addLog(`💤 Résolution de la saison.`, state.mode === 'SOLO' ? 1 : 2);
+        sync();
+    }
+
+    function actFin() {
+        if(state.mode === 'SOLO') {
+            resolveSeason();
+        } else {
+            if(state.turn === 1) {
+                state.turn = 2;
+                addLog(`⏭️ Fin de tour.`, 1);
+                sync();
+            } else {
+                resolveSeason();
+            }
+        }
+    }
+    
+    async function confirmReset(force = false) { 
+        if(confirm("⚠️ Réinitialiser complètement le serveur ?")) {
+            let currentMode = state ? state.mode : 'MULTI';
+            await initNewGame(myId || "Serveur", currentMode);
         }
     }
 </script>
