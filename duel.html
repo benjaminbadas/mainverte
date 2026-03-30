@@ -2,7 +2,7 @@
 <html lang="fr">
 <head>
     <meta charset="UTF-8">
-    <title>La Main Verte - V15 (Règles Officielles)</title>
+    <title>La Main Verte - V15.1 (Infos-Bulles)</title>
     <script src="https://www.gstatic.com/firebasejs/9.17.1/firebase-app-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/9.17.1/firebase-database-compat.js"></script>
     <style>
@@ -100,9 +100,9 @@
     <div class="hud" id="my-hud">
         <div id="season-display">📅 Saison...</div>
         <div>💰 <span id="res-money">0</span> | ⏳ <span id="res-time">0</span>/<span id="res-timemax">10</span>h</div>
-        <div title="Points de Compost accumulés">💩 <span id="res-compost" class="res-pill">0</span></div>
+        <div title="Déchets verts accumulés dans le Composteur">💩 <span id="res-compost" class="res-pill">0</span></div>
         <div id="meteo-display" style="background:#e3f2fd; padding:3px 10px; border-radius:10px;">🎲 --</div>
-        <button id="bot-btn" onclick="toggleBot()" style="background:#9c27b0; color:white; border:none; border-radius:4px; padding:4px 8px; cursor:pointer; font-weight:bold; transition:0.3s;">🤖 Bot: OFF</button>
+        <button id="bot-btn" onclick="toggleBot()" style="background:#9c27b0; color:white; border:none; border-radius:4px; padding:4px 8px; cursor:pointer; font-weight:bold; transition:0.3s;" title="Laisser l'ordinateur jouer à votre place">🤖 Bot: OFF</button>
         <button onclick="confirmReset()" style="background:#ff5252; color:white; border:none; border-radius:4px; padding:4px 8px; cursor:pointer; font-weight:bold;">🧹 Reset</button>
     </div>
     
@@ -138,6 +138,7 @@
 <script src="bot.js"></script>
 
 <script>
+    // --- CONNEXION FIREBASE ---
     const firebaseConfig = {
         apiKey: "AIzaSyA_OHv6TDiVsn4PwM9s25gij8lBwQH8xrg",
         authDomain: "main-verte-72483.firebaseapp.com",
@@ -151,6 +152,7 @@
     const db = firebase.database().ref("game-session-001");
     const dbConfig = firebase.database().ref("game-config");
 
+    // --- VARIABLES GLOBALES ---
     const UP_NAMES = ["Terrain", "Énergie", "Savoir", "Sol", "Climat", "Outils", "Vente", "VIP"];
     const SAISON_NOMS = ["🌷 Printemps", "☀️ Été", "🍂 Automne", "❄️ Hiver"];
     const ALL_SEASONS = ["P","E","A","H"];
@@ -162,6 +164,7 @@
     let localPicksLeft = 0;
     let isInitializing = false;
 
+    // --- GESTION DU LOBBY & CONNEXION ---
     function startNewGame(mode) {
         myId = 1;
         document.getElementById('lobby').style.display = 'none';
@@ -186,7 +189,7 @@
     db.on("value", snap => {
         const val = snap.val();
         if(!val || !val.p1) {
-            // Attente
+            // En attente
         } else {
             if (state && (state.saisonIdx !== val.saisonIdx || state.annee !== val.annee) && !val.gameOver) {
                 playSeasonAnimation(val.saisonIdx, val.annee);
@@ -208,6 +211,7 @@
         return { money: 10, time: 10, timeMax: 10, compost: 0, upgrades: Array(8).fill(1), hand: [], auxActifs: [], zones: Array(6).fill(null).map((_, i) => ({ id: i, type: i === 0 ? "LIFE" : null, culture: null, batiment: null })) };
     }
 
+    // --- INITIALISATION DU JEU ---
     async function initNewGame(creatorId = null, mode = 'MULTI') {
         if(isInitializing) return;
         isInitializing = true;
@@ -268,6 +272,7 @@
         }
     }
 
+    // --- MOTEUR D'AFFICHAGE PRINCIPAL ---
     function render() {
         if(!state || !myId) return;
         
@@ -324,11 +329,11 @@
                 d.innerHTML = `<b>${header}</b>`;
                 if(z.culture) {
                     let yieldInfo = `${z.culture.nom}`;
-                    if(z.culture.amd && z.culture.amd > 0) yieldInfo += ` <span style="background:var(--p1);color:white;padding:1px 4px;border-radius:4px;font-size:0.8em;">+${z.culture.amd}💰</span>`;
+                    if(z.culture.amd && z.culture.amd > 0) yieldInfo += ` <span style="background:var(--p1);color:white;padding:1px 4px;border-radius:4px;font-size:0.8em;" title="Bonus de rendement lié à l'amendement">+${z.culture.amd}💰</span>`;
                     
                     d.innerHTML += `<br>${yieldInfo}<br>💧${z.culture.eCur} ☀️${z.culture.sCur}`;
                     if(z.culture.eCur <= 0 && z.culture.sCur <= 0) {
-                        d.innerHTML += `<br><button onclick="actionRecolter(${z.id})" style="background:var(--p1); color:white; border:none; padding:4px; border-radius:4px; margin-top:4px;" ${!isMyTurn || me.time<2 || botEnabled || state.gameOver ? 'disabled':''}>🧺 Récolter</button>`;
+                        d.innerHTML += `<br><button onclick="actionRecolter(${z.id})" style="background:var(--p1); color:white; border:none; padding:4px; border-radius:4px; margin-top:4px;" title="Récolter et gagner de l'argent" ${!isMyTurn || me.time<2 || botEnabled || state.gameOver ? 'disabled':''}>🧺 Récolter</button>`;
                     }
                 }
             }
@@ -343,7 +348,7 @@
             const cost = Math.max(0, (c.t||1) - (me.upgrades[2]-1));
             const card = document.createElement('div'); card.className = "card";
             let details = c.cat==='S' ? c.desc : (c.cat==='X' ? c.prot : `💧${c.e} ☀️${c.s}<br>🌱 ${(c.sm||[]).join(',')} | 🧺 ${(c.rc||[]).join(',')}`);
-            card.innerHTML = `<b>${c.nom}</b><br><span style="font-size:0.9em;">${details}</span><br><button onclick="playC(${i})" style="width:100%; margin-top:4px; padding:4px; cursor:pointer;" ${!isMyTurn || me.time<cost || botEnabled || state.gameOver ? 'disabled':''}>Jouer (-${cost}h)</button>`;
+            card.innerHTML = `<b>${c.nom}</b><br><span style="font-size:0.9em;">${details}</span><br><button onclick="playC(${i})" title="Déployer cette carte sur le plateau. Coût : ${cost}h" style="width:100%; margin-top:4px; padding:4px; cursor:pointer;" ${!isMyTurn || me.time<cost || botEnabled || state.gameOver ? 'disabled':''}>Jouer (-${cost}h)</button>`;
             hDiv.appendChild(card);
         });
 
@@ -361,6 +366,7 @@
         }
     }
 
+    // --- ACTIONS ET INFOS-BULLES ---
     function renderButtons(me, isMyTurn) {
         const costT = me.upgrades[5] >= 2 ? (me.upgrades[5] === 3 ? 0 : 1) : 2;
         const dis = !isMyTurn || botEnabled || state.gameOver || (state.mode === 'IA_VS_IA' || state.mode === 'IA_SOLO'); 
@@ -369,31 +375,41 @@
         let finTexte = (state.mode === 'SOLO' || state.mode === 'IA_SOLO') ? '💤 Fin de Saison' : (state.turn===1 ? '⏭️ Terminer le Tour' : '💤 Fin de Saison');
 
         document.getElementById('action-buttons-container').innerHTML = `
-            <button class="btn-action" style="background:#4caf50" onclick="actT('POTAGER')" ${dis||me.time<3||me.money<costT?'disabled':''}>🏗️ Potager (-${costT}💰)</button>
-            <button class="btn-action" style="background:#fbc02d;color:#333" onclick="actT('VERGER')" ${dis||me.time<3||me.money<costT?'disabled':''}>🏗️ Verger (-${costT}💰)</button>
-            <button class="btn-action" style="background:#ff5722" onclick="actT('AMÉNAGEMENT')" ${dis||me.time<3||me.money<3?'disabled':''}>🌳 Nature (-3💰)</button>
-            <button class="btn-action" style="background:#607d8b" onclick="actB()" ${dis||me.time<4?'disabled':''}>🏠 Bâtiment</button>
-            <button class="btn-action" style="background:#2196f3" onclick="actArr()" ${dis||me.time<1?'disabled':''}>💧 Arroser (-1h)</button>
-            <button class="btn-action" style="background:#795548" onclick="actAmd()" ${dis||me.time<1||me.compost<1||!hasComposteur?'disabled':''}>💩 Amender (-1h)</button>
-            <button class="btn-action" style="background:#5d4037" onclick="actComposter()" title="Sacrifier la plante pour regagner du compost (+2💩) ou réinitialiser un arbre" ${dis||!hasComposteur||!me.zones[localSelectedId]?.culture||me.time<1?'disabled':''}>♻️ Composter (-1h)</button>
-            <button class="btn-action" style="background:#e53935; font-size:1em;" onclick="actFin()" ${dis?'disabled':''}>${finTexte}</button>
+            <button class="btn-action" style="background:#4caf50" onclick="actT('POTAGER')" title="Aménage la zone sélectionnée en Potager pour y semer des Légumes. Coût : ${costT}💰, 3h." ${dis||me.time<3||me.money<costT?'disabled':''}>🏗️ Potager (-${costT}💰)</button>
+            <button class="btn-action" style="background:#fbc02d;color:#333" onclick="actT('VERGER')" title="Aménage la zone sélectionnée en Verger pour y planter des Arbres. Coût : ${costT}💰, 3h." ${dis||me.time<3||me.money<costT?'disabled':''}>🏗️ Verger (-${costT}💰)</button>
+            <button class="btn-action" style="background:#ff5722" onclick="actT('AMÉNAGEMENT')" title="Crée une zone Nature, indispensable pour bâtir un Composteur ou un Local Outils. Coût : 3💰, 3h." ${dis||me.time<3||me.money<3?'disabled':''}>🌳 Nature (-3💰)</button>
+            <button class="btn-action" style="background:#607d8b" onclick="actB()" title="Construit un Bâtiment (Serre sur Potager, Composteur ou Local sur zone Nature). Coût : Temps et 💰 variables." ${dis||me.time<4?'disabled':''}>🏠 Bâtiment</button>
+            <button class="btn-action" style="background:#2196f3" onclick="actArr()" title="Réduit le besoin en Eau (💧) de la culture sélectionnée de 2. Coût : 1h." ${dis||me.time<1?'disabled':''}>💧 Arroser (-1h)</button>
+            <button class="btn-action" style="background:#795548" onclick="actAmd()" title="Utilise 1 point de Compost (💩) pour augmenter le gain à la revente de la culture de +1💰. Nécessite un Composteur ! Coût : 1h." ${dis||me.time<1||me.compost<1||!hasComposteur?'disabled':''}>💩 Amender (-1h)</button>
+            <button class="btn-action" style="background:#5d4037" onclick="actComposter()" title="Sacrifie le légume sélectionné pour gagner +2 Compost (💩), ou réinitialise les besoins d'un Arbre récolté. Coût : 1h." ${dis||!hasComposteur||!me.zones[localSelectedId]?.culture||me.time<1?'disabled':''}>♻️ Composter (-1h)</button>
+            <button class="btn-action" style="background:#e53935; font-size:1em; grid-column:span 1;" onclick="actFin()" title="Termine vos actions pour ce tour. Laisse la main à l'adversaire ou passe à la saison suivante." ${dis?'disabled':''}>${finTexte}</button>
         `;
 
         const upG = document.getElementById('up-grid'); upG.innerHTML = "";
         UP_NAMES.forEach((n, i) => {
             const cost = me.upgrades[i]===1?3:5;
-            upG.innerHTML += `<div style="font-size:0.7em; background:#fafafa; padding:4px; border:1px solid #ddd; border-radius:4px;"><b>${n}</b> L${me.upgrades[i]} <button onclick="upgr(${i})" style="float:right;" ${dis||me.upgrades[i]>=3||me.time<cost?'disabled':''}>UP</button></div>`;
+            let desc = "";
+            if(n === "Terrain") desc = "Déverrouille de nouvelles zones de votre plateau pour vous étendre.";
+            if(n === "Énergie") desc = "Augmente votre réserve de temps maximum (+4h par niveau).";
+            if(n === "Savoir") desc = "Réduit le coût en temps (h) nécessaire pour semer des graines ou utiliser des soutiens.";
+            if(n === "Sol") desc = "Augmente le prix de revente (+1💰) de toutes vos récoltes.";
+            if(n === "Climat") desc = "Réduit les pertes d'Eau et de Soleil infligées par la météo en fin de saison.";
+            if(n === "Outils") desc = "Réduit le coût en 💰 pour aménager des Potagers et des Vergers.";
+            if(n === "Vente") desc = "Réduit le coût en temps (h) du voyage vers la Jardinerie.";
+            if(n === "VIP") desc = "Vous donne accès à des emplacements de Jardinerie plus avantageux.";
+
+            upG.innerHTML += `<div style="font-size:0.7em; background:#fafafa; padding:4px; border:1px solid #ddd; border-radius:4px;" title="Niv. ${me.upgrades[i]} : ${desc}"><b>${n}</b> L${me.upgrades[i]} <button onclick="upgr(${i})" style="float:right;" title="Passer au Niveau ${me.upgrades[i]+1}. Coût : ${cost}h" ${dis||me.upgrades[i]>=3||me.time<cost?'disabled':''}>UP</button></div>`;
         });
 
         const jCont = document.getElementById('jard-buttons-container'); jCont.innerHTML = "";
         const redJ = me.upgrades[6]>=2?1:0;
         [[3,5],[2,3],[2,2],[1,1]].forEach((ex, i) => {
             const c = Math.max(0, ex[0]-redJ);
-            jCont.innerHTML += `<button class="btn-action" style="background:#8d6e63" onclick="openJard(${c},${ex[1]})" ${dis||me.time<c?'disabled':''}>📦 Empl. ${i+1} (${ex[1]} Pioches)</button>`;
+            jCont.innerHTML += `<button class="btn-action" style="background:#8d6e63" onclick="openJard(${c},${ex[1]})" title="Voyage à la jardinerie. Coûte ${c}h et vous donne droit à ${ex[1]} actions d'achat." ${dis||me.time<c?'disabled':''}>📦 Empl. ${i+1} (${ex[1]} Pioches)</button>`;
         });
     }
 
-    // --- ACTIONS CLASSIQUES (AVEC LOGS DÉTAILLÉS) ---
+    // --- ACTIONS DYNAMIQUES (AVEC LOGS DÉTAILLÉS) ---
     function openJard(h, p) { const me = state['p'+state.turn]; me.time -= h; localPicksLeft = p; localModalOpen = true; addLog(`📦 Voyage à la Jardinerie pour piocher ${p} cartes (-${h}h).`, state.turn); sync(); }
     
     function renderJardModal(me) {
@@ -421,33 +437,15 @@
     function consm() { localPicksLeft--; if(localPicksLeft<=0) { localModalOpen=false; ['C','S','A'].forEach(cat => { if(!state.market[cat]) state.market[cat] = []; while(state.market[cat].length < 2) { let c = draw(cat); if(c) state.market[cat].push(c); else break; } }); } sync(); }
 
     function actT(t, zId = localSelectedId) { const pId = state.turn; const me = state['p'+pId]; if(!zId || zId===0) return; const cost = me.upgrades[5]>=2 ? (me.upgrades[5]===3?0:1) : 2; if(me.money < (t==='AMÉNAGEMENT'?3:cost)) return; me.money -= (t==='AMÉNAGEMENT'?3:cost); me.time -= 3; me.zones[zId].type = t; addLog(`🏗️ Aménagement d'un ${t} sur la Zone ${zId} (-${t==='AMÉNAGEMENT'?3:cost}💰, -3h).`, pId); sync(); }
-
     function actB(zId = localSelectedId) { 
-    const pId = state.turn; const me = state['p'+pId], z=me.zones[zId]; 
-    if(!z || z.batiment) return;
-    
-    const ch = prompt("Choisissez le bâtiment :\n1: Serre (3💰 - Nécessite Potager)\n2: Composteur (4💰 - Nécessite Nature)\n3: Local Outils (5💰 - Nécessite Nature)");
-    
-    if(ch==="1" && z.type==="POTAGER") { 
-        if(me.money<3) return alert("Fonds insuffisants."); 
-        me.money-=3; me.time-=4; z.batiment="SERRE"; 
-        addLog(`🏠 Bâtiment SERRE construit sur Zone ${zId} (-3💰, -4h).`, pId); 
+        const pId = state.turn; const me = state['p'+pId], z=me.zones[zId]; if(!z || z.batiment) return;
+        const ch = prompt("Choisissez le bâtiment :\n1: Serre (3💰 - Nécessite Potager)\n2: Composteur (4💰 - Nécessite Nature)\n3: Local Outils (5💰 - Nécessite Nature)");
+        if(ch==="1" && z.type==="POTAGER") { if(me.money<3) return alert("Fonds insuffisants."); me.money-=3; me.time-=4; z.batiment="SERRE"; addLog(`🏠 Bâtiment SERRE construit sur Zone ${zId} (-3💰, -4h).`, pId); }
+        else if(ch==="2" && z.type==="AMÉNAGEMENT") { if(me.money<4) return alert("Fonds insuffisants."); me.money-=4; me.time-=4; z.batiment="COMPOSTEUR"; addLog(`🏠 Bâtiment COMPOSTEUR construit sur Zone ${zId} (-4💰, -4h).`, pId); }
+        else if(ch==="3" && z.type==="AMÉNAGEMENT") { if(me.money<5) return alert("Fonds insuffisants."); me.money-=5; me.time-=4; z.batiment="LOCAL OUTILS"; addLog(`🏠 Bâtiment LOCAL OUTILS construit sur Zone ${zId} (-5💰, -4h).`, pId); }
+        else if(ch) { alert("❌ Erreur d'emplacement !\nLa Serre se construit sur un Potager. Le Composteur et le Local se construisent sur une zone Nature (Aménagement)."); }
+        sync(); 
     }
-    else if(ch==="2" && z.type==="AMÉNAGEMENT") { 
-        if(me.money<4) return alert("Fonds insuffisants."); 
-        me.money-=4; me.time-=4; z.batiment="COMPOSTEUR"; 
-        addLog(`🏠 Bâtiment COMPOSTEUR construit sur Zone ${zId} (-4💰, -4h).`, pId); 
-    }
-    else if(ch==="3" && z.type==="AMÉNAGEMENT") { 
-        if(me.money<5) return alert("Fonds insuffisants."); 
-        me.money-=5; me.time-=4; z.batiment="LOCAL OUTILS"; 
-        addLog(`🏠 Bâtiment LOCAL OUTILS construit sur Zone ${zId} (-5💰, -4h).`, pId); 
-    }
-    else if(ch) {
-        alert("❌ Erreur d'emplacement !\nLa Serre se construit sur un Potager. Le Composteur et le Local se construisent sur une zone Nature (Aménagement).");
-    }
-    sync(); 
-}
     
     function actArr(zId = localSelectedId) { const pId = state.turn; const me=state['p'+pId], z=me.zones[zId]; if(z && z.culture) { me.time--; z.culture.eCur = Math.max(0, z.culture.eCur-2); addLog(`💧 Arrosage manuel de ${z.culture.nom} sur Zone ${zId} (-2💧, -1h).`, pId); sync(); } }
     
@@ -463,7 +461,6 @@
         } 
     }
 
-    // NOUVELLE ACTION COMPOSTAGE VOLONTAIRE
     function actComposter(zId = localSelectedId) {
         const pId = state.turn; const me = state['p'+pId], z = me.zones[zId]; 
         const hasComp = me.zones.some(x => x.batiment === 'COMPOSTEUR');
@@ -486,7 +483,6 @@
     
     function upgr(i) { const pId = state.turn; const me=state['p'+pId]; const cost = me.upgrades[i]===1?3:5; me.time -= cost; me.upgrades[i]++; if(i===1) me.timeMax += 4; addLog(`⚙️ Amélioration ${UP_NAMES[i]} au niveau ${me.upgrades[i]} (-${cost}h).`, pId); sync(); }
     
-    // NOUVELLE LOGIQUE DE RECOLTE (Les Arbres survivent)
     function actionRecolter(id) { 
         const pId = state.turn; const me = state['p'+pId], z = me.zones[id]; 
         me.time -= 2; 
@@ -503,7 +499,6 @@
         } else {
             z.culture = null; 
         }
-        
         addLog(msg, pId); 
         sync(); 
     }
@@ -580,7 +575,6 @@
             return;
         }
 
-        // NOUVELLE LOGIQUE DE PEREMPTION (Fin de Saison)
         let newSeason = ALL_SEASONS[state.saisonIdx];
         [1, 2].forEach(pid => {
             let pData = state['p'+pid];
