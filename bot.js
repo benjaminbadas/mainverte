@@ -1,10 +1,10 @@
 // ==========================================
-// 🤖 MOTEUR D'IA ÉVOLUTIVE (V22 - Mode Champion)
+// 🤖 MOTEUR D'IA ÉVOLUTIVE (V23 - Logs ADN Détaillés)
 // ==========================================
 
 let botEnabled = false;
 let autoTrainEnabled = false;
-let isChampionMode = false; // Le nouveau mode Démonstration
+let isChampionMode = false; 
 let botTimeout = null;
 
 let botDNA = {
@@ -20,14 +20,17 @@ const dbBrain = firebase.database().ref("bot-brain-v3");
 dbBrain.once("value").then(snap => {
     if(snap.exists()) {
         botDNA = mutateDNA(snap.val().dna);
-        console.log("🧠 Cerveau chargé (Record: " + snap.val().score + "💰). Nouvelle mutation générée.");
+        console.log("=========================================");
+        console.log("🧠 CERVEAU CHARGÉ | Record actuel : " + snap.val().score + "💰");
+        console.log("🧬 Nouvelle mutation générée pour le test :", JSON.parse(JSON.stringify(botDNA)));
+        console.log("=========================================");
     }
 });
 
 function mutateDNA(parentDNA) {
     let newDNA = {};
     for (let gene in parentDNA) {
-        let mutation = 1 + ((Math.random() * 0.2) - 0.1); 
+        let mutation = 1 + ((Math.random() * 0.2) - 0.1); // Mutation entre -10% et +10%
         newDNA[gene] = Math.round(parentDNA[gene] * mutation);
     }
     return newDNA;
@@ -35,7 +38,7 @@ function mutateDNA(parentDNA) {
 
 function toggleBot() {
     botEnabled = !botEnabled;
-    isChampionMode = false; // Désactive le mode champion si on clique ici
+    isChampionMode = false; 
     const btn = document.getElementById('bot-btn');
     if(btn) {
         btn.innerText = botEnabled ? "🤖 Bot: ON" : "🤖 Bot: OFF";
@@ -46,7 +49,7 @@ function toggleBot() {
 
 function toggleAutoTrain() {
     autoTrainEnabled = !autoTrainEnabled;
-    isChampionMode = false; // Priorité à l'entraînement
+    isChampionMode = false; 
     const btnTrain = document.getElementById('auto-train-btn');
     
     if(autoTrainEnabled) {
@@ -57,7 +60,6 @@ function toggleAutoTrain() {
     }
 }
 
-// NOUVELLE FONCTION : Lancer la démonstration du Champion !
 function playChampion() {
     autoTrainEnabled = false; 
     isChampionMode = true;
@@ -69,13 +71,15 @@ function playChampion() {
     let btnChamp = document.getElementById('champion-btn');
     if(btnChamp) { btnChamp.innerText = "🏆 Champion: ON"; btnChamp.style.background = "#f57f17"; }
 
-    // On télécharge l'ADN exact sans le muter !
     dbBrain.once("value").then(snap => {
         if(snap.exists()) {
-            botDNA = snap.val().dna; // Pas de fonction mutateDNA() ici !
-            console.log(`🏆 MODE CHAMPION ACTIVÉ ! L'IA utilise l'ADN exact du record (${snap.val().score}💰).`);
+            botDNA = snap.val().dna; 
+            console.log("=========================================");
+            console.log(`🏆 MODE CHAMPION ! ADN exact du record (${snap.val().score}💰) chargé :`);
+            console.log(JSON.parse(JSON.stringify(botDNA)));
+            console.log("=========================================");
         } else {
-            console.log("⚠️ Aucun champion enregistré. Utilisation de l'ADN de base.");
+            console.log("⚠️ Aucun champion. ADN de base utilisé.");
         }
         
         if(state && state.turn === myId && !state.gameOver) triggerBot(myId);
@@ -84,12 +88,9 @@ function playChampion() {
 
 function triggerBot(botId) {
     if(botTimeout) clearTimeout(botTimeout);
-    
-    // GESTION INTELLIGENTE DE LA VITESSE
-    let speed = 400; // Vitesse de base (quand on regarde le bot classique)
-    if(autoTrainEnabled) speed = 20; // Hyper Turbo pour l'entraînement
-    else if(isChampionMode) speed = 600; // Vitesse ralentie pour admirer le champion
-    
+    let speed = 400; 
+    if(autoTrainEnabled) speed = 20; 
+    else if(isChampionMode) speed = 600; 
     botTimeout = setTimeout(() => { botThinkAndAct(botId); }, speed); 
 }
 
@@ -98,9 +99,8 @@ function botThinkAndAct(botId) {
         if(!state || state.turn !== botId) return;
         
         if(state.gameOver) {
-            // SI ON EST EN MODE CHAMPION, ON ARRÊTE TOUT SIMPLEMENT
             if(isChampionMode) {
-                console.log(`🏁 Démonstration du Champion terminée. Score final : ${state['p'+botId].money}💰.`);
+                console.log(`🏁 Démonstration terminée. Score : ${state['p'+botId].money}💰.`);
                 isChampionMode = false;
                 botEnabled = false;
                 let btnChamp = document.getElementById('champion-btn');
@@ -110,14 +110,15 @@ function botThinkAndAct(botId) {
                 return;
             }
 
-            // SINON, C'EST L'ENTRAÎNEMENT CLASSIQUE (ÉVOLUTION)
             const finalScore = state['p'+botId].money;
             dbBrain.once("value").then(snap => {
                 let currentBest = snap.exists() ? snap.val().score : -1;
                 
                 if(finalScore > currentBest) {
                     dbBrain.set({ score: finalScore, dna: botDNA });
-                    console.log(`🏆 NOUVEAU RECORD IA ! ${finalScore}💰. ADN Sauvegardé.`);
+                    console.log(`\n🎉 NOUVEAU RECORD IA ! Score: ${finalScore}💰 (Ancien record: ${currentBest}💰)`);
+                    console.log(`🧬 ADN Sauvegardé :`, JSON.parse(JSON.stringify(botDNA)));
+                    
                     autoTrainEnabled = false;
                     botEnabled = false;
                     
@@ -126,8 +127,14 @@ function botThinkAndAct(botId) {
                     let btnBot = document.getElementById('bot-btn');
                     if(btnBot) { btnBot.innerText = "🤖 Bot: OFF"; btnBot.style.background = "#9c27b0"; }
                 } else {
+                    console.log(`\n❌ Échec de la mutation. Score: ${finalScore}💰 (Record à battre: ${currentBest}💰)`);
+                    console.log(`🗑️ ADN Jeté :`, JSON.parse(JSON.stringify(botDNA)));
+
                     if(autoTrainEnabled) {
-                        if(snap.exists()) botDNA = mutateDNA(snap.val().dna);
+                        if(snap.exists()) {
+                            botDNA = mutateDNA(snap.val().dna);
+                            console.log(`\n🔄 Relance... Nouvelle mutation générée :`, JSON.parse(JSON.stringify(botDNA)));
+                        }
                         if (typeof initNewGame === "function") initNewGame(botId, state.mode);
                     } else {
                         botEnabled = false; 
@@ -139,9 +146,6 @@ function botThinkAndAct(botId) {
             return;
         }
         
-        // ===============================================
-        // LOGIQUE D'ACTION DU BOT (Inchangée)
-        // ===============================================
         const me = state['p'+botId];
         let bestAction = { type: 'FIN_TOUR', score: 10 };
         let curS = ALL_SEASONS[state.saisonIdx];
@@ -191,12 +195,12 @@ function botThinkAndAct(botId) {
 
         if(emptyZoneId && me.time >= 3 && me.money >= costT) {
             let needsPotager = (me.hand||[]).some(c => c.cat === 'L' && (c.sm||[]).includes(curS));
-            let needsVerger = (me.hand||[]).some(c => c.cat === 'A' && (c.sm||[]).includes(curS));
+            let downVerger = (me.hand||[]).some(c => c.cat === 'A' && (c.sm||[]).includes(curS));
             
             if(needsPotager && nbPotagers === 0 && botDNA.prioPotagerUrgence > bestAction.score) { bestAction = { type: 'AMENAGER', zoneId: emptyZoneId, terrain: 'POTAGER', score: botDNA.prioPotagerUrgence }; } 
-            else if(needsVerger && nbVergers === 0 && botDNA.prioVergerUrgence > bestAction.score) { bestAction = { type: 'AMENAGER', zoneId: emptyZoneId, terrain: 'VERGER', score: botDNA.prioVergerUrgence }; } 
+            else if(downVerger && nbVergers === 0 && botDNA.prioVergerUrgence > bestAction.score) { bestAction = { type: 'AMENAGER', zoneId: emptyZoneId, terrain: 'VERGER', score: botDNA.prioVergerUrgence }; } 
             else if(needsPotager && !hasEmptyPotager && botDNA.prioExtraPotager > bestAction.score) { bestAction = { type: 'AMENAGER', zoneId: emptyZoneId, terrain: 'POTAGER', score: botDNA.prioExtraPotager }; } 
-            else if(needsVerger && !hasEmptyVerger && botDNA.prioExtraVerger > bestAction.score) { bestAction = { type: 'AMENAGER', zoneId: emptyZoneId, terrain: 'VERGER', score: botDNA.prioExtraVerger }; } 
+            else if(downVerger && !hasEmptyVerger && botDNA.prioExtraVerger > bestAction.score) { bestAction = { type: 'AMENAGER', zoneId: emptyZoneId, terrain: 'VERGER', score: botDNA.prioExtraVerger }; } 
             else if(!hasComposteur && !hasEmptyNature && me.money >= (costT + 4) && botDNA.prioNature > bestAction.score) { bestAction = { type: 'AMENAGER', zoneId: emptyZoneId, terrain: 'AMÉNAGEMENT', score: botDNA.prioNature }; }
         }
 
