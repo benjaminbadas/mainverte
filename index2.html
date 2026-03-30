@@ -2,7 +2,7 @@
 <html lang="fr">
 <head>
     <meta charset="UTF-8">
-    <title>La Main Verte - Multijoueur Live</title>
+    <title>La Main Verte - Multijoueur Live (Reset)</title>
     <script src="https://www.gstatic.com/firebasejs/9.17.1/firebase-app-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/9.17.1/firebase-database-compat.js"></script>
     
@@ -11,7 +11,7 @@
         body { font-family: 'Segoe UI', sans-serif; background: var(--bg); margin: 0; display: flex; height: 100vh; overflow: hidden; }
         .main-game { flex: 1; display: flex; flex-direction: column; padding: 10px; overflow-y: auto; }
         .sidebar { width: 420px; background: white; border-left: 2px solid #ddd; padding: 10px; display: flex; flex-direction: column; }
-        .hud { display: flex; justify-content: space-between; background: white; padding: 10px; border-radius: 8px; box-shadow: 0 2px 5px rgba(0,0,0,0.1); margin-bottom: 10px; font-weight: bold; }
+        .hud { display: flex; justify-content: space-between; align-items: center; background: white; padding: 10px; border-radius: 8px; box-shadow: 0 2px 5px rgba(0,0,0,0.1); margin-bottom: 10px; font-weight: bold; }
         .farm-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; background: #d7ccc8; padding: 10px; border-radius: 12px; }
         .zone { min-height: 155px; background: #efebe9; border: 2px dashed #bcaaa4; border-radius: 8px; display: flex; flex-direction: column; align-items: center; justify-content: center; position: relative; font-size: 0.72em; cursor: pointer; text-align: center; transition: 0.2s; }
         .zone.selected { border: 3px solid #ff9800 !important; box-shadow: 0 0 8px rgba(255,152,0,0.4); }
@@ -29,6 +29,8 @@
         .btn-action { width: 100%; padding: 8px; border: none; border-radius: 4px; font-weight: bold; color: white; cursor: pointer; font-size: 0.72em; margin-bottom: 4px; display: flex; flex-direction: column; align-items: center; justify-content: center; }
         .btn-cost { font-size: 0.8em; font-weight: normal; margin-top: 2px; opacity: 0.9; }
         button:disabled { background: #cfd8dc !important; color: #78909c !important; cursor: not-allowed !important; }
+        .btn-reset { background: #ff5252; color: white; border: none; border-radius: 4px; padding: 5px 10px; cursor: pointer; font-size: 0.8em; }
+        .btn-reset:hover { background: #d32f2f; }
         .market-preview { background: #fffde7; padding: 6px; border: 1px solid #ffd54f; border-radius: 6px; font-size: 0.72em; margin-bottom: 6px; }
         .modal-overlay { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.8); z-index: 100; align-items: center; justify-content: center; }
         .modal-content { background: #fff; padding: 20px; border-radius: 12px; width: 90%; max-width: 900px; }
@@ -47,10 +49,11 @@
         <div>💰 <span id="res-money">0</span> | ⏳ <span id="res-time">0</span>/<span id="res-timemax">0</span>h</div>
         <div>💩 Compost: <span id="res-compost" class="res-pill">0</span></div>
         <div id="meteo-display" style="color:#1565c0;">🎲 --</div>
+        <button class="btn-reset" onclick="confirmReset()" title="Remettre la partie à zéro pour TOUS les joueurs">🧹 Reset</button>
     </div>
     <div id="ravageur-alert" style="background:#ffebee; color:#c62828; padding:5px; font-size:0.8em; text-align:center; display:none; border-radius:5px; margin-bottom:5px;"></div>
     <div class="farm-grid" id="farm-grid"></div>
-    <div class="logs" id="game-logs">> Connexion Firebase établie. Partagez l'URL pour jouer à deux !</div>
+    <div class="logs" id="game-logs">> Session connectée.</div>
     <div id="action-buttons-container" style="display: grid; grid-template-columns: repeat(4, 1fr); gap:4px; margin-top:10px;"></div>
 </div>
 
@@ -69,7 +72,6 @@
 </div>
 
 <script>
-    // --- CONFIGURATION FIREBASE ---
     const firebaseConfig = {
         apiKey: "AIzaSyA_OHv6TDiVsn4PwM9s25gij8lBwQH8xrg",
         authDomain: "main-verte-72483.firebaseapp.com",
@@ -84,7 +86,6 @@
     firebase.initializeApp(firebaseConfig);
     const db = firebase.database().ref("game-session-001");
 
-    // --- DONNÉES ---
     const DECKS = {
         C: [
             { nom: "Radis", prix: 0, e: 1, s: 1, t: 1, g: 3, cat: 'L', semis: ['P','E','A','H'], rec: ['P','E','A','H'] },
@@ -101,7 +102,6 @@
     let state = null;
     let localSelectedId = null;
 
-    // --- SYNCHRONISATION ---
     db.on("value", (snap) => {
         const val = snap.val();
         if(!val || !val.zones) initNewGame();
@@ -118,22 +118,27 @@
             market: { C: [draw('C'), draw('C')], S: [draw('S'), draw('S')], A: [draw('A'), draw('A')] },
             picksLeft: 0, modalOpen: false
         };
+        addLog("🧹 Partie réinitialisée.");
         sync();
     }
 
+    function confirmReset() {
+        if(confirm("⚠️ ATTENTION : Cela va effacer la partie en cours pour tout le monde. Continuer ?")) {
+            initNewGame();
+        }
+    }
+
     function draw(cat) { return {...DECKS[cat][Math.floor(Math.random()*DECKS[cat].length)]}; }
+    function addLog(m) { const l = document.getElementById('game-logs'); l.innerHTML = `<div>> ${m}</div>` + l.innerHTML; }
 
     function render() {
         if(!state) return;
-
-        // HUD
         document.getElementById('res-money').innerText = state.money;
         document.getElementById('res-time').innerText = state.time;
         document.getElementById('res-timemax').innerText = state.timeMax;
         document.getElementById('res-compost').innerText = state.compost;
         document.getElementById('season-display').innerText = `📅 ${["Printemps","Été","Automne","Hiver"][state.saisonIdx]} - An ${state.annee}`;
 
-        // Grille
         const grid = document.getElementById('farm-grid'); grid.innerHTML = "";
         state.zones.forEach(z => {
             const acc = z.id <= (state.upgrades[0] === 1 ? 3 : (state.upgrades[0] === 2 ? 4 : 5));
@@ -141,12 +146,10 @@
             let tCl = z.type ? 'tuile-'+z.type.toLowerCase() : '';
             if(z.batiment && !isS) tCl = 'tuile-batiment';
             if(isS) tCl += ' has-serre';
-
             const d = document.createElement('div');
             d.className = `zone ${tCl} ${localSelectedId === z.id ? 'selected' : ''}`;
             d.style.opacity = acc ? "1" : "0.3";
             d.onclick = () => { if(acc) { localSelectedId = z.id; render(); } };
-            
             if(z.id === 0) d.innerHTML = "🏠 MAISON";
             else if(!z.type) d.innerHTML = `ZONE ${z.id}${acc?'':'<br>🔒'}`;
             else {
@@ -159,13 +162,8 @@
             grid.appendChild(d);
         });
 
-        // Boutons
         renderButtons();
-        
-        // Vitrine
         document.getElementById('market-preview').innerHTML = `🌾 <b>C:</b> ${state.market.C.map(c=>c.nom).join(', ')} | 🦊 <b>A:</b> ${state.market.A.map(c=>c.nom).join(', ')}`;
-
-        // Main
         const hDiv = document.getElementById('player-hand'); hDiv.innerHTML = "";
         if(state.hand) {
             state.hand.forEach((c, i) => {
@@ -173,8 +171,6 @@
                 hDiv.innerHTML += `<div class="card"><b>${c.nom}</b><br><button onclick="playC(${i})" ${state.time<cost?'disabled':''}>Jouer (-${cost}h)</button></div>`;
             });
         }
-
-        // Modale
         document.getElementById('jardinerie-modal').style.display = state.modalOpen ? 'flex' : 'none';
         if(state.modalOpen) renderJardModal();
     }
@@ -191,14 +187,12 @@
             <button class="btn-action" style="background:#795548" onclick="actAmd()" ${state.time<1||state.compost<1?'disabled':''}>💩 Amender <span class="btn-cost">-1h</span></button>
             <button class="btn-action" style="background:#e53935; grid-column:span 2;" onclick="actFin()">💤 Fin de Saison</button>
         `;
-
         const redJ = state.upgrades[6]>=2?1:0;
         const jCont = document.getElementById('jard-buttons-container'); jCont.innerHTML = "";
         [[3,5],[2,3],[2,2],[1,1]].forEach((ex, i) => {
             const c = Math.max(0, ex[0]-redJ);
             jCont.innerHTML += `<button class="btn-action" style="background:#8d6e63" onclick="openJard(${c},${ex[1]})" ${state.time<c?'disabled':''}>📦 E${i+1} <span class="btn-cost">-${c}h|${ex[1]}p</span></button>`;
         });
-
         const upG = document.getElementById('up-grid'); upG.innerHTML = "";
         UP_NAMES.forEach((n, i) => {
             const cost = state.upgrades[i]===1?3:5;
@@ -206,7 +200,7 @@
         });
     }
 
-    // --- LOGIQUE JEU ---
+    // --- ACTIONS MODALE ---
     function openJard(h, p) { state.time -= h; state.picksLeft = p; state.modalOpen = true; sync(); }
     function renderJardModal() {
         const inner = document.getElementById('modal-content-inner');
@@ -220,37 +214,25 @@
                 const d = document.createElement('div'); d.className = "jard-card";
                 d.style.opacity = can ? "1" : "0.4";
                 d.innerHTML = `${c.prix>0?`<div class="price-tag">${c.prix}💰</div>`:''}<b>${c.nom}</b>`;
-                d.onclick = () => { if(can) { state.money -= c.prix; state.hand.push(c); state.market[cat].splice(idx,1); if(state.upgrades[6]>=3) state.market[cat].push(draw(cat)); consm(); } };
+                d.onclick = () => { if(can) { state.money -= c.prix; if(!state.hand) state.hand=[]; state.hand.push(c); state.market[cat].splice(idx,1); if(state.upgrades[6]>=3) state.market[cat].push(draw(cat)); consm(); } };
                 r.appendChild(d);
             });
             grid.appendChild(r);
         });
     }
-    function jardP(cat) { const c = draw(cat); if(c.prix > 0 && state.money >= c.prix) { state.money -= c.prix; state.hand.push(c); } else if(c.prix === 0) state.hand.push(c); consm(); }
+    function jardP(cat) { const c = draw(cat); if(c.prix > 0 && state.money >= c.prix) { state.money -= c.prix; if(!state.hand) state.hand=[]; state.hand.push(c); } else if(c.prix === 0) { if(!state.hand) state.hand=[]; state.hand.push(c); } consm(); }
     function jardR(cat) { state.market[cat] = [draw(cat), draw(cat)]; consm(); }
     function consm() { state.picksLeft--; if(state.picksLeft <= 0) { state.modalOpen = false; ['C','S','A'].forEach(cat => { while(state.market[cat].length<2) state.market[cat].push(draw(cat)); }); } sync(); }
 
+    // --- ACTIONS JEU ---
     function actT(t) { if(!localSelectedId || localSelectedId === 0) return; const cost = state.upgrades[5] >= 2 ? (state.upgrades[5] === 3 ? 0 : 1) : 2; state.money -= cost; state.time -= 3; state.zones[localSelectedId].type = (t==='P'?'POTAGER':'VERGER'); sync(); }
     function actN() { if(!localSelectedId) return; state.money -= 3; state.time -= 3; state.zones[localSelectedId].type = 'AMÉNAGEMENT'; sync(); }
-    function actB() { 
-        const z = state.zones[localSelectedId]; if(!z || z.batiment) return;
-        const ch = prompt("1: Serre(3💰) Potager | 2: Composteur(4💰) | 3: Local(5💰)");
-        if(ch==="1" && z.type==="POTAGER" && state.money>=3) { state.money-=3; state.time-=4; z.batiment="SERRE"; }
-        else if(ch==="2" && state.money>=4) { state.money-=4; state.time-=4; z.batiment="COMPOSTEUR"; }
-        else if(ch==="3" && state.money>=5) { state.money-=5; state.time-=4; z.batiment="LOCAL OUTILS"; }
-        sync();
-    }
+    function actB() { const z = state.zones[localSelectedId]; if(!z || z.batiment) return; const ch = prompt("1: Serre(3💰) Potager | 2: Composteur(4💰) | 3: Local(5💰)"); if(ch==="1" && z.type==="POTAGER" && state.money>=3) { state.money-=3; state.time-=4; z.batiment="SERRE"; } else if(ch==="2" && state.money>=4) { state.money-=4; state.time-=4; z.batiment="COMPOSTEUR"; } else if(ch==="3" && state.money>=5) { state.money-=5; state.time-=4; z.batiment="LOCAL OUTILS"; } sync(); }
     function actArr() { const z = state.zones[localSelectedId]; if(z && z.culture) { state.time -= 1; z.culture.eCur = Math.max(0, z.culture.eCur-2); sync(); } }
     function actAmd() { const z = state.zones[localSelectedId]; if(z && z.culture) { state.time -= 1; state.compost -= 1; z.culture.amd = (z.culture.amd||0)+1; sync(); } }
     function upgr(i) { const cost = state.upgrades[i]===1?3:5; state.time -= cost; state.upgrades[i]++; if(i===1) state.timeMax += 4; sync(); }
     function actionRecolter(id) { const z = state.zones[id]; state.time -= 2; state.money += (z.culture.g + (state.upgrades[3]-1) + (z.culture.amd||0)); z.culture = null; sync(); }
-    function playC(idx) { 
-        const c = state.hand[idx]; const cost = Math.max(0, (c.t||1)-(state.upgrades[2]-1)); const z = state.zones[localSelectedId];
-        if(c.cat==='Auxiliaire'){ state.time-=cost; if(!state.auxActifs) state.auxActifs=[]; state.auxActifs.push(c.prot); state.hand.splice(idx,1); }
-        else if(c.cat==='Soutien'){ state.time-=cost; if(c.nom==="Fumier") state.compost+=2; state.hand.splice(idx,1); }
-        else { if(!z || z.culture || (c.cat==='L'&&z.type!=='POTAGER') || (c.cat==='A'&&z.type!=='VERGER')) return; state.time-=cost; z.culture={...c, eCur:c.e, sCur:c.s, amd:0}; state.hand.splice(idx,1); }
-        sync(); 
-    }
+    function playC(idx) { const c = state.hand[idx]; const cost = Math.max(0, (c.t||1)-(state.upgrades[2]-1)); const z = state.zones[localSelectedId]; if(c.cat==='Auxiliaire'){ state.time-=cost; if(!state.auxActifs) state.auxActifs=[]; state.auxActifs.push(c.prot); state.hand.splice(idx,1); } else if(c.cat==='Soutien'){ state.time-=cost; if(c.nom==="Fumier") state.compost+=2; state.hand.splice(idx,1); } else { if(!z || z.culture || (c.cat==='L'&&z.type!=='POTAGER') || (c.cat==='A'&&z.type!=='VERGER')) return; state.time-=cost; z.culture={...c, eCur:c.e, sCur:c.s, amd:0}; state.hand.splice(idx,1); } sync(); }
     function actFin() { state.saisonIdx++; if(state.saisonIdx > 3) { state.saisonIdx = 0; state.annee++; } state.zones.forEach(z => { if(z && z.culture) { z.culture.eCur = Math.max(0, z.culture.eCur-2); z.culture.sCur = Math.max(0, z.culture.sCur-1); }}); state.time = state.timeMax; state.compost++; sync(); }
 </script>
 </body>
