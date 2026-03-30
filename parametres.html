@@ -17,6 +17,7 @@
         .btn:hover { background: #f57c00; transform: scale(1.02); }
         .badge-or { background: #ffd700; color: #855e00; padding: 2px 6px; border-radius: 4px; font-size: 0.8em; }
         .badge-temps { background: #bbdefb; color: #0d47a1; padding: 2px 6px; border-radius: 4px; font-size: 0.8em; }
+        .badge-pioche { background: #e1bee7; color: #4a148c; padding: 2px 6px; border-radius: 4px; font-size: 0.8em; }
     </style>
 </head>
 <body>
@@ -58,17 +59,28 @@
         costArroserTemps: 1, costAmenderTemps: 1, costComposterTemps: 1, costRecolterTemps: 2,
         // Améliorations
         costUp2Or: 2, costUp2Temps: 3,
-        costUp3Or: 4, costUp3Temps: 5
+        costUp3Or: 4, costUp3Temps: 5,
+        // Jardinerie (Nouveau !)
+        jardSlot1Temps: 3, jardSlot1Pioches: 5,
+        jardSlot2Temps: 2, jardSlot2Pioches: 3,
+        jardSlot3Temps: 2, jardSlot3Pioches: 2,
+        jardSlot4Temps: 1, jardSlot4Pioches: 1
     };
 
     let currentSettings = {};
 
-    // Charger les paramètres depuis Firebase
     dbSettings.once("value").then(snap => {
         if (snap.exists()) {
             currentSettings = snap.val();
+            // On s'assure que les nouvelles variables Jardinerie existent même si on avait déjà sauvegardé avant
+            if(currentSettings.jardSlot1Temps === undefined) {
+                currentSettings.jardSlot1Temps = 3; currentSettings.jardSlot1Pioches = 5;
+                currentSettings.jardSlot2Temps = 2; currentSettings.jardSlot2Pioches = 3;
+                currentSettings.jardSlot3Temps = 2; currentSettings.jardSlot3Pioches = 2;
+                currentSettings.jardSlot4Temps = 1; currentSettings.jardSlot4Pioches = 1;
+            }
         } else {
-            currentSettings = defaultSettings; // Si vide, on prend les valeurs par défaut
+            currentSettings = defaultSettings;
         }
         renderForm();
     });
@@ -99,6 +111,23 @@
             </div>
 
             <div class="section">
+                <h3>🛒 Jardinerie (Les 4 Emplacements)</h3>
+                <div class="grid">
+                    <div><label>Emplacement VIP 1 (<span class="badge-temps">⏳ Temps</span>)</label><input type="number" id="jardSlot1Temps" value="${currentSettings.jardSlot1Temps}"></div>
+                    <div><label>Emplacement VIP 1 (<span class="badge-pioche">🃏 Cartes Pioche</span>)</label><input type="number" id="jardSlot1Pioches" value="${currentSettings.jardSlot1Pioches}"></div>
+
+                    <div><label>Emplacement VIP 2 (<span class="badge-temps">⏳ Temps</span>)</label><input type="number" id="jardSlot2Temps" value="${currentSettings.jardSlot2Temps}"></div>
+                    <div><label>Emplacement VIP 2 (<span class="badge-pioche">🃏 Cartes Pioche</span>)</label><input type="number" id="jardSlot2Pioches" value="${currentSettings.jardSlot2Pioches}"></div>
+
+                    <div><label>Emplacement Standard 3 (<span class="badge-temps">⏳ Temps</span>)</label><input type="number" id="jardSlot3Temps" value="${currentSettings.jardSlot3Temps}"></div>
+                    <div><label>Emplacement Standard 3 (<span class="badge-pioche">🃏 Cartes Pioche</span>)</label><input type="number" id="jardSlot3Pioches" value="${currentSettings.jardSlot3Pioches}"></div>
+
+                    <div><label>Emplacement Standard 4 (<span class="badge-temps">⏳ Temps</span>)</label><input type="number" id="jardSlot4Temps" value="${currentSettings.jardSlot4Temps}"></div>
+                    <div><label>Emplacement Standard 4 (<span class="badge-pioche">🃏 Cartes Pioche</span>)</label><input type="number" id="jardSlot4Pioches" value="${currentSettings.jardSlot4Pioches}"></div>
+                </div>
+            </div>
+
+            <div class="section">
                 <h3>⚙️ Améliorations (Arbre de Compétences)</h3>
                 <div class="grid">
                     <div><label>Passage Niveau 2 (<span class="badge-or">💰 Or</span>)</label><input type="number" id="costUp2Or" value="${currentSettings.costUp2Or}"></div>
@@ -109,7 +138,7 @@
             </div>
 
             <div class="section">
-                <h3>⚡ Actions Rapides (Coût en Temps uniquement)</h3>
+                <h3>⚡ Actions Rapides (Coût en Temps)</h3>
                 <div class="grid">
                     <div><label>💧 Arroser (<span class="badge-temps">⏳ Temps</span>)</label><input type="number" id="costArroserTemps" value="${currentSettings.costArroserTemps}"></div>
                     <div><label>💩 Amender (<span class="badge-temps">⏳ Temps</span>)</label><input type="number" id="costAmenderTemps" value="${currentSettings.costAmenderTemps}"></div>
@@ -121,15 +150,13 @@
     }
 
     function saveSettings() {
-        // Récupérer toutes les valeurs
         const newSettings = {};
         for(let key in defaultSettings) {
             newSettings[key] = parseInt(document.getElementById(key).value) || 0;
         }
 
-        // Sauvegarder dans Firebase
         dbSettings.set(newSettings).then(() => {
-            alert("✅ Paramètres sauvegardés avec succès ! Ils seront appliqués à la prochaine partie créée.");
+            alert("✅ Paramètres sauvegardés avec succès ! Ils s'appliqueront dès qu'une NOUVELLE partie sera lancée.");
         }).catch(err => {
             console.error(err);
             alert("❌ Erreur lors de la sauvegarde.");
