@@ -2,7 +2,7 @@
 <html lang="fr">
 <head>
     <meta charset="UTF-8">
-    <title>La Main Verte - V9.0 LiveOps Edition</title>
+    <title>La Main Verte - V9.1 LiveOps Safe</title>
     <script src="https://www.gstatic.com/firebasejs/9.17.1/firebase-app-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/9.17.1/firebase-database-compat.js"></script>
     <style>
@@ -187,14 +187,12 @@
         };
     }
 
-    // --- LE NOUVEAU MOTEUR D'INITIALISATION (LIVEOPS) ---
     async function initNewGame(creatorId = null) {
         if(isInitializing) return;
         isInitializing = true;
         let msg = creatorId ? `> 🧹 La partie a été réinitialisée par le Joueur ${creatorId}.` : "> Nouvelle partie initialisée.";
 
         try {
-            // Téléchargement des cartes depuis la page Admin !
             const snapConf = await dbConfig.once("value");
             let config = snapConf.val();
 
@@ -204,16 +202,14 @@
                 return;
             }
 
-            // Génération des Decks selon les quantités (qte)
             let builtDecks = { C: [], S: [], A: [] };
             ['C','S','A'].forEach(cat => {
                 (config.decks[cat] || []).forEach(c => {
                     let q = c.qte || 1;
-                    for(let i=0; i<q; i++) builtDecks[cat].push({...c}); // Copie propre
+                    for(let i=0; i<q; i++) builtDecks[cat].push({...c});
                 });
             });
 
-            // Génération de la réserve de Ravageurs
             let builtRavs = [];
             (config.ravageurs || []).forEach(r => {
                 let q = r.qte || 1;
@@ -230,7 +226,6 @@
                 gameLogs: [msg]
             };
 
-            // Remplissage du premier marché
             ['C','S','A'].forEach(cat => { 
                 for(let i=0; i<2; i++) { let d = draw(cat); if(d) state.market[cat].push(d); } 
             });
@@ -283,7 +278,7 @@
         if(logBox && state.gameLogs) logBox.innerHTML = state.gameLogs.map(l => `<div>${l}</div>`).join('');
 
         const rZone = document.getElementById('ravageur-zone');
-        if(state.currentRav) { rZone.innerText = `⚠️ RAVAGEUR GLOBAL : ${state.currentRav.n} ! (-${state.currentRav.d}💰 si non protégé)`; rZone.style.display = 'block'; }
+        if(state.currentRav) { rZone.innerText = `⚠️ RAVAGEUR GLOBAL : ${state.currentRav.n || state.currentRav.nom} ! (-${state.currentRav.d}💰 si non protégé)`; rZone.style.display = 'block'; }
         else rZone.style.display = 'none';
 
         const tray = document.getElementById('aux-tray');
@@ -377,7 +372,23 @@
                 const d = document.createElement('div'); d.className = "jard-card"; d.style.opacity = can?"1":"0.4";
                 let details = c.cat==='S' ? c.desc : (c.cat==='X' ? c.prot : `💧${c.e} ☀️${c.s}<br>🌱 ${(c.sm||[]).join(',')} | 🧺 ${(c.rc||[]).join(',')}`);
                 d.innerHTML = `<div class="price-tag">${c.p}💰</div><b>${c.nom}</b><br><small>${details}</small>`;
-                d.onclick = () => { if(can) { me.money-=c.p; if(!me.hand) me.hand=[]; me.hand.push(c); state.market[cat].splice(idx,1); if(me.upgrades[6]>=3) { let nc = draw(cat); if(nc) state.market[cat].push(nc); } addLog(`🛒 Achat : ${c.nom}`); consm(); } };
+                
+                // --- LA CORRECTION ANTI-BUG FIREBASE EST ICI ---
+                d.onclick = () => { 
+                    if(can) { 
+                        me.money -= c.p; 
+                        if(!me.hand) me.hand = []; 
+                        me.hand.push(c); 
+                        state.market[cat].splice(idx, 1); 
+                        if(!state.market[cat]) state.market[cat] = []; // Sécurité Firebase
+                        if(me.upgrades[6] >= 3) { 
+                            let nc = draw(cat); 
+                            if(nc) state.market[cat].push(nc); 
+                        } 
+                        addLog(`🛒 Achat : ${c.nom}`); 
+                        consm(); 
+                    } 
+                };
                 r.appendChild(d);
             });
             inner.querySelector('.rayon-grid').appendChild(r);
@@ -386,9 +397,25 @@
 
     function jardP(cat) { const me=state['p'+myId], c=draw(cat); if(c) { if(c.p<=me.money) { if(confirm(`Tiré : ${c.nom} (${c.p}💰). L'acheter ?`)) { me.money-=c.p; if(!me.hand) me.hand=[]; me.hand.push(c); addLog(`🛒 Pioche : ${c.nom}`); consm(); } else { consm(); } } else { alert(`Tiré : ${c.nom}. Fonds insuffisants.`); consm(); } } else alert("Pioche vide !"); }
     function jardR(cat) { state.market[cat] = []; for(let i=0; i<2; i++) { let d = draw(cat); if(d) state.market[cat].push(d); } addLog(`🔄 Rayon renouvelé.`); consm(); }
-    function consm() { localPicksLeft--; if(localPicksLeft<=0) { localModalOpen=false; ['C','S','A'].forEach(cat => { while((state.market[cat]||[]).length<2) { let c = draw(cat); if(c) state.market[cat].push(c); else break; } }); } sync(); }
+    
+    // --- CORRECTION DU BUG PUSH ICI ---
+    function consm() { 
+        localPicksLeft--; 
+        if(localPicksLeft <= 0) { 
+            localModalOpen = false; 
+            ['C','S','A'].forEach(cat => { 
+                if(!state.market[cat]) state.market[cat] = []; // Sécurité Firebase
+                while(state.market[cat].length < 2) { 
+                    let c = draw(cat); 
+                    if(c) state.market[cat].push(c); 
+                    else break; 
+                } 
+            }); 
+        } 
+        sync(); 
+    }
 
-    function actT(t) { const me=state['p'+myId]; if(!localSelectedId || localSelectedId===0) return; const cost = me.upgrades[5]>=2 ? (me.upgrades[5]===3?0:1) : 2; me.money -= (t==='AMÉNAGEMENT'?3:cost); me.time -= 3; me.zones[localSelectedId].type = t; addLog(`🏗️ Aménagement : ${t}.`); sync(); }
+    function actT(t) { const me=state['p'+myId]; if(!localSelectedId || localSelectedId===0) return alert("Sélectionnez une zone !"); const cost = me.upgrades[5]>=2 ? (me.upgrades[5]===3?0:1) : 2; me.money -= (t==='AMÉNAGEMENT'?3:cost); me.time -= 3; me.zones[localSelectedId].type = t; addLog(`🏗️ Aménagement : ${t}.`); sync(); }
     function actB() { 
         const me=state['p'+myId], z=me.zones[localSelectedId]; if(!z || z.batiment) return alert("Zone invalide.");
         const ch = prompt("1: Serre (3💰) sur Potager\n2: Composteur (4💰)\n3: Local Outils (5💰)");
@@ -437,7 +464,6 @@
             let sBase = Math.floor(Math.random()*2)+1;
             state.currentMeteo = {p: pBase, s: sBase};
 
-            // RAVAGEUR DEPUIS LA CONFIG LIVE
             let ravPool = state.ravPool || [];
             if(ravPool.length > 0 && Math.random() < 0.3) { 
                 state.currentRav = ravPool[Math.floor(Math.random()*ravPool.length)]; 
@@ -459,7 +485,7 @@
                     } 
                 });
 
-                if(state.currentRav && (!pData.auxActifs || !pData.auxActifs.includes(state.currentRav.n))) {
+                if(state.currentRav && (!pData.auxActifs || !pData.auxActifs.includes(state.currentRav.n || state.currentRav.nom))) {
                     pData.money = Math.max(0, pData.money - state.currentRav.d);
                 }
 
