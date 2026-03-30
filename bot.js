@@ -88,9 +88,9 @@ function playChampion() {
 
 function triggerBot(botId) {
     if(botTimeout) clearTimeout(botTimeout);
-    let speed = 400; 
+    let speed = 50; 
     if(autoTrainEnabled) speed = 20; 
-    else if(isChampionMode) speed = 600; 
+    else if(isChampionMode) speed = 50; 
     botTimeout = setTimeout(() => { botThinkAndAct(botId); }, speed); 
 }
 
