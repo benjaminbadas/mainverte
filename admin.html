@@ -9,21 +9,26 @@
         :root { --p1: #2e7d32; --warn: #ff9800; --danger: #f44336; --info: #0288d1; }
         body { font-family: 'Segoe UI', sans-serif; background: #f0f2f5; margin: 0; padding: 20px; color: #1c1e21; }
         .header { display: flex; justify-content: space-between; align-items: center; background: white; padding: 15px 25px; border-radius: 12px; box-shadow: 0 4px 12px rgba(0,0,0,0.1); margin-bottom: 20px; border-left: 8px solid var(--p1); }
-        .grid-main { display: grid; grid-template-columns: 1fr; gap: 20px; }
-        .panel { background: white; padding: 20px; border-radius: 12px; box-shadow: 0 2px 8px rgba(0,0,0,0.05); }
         
-        /* Tableur */
-        .table-scroll { overflow-x: auto; margin-top: 15px; border-radius: 8px; border: 1px solid #ddd; }
+        .panel { background: white; padding: 20px; border-radius: 12px; box-shadow: 0 2px 8px rgba(0,0,0,0.05); margin-bottom: 20px;}
+        
+        .tabs { display: flex; gap: 10px; margin-bottom: 15px; border-bottom: 2px solid #ddd; padding-bottom: 10px; }
+        .tab { background: #e0e0e0; border: none; padding: 10px 20px; border-radius: 5px; cursor: pointer; font-weight: bold; font-size: 1em; transition: 0.2s;}
+        .tab.active { background: var(--p1); color: white; }
+
+        .table-scroll { overflow-x: auto; border-radius: 8px; border: 1px solid #ddd; }
         table { width: 100%; border-collapse: collapse; background: white; font-size: 0.9em; }
         th { background: #f8f9fa; padding: 12px; text-align: left; border-bottom: 2px solid #dee2e6; }
         td { padding: 6px; border-bottom: 1px solid #eee; }
-        input { width: 100%; padding: 8px; border: 1px solid transparent; border-radius: 4px; }
-        input:hover { border-color: #ddd; background: #fafafa; }
-        input:focus { border-color: var(--p1); background: white; outline: none; }
+        input, select { width: 100%; padding: 8px; border: 1px solid transparent; border-radius: 4px; background: transparent;}
+        input:hover, select:hover { border-color: #ddd; background: #fafafa; }
+        input:focus, select:focus { border-color: var(--p1); background: white; outline: none; }
+        input[type="number"] { width: 60px; text-align: center; }
+        .input-wide { width: 100% !important; text-align: left !important; }
 
         /* Dashboard de Balance */
         .stats-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(320px, 1fr)); gap: 15px; margin-top: 20px; }
-        .stat-card { background: white; border-radius: 10px; padding: 15px; border-top: 4px solid #ccc; box-shadow: 0 4px 6px rgba(0,0,0,0.05); position: relative; }
+        .stat-card { background: white; border-radius: 10px; padding: 15px; border-top: 4px solid #ccc; box-shadow: 0 4px 6px rgba(0,0,0,0.05); }
         .stat-card.good { border-top-color: var(--p1); }
         .stat-card.bad { border-top-color: var(--danger); }
         .stat-card.warning { border-top-color: var(--warn); }
@@ -34,54 +39,56 @@
         .progress-bar { height: 100%; background: var(--p1); }
 
         .weather-selector { background: #e3f2fd; padding: 15px; border-radius: 8px; margin-bottom: 20px; display: flex; align-items: center; gap: 20px; border: 1px solid #bbdefb; }
-        .deck-summary { display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 10px; margin-bottom: 20px; }
-        .summary-item { background: #fff; padding: 15px; border-radius: 8px; text-align: center; box-shadow: 0 2px 4px rgba(0,0,0,0.05); }
         
         .btn { padding: 10px 18px; border: none; border-radius: 6px; font-weight: bold; cursor: pointer; transition: 0.2s; }
-        .btn-save { background: var(--p1); color: white; }
+        .btn-save { background: var(--p1); color: white; font-size: 1.1em;}
+        .btn-danger { background: var(--danger); color: white; }
         .btn-add { background: var(--info); color: white; }
-        .tag { padding: 2px 6px; border-radius: 4px; font-size: 0.7em; font-weight: bold; color: white; }
+        .tag { padding: 2px 6px; border-radius: 4px; font-size: 0.7em; font-weight: bold; color: white; display:inline-block; margin-top:4px;}
     </style>
 </head>
 <body>
 
 <div class="header">
     <div>
-        <h1>🌱 Laboratoire de Balance</h1>
-        <p style="margin:0; color:#666;">Ajustez les données et simulez les probabilités</p>
+        <h1>🌱 La Main Verte - Administration</h1>
+        <p style="margin:0; color:#666;">Gérez vos cartes et équilibrez le jeu</p>
     </div>
-    <button class="btn btn-save" onclick="saveTable()">💾 Enregistrer & Synchroniser le Jeu</button>
-</div>
-
-<div class="weather-selector">
-    <strong>🌦️ Mode de simulation météo :</strong>
-    <label><input type="radio" name="w" value="dry" onchange="calculate()"> 🏜️ Sécheresse (1💧/2☀️)</label>
-    <label><input type="radio" name="w" value="norm" checked onchange="calculate()"> ⚖️ Normal (2💧/1.5☀️)</label>
-    <label><input type="radio" name="w" value="wet" onchange="calculate()"> 🌧️ Humide (3💧/1☀️)</label>
-</div>
-
-<div class="deck-summary" id="deck-summary">
+    <div>
+        <button class="btn btn-danger" onclick="injectDefaultData()">⚠️ Restaurer le Deck de Base</button>
+        <button class="btn btn-save" onclick="saveToFirebase()">💾 Enregistrer les modifs</button>
     </div>
+</div>
 
 <div class="panel">
-    <div style="display:flex; justify-content:space-between; align-items:center;">
-        <h2 style="margin:0;">🌾 Configuration des Cultures</h2>
-        <button class="btn btn-add" onclick="addRow()">+ Ajouter Culture</button>
+    <div class="tabs">
+        <button class="tab active" onclick="switchTab('C', this)">🌾 Cultures</button>
+        <button class="tab" onclick="switchTab('S', this)">🛠️ Soutiens</button>
+        <button class="tab" onclick="switchTab('A', this)">🦊 Auxiliaires</button>
+        <button class="tab" onclick="switchTab('RAV', this)">👾 Ravageurs</button>
     </div>
+
+    <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:10px;">
+        <h2 style="margin:0;" id="table-title">Édition des Cultures</h2>
+        <button class="btn btn-add" onclick="addRow()">+ Ajouter une ligne</button>
+    </div>
+
     <div class="table-scroll">
-        <table id="table-c">
-            <thead>
-                <tr>
-                    <th>Nom</th><th>Qté</th><th>Prix</th><th>Tps Semis</th><th>💧 Eau</th><th>☀️ Sol</th><th>Gain💰</th><th>Saisons Semis</th><th>🗑️</th>
-                </tr>
-            </thead>
-            <tbody id="tbody-c"></tbody>
-        </table>
+        <table id="data-table">
+            </table>
     </div>
 </div>
 
-<h2 style="margin-top:40px;">📊 Analyse de Rentabilité et de Risque</h2>
-<div class="stats-grid" id="balance-results"></div>
+<div id="balance-section">
+    <h2 style="margin-top:30px;">📊 Laboratoire de Balance (Cultures)</h2>
+    <div class="weather-selector">
+        <strong>🌦️ Météo :</strong>
+        <label><input type="radio" name="w" value="dry" onchange="calculateBalance()"> 🏜️ Sécheresse (1💧/2☀️)</label>
+        <label><input type="radio" name="w" value="norm" checked onchange="calculateBalance()"> ⚖️ Normal (2💧/1.5☀️)</label>
+        <label><input type="radio" name="w" value="wet" onchange="calculateBalance()"> 🌧️ Humide (3💧/1☀️)</label>
+    </div>
+    <div class="stats-grid" id="balance-results"></div>
+</div>
 
 <script>
     const firebaseConfig = {
@@ -96,157 +103,215 @@
     firebase.initializeApp(firebaseConfig);
     const dbConfig = firebase.database().ref("game-config");
 
-    let currentData = { decks: { C: [] }, ravageurs: [] };
+    let currentData = { decks: { C: [], S: [], A: [] }, ravageurs: [] };
+    let currentTab = 'C';
 
-    // Chargement
-    dbConfig.on("value", snap => {
-        if(snap.exists()) currentData = snap.val();
-        render();
+    dbConfig.once("value").then(snap => {
+        if(snap.exists()) {
+            currentData = snap.val();
+            if(!currentData.decks) currentData.decks = { C: [], S: [], A: [] };
+            if(!currentData.ravageurs) currentData.ravageurs = [];
+        }
+        renderTable();
     });
 
-    function render() {
-        const tbody = document.getElementById('tbody-c');
-        tbody.innerHTML = "";
-        (currentData.decks.C || []).forEach((c, i) => {
-            tbody.innerHTML += `
-                <tr>
-                    <td><input type="text" class="v-nom" value="${c.nom}" oninput="calculate()"></td>
-                    <td><input type="number" class="v-qte" value="${c.qte}" oninput="calculate()"></td>
-                    <td><input type="number" class="v-p" value="${c.p}" oninput="calculate()"></td>
-                    <td><input type="number" class="v-t" value="${c.t}" oninput="calculate()"></td>
-                    <td><input type="number" class="v-e" value="${c.e}" oninput="calculate()"></td>
-                    <td><input type="number" class="v-s" value="${c.s}" oninput="calculate()"></td>
-                    <td><input type="number" class="v-g" value="${c.g}" oninput="calculate()"></td>
-                    <td><input type="text" class="v-sm" value="${(c.sm||[]).join(',')}" oninput="calculate()"></td>
-                    <td><button class="btn" style="background:#ff5252; color:white" onclick="removeRow(${i})">X</button></td>
-                </tr>
-            `;
-        });
-        calculate();
+    function switchTab(tab, btn) {
+        saveTableToMemory(); // Sauvegarde les inputs actuels avant de changer d'onglet
+        currentTab = tab;
+        document.querySelectorAll('.tab').forEach(b => b.classList.remove('active'));
+        btn.classList.add('active');
+        
+        document.getElementById('table-title').innerText = `Édition des ${btn.innerText}`;
+        document.getElementById('balance-section').style.display = tab === 'C' ? 'block' : 'none';
+        
+        renderTable();
     }
 
-    function calculate() {
+    function renderTable() {
+        const table = document.getElementById('data-table');
+        let html = '';
+
+        if(currentTab === 'C') {
+            html += `<tr><th>Nom</th><th>Qté</th><th>Cat</th><th>Prix💰</th><th>Tps⏳</th><th>Eau💧</th><th>Sol☀️</th><th>Gain💰</th><th>Semis (P,E,A,H)</th><th>Récolte (P,E,A,H)</th><th>🗑️</th></tr>`;
+            (currentData.decks.C || []).forEach((c) => {
+                html += `<tr>
+                    <td><input type="text" class="v-nom" value="${c.nom}" oninput="calculateBalance()"></td>
+                    <td><input type="number" class="v-qte" value="${c.qte || 2}" oninput="calculateBalance()"></td>
+                    <td><select class="v-cat"><option value="L" ${c.cat==='L'?'selected':''}>L</option><option value="A" ${c.cat==='A'?'selected':''}>A</option><option value="F" ${c.cat==='F'?'selected':''}>F</option><option value="M" ${c.cat==='M'?'selected':''}>M</option></select></td>
+                    <td><input type="number" class="v-p" value="${c.p}" oninput="calculateBalance()"></td>
+                    <td><input type="number" class="v-t" value="${c.t}" oninput="calculateBalance()"></td>
+                    <td><input type="number" class="v-e" value="${c.e}" oninput="calculateBalance()"></td>
+                    <td><input type="number" class="v-s" value="${c.s}" oninput="calculateBalance()"></td>
+                    <td><input type="number" class="v-g" value="${c.g}" oninput="calculateBalance()"></td>
+                    <td><input type="text" class="v-sm input-wide" value="${(c.sm||[]).join(', ')}"></td>
+                    <td><input type="text" class="v-rc input-wide" value="${(c.rc||[]).join(', ')}"></td>
+                    <td><button class="btn btn-danger" onclick="this.closest('tr').remove(); calculateBalance();">X</button></td>
+                </tr>`;
+            });
+            setTimeout(calculateBalance, 100);
+        } 
+        else if(currentTab === 'S') {
+            html += `<tr><th>Nom</th><th>Qté</th><th>Prix💰</th><th>Tps⏳</th><th>Effet / Description</th><th>🗑️</th></tr>`;
+            (currentData.decks.S || []).forEach((c) => {
+                html += `<tr>
+                    <td><input type="text" class="v-nom input-wide" value="${c.nom}"></td>
+                    <td><input type="number" class="v-qte" value="${c.qte || 2}"></td>
+                    <td><input type="number" class="v-p" value="${c.p}"></td>
+                    <td><input type="number" class="v-t" value="${c.t}"></td>
+                    <td><input type="text" class="v-desc input-wide" value="${c.desc}"></td>
+                    <td><button class="btn btn-danger" onclick="this.closest('tr').remove()">X</button></td>
+                </tr>`;
+            });
+        }
+        else if(currentTab === 'A') {
+            html += `<tr><th>Nom</th><th>Qté</th><th>Prix💰</th><th>Tps⏳</th><th>Protège contre</th><th>🗑️</th></tr>`;
+            (currentData.decks.A || []).forEach((c) => {
+                html += `<tr>
+                    <td><input type="text" class="v-nom input-wide" value="${c.nom}"></td>
+                    <td><input type="number" class="v-qte" value="${c.qte || 2}"></td>
+                    <td><input type="number" class="v-p" value="${c.p}"></td>
+                    <td><input type="number" class="v-t" value="${c.t}"></td>
+                    <td><input type="text" class="v-prot input-wide" value="${c.prot}"></td>
+                    <td><button class="btn btn-danger" onclick="this.closest('tr').remove()">X</button></td>
+                </tr>`;
+            });
+        }
+        else if(currentTab === 'RAV') {
+            html += `<tr><th>Nom du Ravageur</th><th>Probabilité (Qté)</th><th>Dégâts💰</th><th>🗑️</th></tr>`;
+            (currentData.ravageurs || []).forEach((c) => {
+                html += `<tr>
+                    <td><input type="text" class="v-nom input-wide" value="${c.n || c.nom}"></td>
+                    <td><input type="number" class="v-qte" value="${c.qte || 2}"></td>
+                    <td><input type="number" class="v-d" value="${c.d}"></td>
+                    <td><button class="btn btn-danger" onclick="this.closest('tr').remove()">X</button></td>
+                </tr>`;
+            });
+        }
+        table.innerHTML = html;
+    }
+
+    function addRow() {
+        if(currentTab === 'C') currentData.decks.C.push({nom:"Nouveau", qte:2, p:1, t:1, cat:'L', e:1, s:1, g:3, sm:['P'], rc:['E']});
+        else if(currentTab === 'S') currentData.decks.S.push({nom:"Nouveau", qte:2, p:1, t:1, desc:"Effet", cat:'S'});
+        else if(currentTab === 'A') currentData.decks.A.push({nom:"Nouveau", qte:2, p:1, t:1, prot:"Cible", cat:'X'});
+        else if(currentTab === 'RAV') currentData.ravageurs.push({n:"Nouveau", qte:2, d:3});
+        renderTable();
+    }
+
+    function parseSeasons(str) {
+        if(!str) return [];
+        return str.toUpperCase().split(',').map(s => s.trim()).filter(s => ['P','E','A','H'].includes(s));
+    }
+
+    // Sauvegarde de l'onglet actif DANS LA MÉMOIRE (pas sur Firebase)
+    function saveTableToMemory() {
+        const rows = document.querySelectorAll('#data-table tr');
+        let arr = [];
+        for(let i=1; i<rows.length; i++) {
+            const r = rows[i];
+            const getVal = (cls) => { const el = r.querySelector('.'+cls); return el ? el.value : ''; };
+            const getNum = (cls) => { const el = r.querySelector('.'+cls); return el ? parseInt(el.value)||0 : 0; };
+            
+            if(currentTab === 'C') {
+                arr.push({ nom: getVal('v-nom'), qte: getNum('v-qte'), cat: getVal('v-cat'), p: getNum('v-p'), t: getNum('v-t'), e: getNum('v-e'), s: getNum('v-s'), g: getNum('v-g'), sm: parseSeasons(getVal('v-sm')), rc: parseSeasons(getVal('v-rc')) });
+            } else if(currentTab === 'S') {
+                arr.push({ nom: getVal('v-nom'), qte: getNum('v-qte'), p: getNum('v-p'), t: getNum('v-t'), desc: getVal('v-desc'), cat: 'S' });
+            } else if(currentTab === 'A') {
+                arr.push({ nom: getVal('v-nom'), qte: getNum('v-qte'), p: getNum('v-p'), t: getNum('v-t'), prot: getVal('v-prot'), cat: 'X' });
+            } else if(currentTab === 'RAV') {
+                arr.push({ n: getVal('v-nom'), qte: getNum('v-qte'), d: getNum('v-d') });
+            }
+        }
+        if(currentTab === 'RAV') currentData.ravageurs = arr;
+        else currentData.decks[currentTab] = arr;
+    }
+
+    // Sauvegarde globale sur Firebase
+    function saveToFirebase() {
+        saveTableToMemory(); // Capture les modifs de l'écran en cours
+        dbConfig.set(currentData)
+            .then(() => alert("✅ Enregistrement réussi ! Vos cartes et ravageurs sont à jour pour le jeu."))
+            .catch(err => alert("Erreur : " + err.message));
+    }
+
+    // --- CALCULATEUR DE BALANCE (Cultures uniquement) ---
+    function calculateBalance() {
+        if(currentTab !== 'C') return;
+        saveTableToMemory(); // Met à jour les données depuis les inputs actuels
+        
         const mode = document.querySelector('input[name="w"]:checked').value;
         const results = document.getElementById('balance-results');
-        const summary = document.getElementById('deck-summary');
         results.innerHTML = "";
 
-        // Paramètres de simulation
         let avgW = 2, avgS = 1.5;
         if(mode === 'dry') { avgW = 1; avgS = 2; }
         if(mode === 'wet') { avgW = 3; avgS = 1; }
 
-        const cards = readTable();
-        const totalCards = cards.reduce((acc, c) => acc + parseInt(c.qte), 0);
-        let totalValue = 0;
+        // Calcul du total des cartes (C + S + A) pour les probas de pioche
+        let totalCards = 0;
+        ['C','S','A'].forEach(cat => {
+            (currentData.decks[cat]||[]).forEach(c => totalCards += (c.qte || 2));
+        });
 
-        cards.forEach(c => {
-            // 1. Vitesse de croissance
-            const seasonsToGrow = Math.max(Math.ceil(c.e / avgW), Math.ceil(c.s / avgS));
-            
-            // 2. ROI par Heure (Gain Net / (Semis + Récolte))
+        (currentData.decks.C || []).forEach(c => {
+            const seasonsToGrow = Math.max(1, Math.ceil(c.e / avgW), Math.ceil(c.s / avgS));
             const netGain = c.g - c.p;
-            const timeInvestment = parseInt(c.t) + 2; 
+            const timeInvestment = c.t + 2; 
             const gph = (netGain / timeInvestment).toFixed(2);
+            const ies = (netGain / seasonsToGrow).toFixed(2);
+            
+            // Probabilité de voir la carte dans la vitrine de 5 places
+            let proba = 0;
+            if(totalCards > 0) proba = (1 - Math.pow((totalCards - c.qte) / totalCards, 5)) * 100;
 
-            // 3. IES (Indice Efficacité Surface) : Gain Net / Saisons d'occupation
-            const ies = (netGain / Math.max(1, seasonsToGrow)).toFixed(2);
-
-            // 4. Probabilité de pioche (sur une expédition de 5 cartes)
-            const probaPioche = (1 - Math.pow((totalCards - c.qte) / totalCards, 5)) * 100;
-
-            // 5. Score de Risque
-            const risk = seasonsToGrow > 2 ? "warning" : "good";
             const score = Math.round((ies * 10) + (gph * 5) - (seasonsToGrow * 2));
-
-            totalValue += score;
 
             results.innerHTML += `
                 <div class="stat-card ${score < 25 ? 'bad' : (score > 60 ? 'good' : 'warning')}">
                     <div style="font-size: 1.2em; font-weight: bold; margin-bottom:10px;">
                         ${c.nom} <span style="float:right; opacity:0.5; font-size:0.7em;">Score: ${score}</span>
                     </div>
-                    
-                    <div class="indicator">
-                        <span>Rentabilité Temporelle</span>
-                        <span class="val">${gph} 💰/h</span>
-                    </div>
-                    <div class="indicator">
-                        <span>Efficacité Case (IES)</span>
-                        <span class="val">${ies} 💰/saison</span>
-                    </div>
+                    <div class="indicator"><span>Rentabilité Temporelle</span><span class="val">${gph} 💰/h</span></div>
+                    <div class="indicator"><span>Efficacité Case (IES)</span><span class="val">${ies} 💰/saison</span></div>
                     <div class="progress-bg"><div class="progress-bar" style="width:${Math.min(100, ies*10)}%"></div></div>
-
-                    <div class="indicator" style="margin-top:12px;">
-                        <span>Probabilité Apparition</span>
-                        <span class="val">${probaPioche.toFixed(1)}%</span>
-                    </div>
-                    <div class="indicator">
-                        <span>Durée de vie sur plateau</span>
-                        <span class="val">~ ${seasonsToGrow} saisons</span>
-                    </div>
-
+                    <div class="indicator" style="margin-top:12px;"><span>Probabilité Vitrine</span><span class="val">${proba.toFixed(1)}%</span></div>
+                    <div class="indicator"><span>Temps de pousse</span><span class="val">~ ${seasonsToGrow} saisons</span></div>
                     <div style="margin-top:10px;">
-                        ${seasonsToGrow > 3 ? '<span class="tag" style="background:var(--danger)">⚠️ RISQUE MORT ÉLEVÉ</span>' : ''}
+                        ${seasonsToGrow > 3 ? '<span class="tag" style="background:var(--danger)">⚠️ RISQUE MORT</span>' : ''}
                         ${ies > 8 ? '<span class="tag" style="background:var(--p1)">💎 TRÈS RENTABLE</span>' : ''}
-                        ${c.p == 0 ? '<span class="tag" style="background:var(--info)">🛡️ SAFE (0💰)</span>' : ''}
                     </div>
                 </div>
             `;
         });
-
-        // Rendu du Summary
-        summary.innerHTML = `
-            <div class="summary-item">
-                <div class="stat-label">Total Cartes</div>
-                <div class="stat-value" style="font-size:1.5em; font-weight:bold;">${totalCards}</div>
-            </div>
-            <div class="summary-item">
-                <div class="stat-label">Puissance Deck</div>
-                <div class="stat-value" style="font-size:1.5em; font-weight:bold; color:var(--p1);">${(totalValue/cards.length || 0).toFixed(1)}</div>
-            </div>
-            <div class="summary-item">
-                <div class="stat-label">Variété</div>
-                <div class="stat-value" style="font-size:1.5em; font-weight:bold;">${cards.length} réf.</div>
-            </div>
-        `;
     }
 
-    function readTable() {
-        const rows = document.querySelectorAll('#tbody-c tr');
-        let data = [];
-        rows.forEach(r => {
-            data.push({
-                nom: r.querySelector('.v-nom').value,
-                qte: parseInt(r.querySelector('.v-qte').value) || 0,
-                p: parseInt(r.querySelector('.v-p').value) || 0,
-                t: parseInt(r.querySelector('.v-t').value) || 0,
-                e: parseInt(r.querySelector('.v-e').value) || 0,
-                s: parseInt(r.querySelector('.v-s').value) || 0,
-                g: parseInt(r.querySelector('.v-g').value) || 0,
-                sm: r.querySelector('.v-sm').value.split(',').map(x=>x.trim().toUpperCase())
-            });
+    function injectDefaultData() {
+        if(!confirm("⚠️ Attention : Écraser tout par le deck par défaut ?")) return;
+
+        const defaultData = {
+            decks: {
+                C: [
+                    {nom:"Radis",qte:2,p:0,e:1,s:1,t:1,g:3,cat:'L',sm:['P','E','A','H'],rc:['P','E','A','H']}, {nom:"Laitue",qte:2,p:0,e:2,s:1,t:1,g:4,cat:'L',sm:['P','A'],rc:['P','E','A']}, 
+                    {nom:"Carotte",qte:2,p:1,e:4,s:2,t:1,g:6,cat:'L',sm:['P','E'],rc:['A','H']}, {nom:"Tomate",qte:2,p:1,e:6,s:5,t:1,g:9,cat:'L',sm:['P'],rc:['E','A']}, 
+                    {nom:"Courgette",qte:2,p:1,e:5,s:4,t:1,g:8,cat:'L',sm:['P'],rc:['E','A']}, {nom:"Aubergine",qte:2,p:2,e:7,s:6,t:1,g:11,cat:'L',sm:['P'],rc:['E','A']},
+                    {nom:"Poireau",qte:2,p:1,e:4,s:2,t:1,g:6,cat:'L',sm:['P','A'],rc:['E','H']}, {nom:"Patate",qte:2,p:1,e:3,s:4,t:1,g:8,cat:'L',sm:['P','E'],rc:['A','H']},
+                    {nom:"Pommier",qte:2,p:3,e:12,s:6,t:3,g:18,cat:'A',sm:['A','H'],rc:['E','A']}, {nom:"Cerisier",qte:2,p:3,e:10,s:6,t:3,g:18,cat:'A',sm:['A','H'],rc:['E']},
+                    {nom:"Fraise",qte:2,p:2,e:3,s:4,t:1,g:8,cat:'A',sm:['P','A'],rc:['E']}, {nom:"Noisetier",qte:2,p:2,e:8,s:4,t:3,g:12,cat:'A',sm:['A','H'],rc:['A']},
+                    {nom:"Épinard",qte:2,p:0,e:2,s:1,t:1,g:4,cat:'L',sm:['P','A'],rc:['P','A','H']}, {nom:"Navet",qte:2,p:1,e:3,s:2,t:1,g:5,cat:'L',sm:['P','A'],rc:['A','H']},
+                    {nom:"Oignon",qte:2,p:1,e:2,s:3,t:1,g:6,cat:'L',sm:['P','A'],rc:['E','A']}, {nom:"Haricot",qte:2,p:1,e:3,s:3,t:1,g:6,cat:'L',sm:['P','E'],rc:['E','A']},
+                    {nom:"Tournesol",qte:2,p:1,e:3,s:6,t:1,g:7,cat:'F',sm:['P'],rc:['E','A']}, {nom:"Pleurote",qte:2,p:2,e:6,s:0,t:1,g:8,cat:'M',sm:['A'],rc:['H']}
+                ],
+                S: [{nom:"Fumier",qte:2,p:2,t:1,cat:'S',desc:'+2💩 Compost'}, {nom:"Purin d'Ortie",qte:2,p:1,t:1,cat:'S',desc:'-4💧 (Zone)'}, {nom:"Corne Broyée",qte:2,p:2,t:1,cat:'S',desc:'+2💰 récolte (Zone)'}, {nom:"Paillage",qte:2,p:1,t:1,cat:'S',desc:'-2💧 -1☀️ (Zone)'}],
+                A: [{nom:"Hérisson",qte:2,p:2,t:1,cat:'X',prot:'Limaces'}, {nom:"Coccinelle",qte:2,p:1,t:1,cat:'X',prot:'Pucerons'}, {nom:"Mésange",qte:2,p:2,t:1,cat:'X',prot:'Carpocapses'}, {nom:"Crapaud",qte:2,p:1,t:1,cat:'X',prot:'Campagnols'}]
+            },
+            ravageurs: [{n:"Limaces",qte:2,d:3}, {n:"Pucerons",qte:2,d:2}, {n:"Carpocapses",qte:2,d:4}, {n:"Campagnols",qte:2,d:4}]
+        };
+
+        dbConfig.set(defaultData).then(() => {
+            currentData = defaultData;
+            renderTable();
+            alert("✅ Données restaurées avec succès !");
         });
-        return data;
-    }
-
-    function saveTable() {
-        currentData.decks.C = readTable();
-        dbConfig.set(currentData).then(() => {
-            alert("✅ Données synchronisées ! Le jeu est à jour.");
-        });
-    }
-
-    function addRow() {
-        currentData.decks.C.push({nom:"Nouvelle plante", qte:2, p:1, t:1, e:2, s:2, g:6, sm:['P']});
-        render();
-    }
-
-    function removeRow(i) {
-        if(confirm("Supprimer cette culture ?")) {
-            currentData.decks.C.splice(i, 1);
-            render();
-        }
     }
 </script>
 </body>
