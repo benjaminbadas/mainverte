@@ -1,0 +1,265 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <title>Administration - La Main Verte</title>
+    <script src="https://www.gstatic.com/firebasejs/9.17.1/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.17.1/firebase-database-compat.js"></script>
+    <style>
+        body { font-family: 'Segoe UI', sans-serif; background: #eceff1; margin: 0; padding: 20px; color: #263238; }
+        .header { display: flex; justify-content: space-between; align-items: center; background: white; padding: 15px 25px; border-radius: 8px; box-shadow: 0 2px 4px rgba(0,0,0,0.1); margin-bottom: 20px; }
+        h1 { margin: 0; color: #2e7d32; }
+        .btn-danger { background: #d32f2f; color: white; border: none; padding: 10px 15px; border-radius: 5px; cursor: pointer; font-weight: bold; }
+        .btn-primary { background: #1976d2; color: white; border: none; padding: 10px 15px; border-radius: 5px; cursor: pointer; font-weight: bold; }
+        
+        .dashboard { display: grid; grid-template-columns: 1fr 2fr; gap: 20px; }
+        
+        .panel { background: white; padding: 20px; border-radius: 8px; box-shadow: 0 2px 4px rgba(0,0,0,0.1); }
+        .form-group { margin-bottom: 12px; }
+        label { display: block; font-weight: bold; margin-bottom: 5px; font-size: 0.9em; }
+        input, select { width: 100%; padding: 8px; border: 1px solid #ccc; border-radius: 4px; box-sizing: border-box; }
+        
+        .checkbox-group { display: flex; gap: 10px; margin-top: 5px; }
+        .checkbox-group label { font-weight: normal; display: flex; align-items: center; gap: 4px; }
+        
+        .list-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(200px, 1fr)); gap: 10px; margin-top: 15px; }
+        .card-item { background: #f8f9fa; border: 1px solid #cfd8dc; padding: 10px; border-radius: 6px; position: relative; font-size: 0.85em; }
+        .btn-del { position: absolute; top: 5px; right: 5px; background: #ff5252; color: white; border: none; border-radius: 3px; cursor: pointer; font-size: 0.8em; padding: 2px 6px; }
+        
+        .tabs { display: flex; gap: 10px; margin-bottom: 15px; border-bottom: 2px solid #ddd; padding-bottom: 10px; }
+        .tab { background: #e0e0e0; border: none; padding: 8px 15px; border-radius: 5px; cursor: pointer; font-weight: bold; }
+        .tab.active { background: #2e7d32; color: white; }
+    </style>
+</head>
+<body>
+
+<div class="header">
+    <h1>⚙️ Base de Données - La Main Verte</h1>
+    <div>
+        <button class="btn-danger" onclick="injectDefaultData()">⚠️ Injecter le Deck de Base (Écrase tout)</button>
+    </div>
+</div>
+
+<div class="dashboard">
+    <div class="panel">
+        <h2 style="margin-top:0;">➕ Ajouter une carte</h2>
+        <div class="form-group">
+            <label>Type de carte</label>
+            <select id="card-type" onchange="toggleFormFields()">
+                <option value="C">🌾 Culture (Légume, Arbre...)</option>
+                <option value="S">🛠️ Soutien (Fumier, Outils...)</option>
+                <option value="A">🦊 Auxiliaire (Animaux)</option>
+                <option value="RAV">👾 Ravageur</option>
+            </select>
+        </div>
+        
+        <div class="form-group"><label>Nom de la carte</label><input type="text" id="f-nom" placeholder="Ex: Radis, Fumier..."></div>
+        <div class="form-group" id="wrap-prix"><label>Prix d'achat (💰)</label><input type="number" id="f-p" value="1"></div>
+        <div class="form-group" id="wrap-temps"><label>Temps d'action (⏳)</label><input type="number" id="f-t" value="1"></div>
+        
+        <div id="fields-culture">
+            <div class="form-group"><label>Catégorie</label>
+                <select id="f-cat"><option value="L">Légume (L)</option><option value="A">Arbre (A)</option><option value="F">Fleur (F)</option><option value="M">Champignon (M)</option></select>
+            </div>
+            <div style="display:flex; gap:10px;">
+                <div class="form-group"><label>Besoin Eau (💧)</label><input type="number" id="f-e" value="1"></div>
+                <div class="form-group"><label>Besoin Soleil (☀️)</label><input type="number" id="f-s" value="1"></div>
+                <div class="form-group"><label>Gain Revente (💰)</label><input type="number" id="f-g" value="3"></div>
+            </div>
+            <div class="form-group">
+                <label>Saisons de Semis</label>
+                <div class="checkbox-group">
+                    <label><input type="checkbox" class="cb-sm" value="P"> Printemps</label>
+                    <label><input type="checkbox" class="cb-sm" value="E"> Été</label>
+                    <label><input type="checkbox" class="cb-sm" value="A"> Automne</label>
+                    <label><input type="checkbox" class="cb-sm" value="H"> Hiver</label>
+                </div>
+            </div>
+            <div class="form-group">
+                <label>Saisons de Récolte</label>
+                <div class="checkbox-group">
+                    <label><input type="checkbox" class="cb-rc" value="P"> Printemps</label>
+                    <label><input type="checkbox" class="cb-rc" value="E"> Été</label>
+                    <label><input type="checkbox" class="cb-rc" value="A"> Automne</label>
+                    <label><input type="checkbox" class="cb-rc" value="H"> Hiver</label>
+                </div>
+            </div>
+        </div>
+
+        <div id="fields-soutien" style="display:none;">
+            <div class="form-group"><label>Description / Effet</label><input type="text" id="f-desc" placeholder="Ex: +2💩 Compost"></div>
+        </div>
+
+        <div id="fields-aux" style="display:none;">
+            <div class="form-group"><label>Ravageur Protégé</label><input type="text" id="f-prot" placeholder="Ex: Limaces"></div>
+        </div>
+
+        <div id="fields-rav" style="display:none;">
+            <div class="form-group"><label>Dégâts (💰)</label><input type="number" id="f-d" value="3"></div>
+        </div>
+
+        <button class="btn-primary" style="width:100%; margin-top:10px;" onclick="addCard()">Enregistrer la carte</button>
+    </div>
+
+    <div class="panel">
+        <div class="tabs">
+            <button class="tab active" onclick="showTab('C', this)">🌾 Cultures</button>
+            <button class="tab" onclick="showTab('S', this)">🛠️ Soutiens</button>
+            <button class="tab" onclick="showTab('A', this)">🦊 Auxiliaires</button>
+            <button class="tab" onclick="showTab('RAV', this)">👾 Ravageurs</button>
+        </div>
+        <div id="data-container" class="list-grid">Chargement...</div>
+    </div>
+</div>
+
+<script>
+    // Configuration Firebase identique au jeu
+    const firebaseConfig = {
+        apiKey: "AIzaSyA_OHv6TDiVsn4PwM9s25gij8lBwQH8xrg",
+        authDomain: "main-verte-72483.firebaseapp.com",
+        databaseURL: "https://main-verte-72483-default-rtdb.europe-west1.firebasedatabase.app",
+        projectId: "main-verte-72483",
+        storageBucket: "main-verte-72483.firebasestorage.app",
+        messagingSenderId: "633454274346",
+        appId: "1:633454274346:web:7261efcfe1b9cecdd6e053"
+    };
+    firebase.initializeApp(firebaseConfig);
+    
+    // Nouveau dossier dans Firebase : game-config
+    const dbConfig = firebase.database().ref("game-config");
+
+    let currentData = { decks: { C: [], S: [], A: [] }, ravageurs: [] };
+    let currentTab = 'C';
+
+    // Écoute de la base de données
+    dbConfig.on("value", snap => {
+        const val = snap.val();
+        if(val) {
+            currentData = val;
+            if(!currentData.decks) currentData.decks = { C: [], S: [], A: [] };
+            if(!currentData.ravageurs) currentData.ravageurs = [];
+        }
+        renderList();
+    });
+
+    // Gérer l'affichage du formulaire selon le type
+    function toggleFormFields() {
+        const type = document.getElementById('card-type').value;
+        document.getElementById('fields-culture').style.display = type === 'C' ? 'block' : 'none';
+        document.getElementById('fields-soutien').style.display = type === 'S' ? 'block' : 'none';
+        document.getElementById('fields-aux').style.display = type === 'A' ? 'block' : 'none';
+        document.getElementById('fields-rav').style.display = type === 'RAV' ? 'block' : 'none';
+        
+        document.getElementById('wrap-prix').style.display = type === 'RAV' ? 'none' : 'block';
+        document.getElementById('wrap-temps').style.display = type === 'RAV' ? 'none' : 'block';
+    }
+
+    // Naviguer dans les onglets de visualisation
+    function showTab(tab, btnElement) {
+        currentTab = tab;
+        document.querySelectorAll('.tab').forEach(b => b.classList.remove('active'));
+        btnElement.classList.add('active');
+        renderList();
+    }
+
+    // Afficher les cartes existantes
+    function renderList() {
+        const container = document.getElementById('data-container');
+        container.innerHTML = "";
+        
+        let items = currentTab === 'RAV' ? (currentData.ravageurs || []) : (currentData.decks[currentTab] || []);
+        
+        if(items.length === 0) {
+            container.innerHTML = "<i>Aucune donnée dans cette catégorie.</i>";
+            return;
+        }
+
+        items.forEach((item, index) => {
+            const div = document.createElement('div');
+            div.className = "card-item";
+            
+            let content = `<b>${item.nom || item.n}</b><br>`;
+            if(currentTab === 'C') content += `Prix:${item.p}💰 | Gain:${item.g}💰<br>💧${item.e} ☀️${item.s}<br>Cat: ${item.cat}`;
+            if(currentTab === 'S') content += `Prix:${item.p}💰<br>Effet: ${item.desc}`;
+            if(currentTab === 'A') content += `Prix:${item.p}💰<br>Protège: ${item.prot}`;
+            if(currentTab === 'RAV') content += `Dégâts: -${item.d}💰`;
+
+            div.innerHTML = content + `<button class="btn-del" onclick="deleteItem('${currentTab}', ${index})">X</button>`;
+            container.appendChild(div);
+        });
+    }
+
+    // Supprimer une carte
+    function deleteItem(tab, index) {
+        if(confirm("Supprimer cette carte de la base de données ?")) {
+            if(tab === 'RAV') currentData.ravageurs.splice(index, 1);
+            else currentData.decks[tab].splice(index, 1);
+            dbConfig.set(currentData);
+        }
+    }
+
+    // Ajouter une carte depuis le formulaire
+    function addCard() {
+        const type = document.getElementById('card-type').value;
+        const nom = document.getElementById('f-nom').value;
+        if(!nom) return alert("Le nom est obligatoire !");
+
+        let newItem = {};
+
+        if(type === 'RAV') {
+            newItem = { n: nom, d: parseInt(document.getElementById('f-d').value) };
+            currentData.ravageurs.push(newItem);
+        } else {
+            newItem = { nom: nom, p: parseInt(document.getElementById('f-p').value), t: parseInt(document.getElementById('f-t').value) };
+            
+            if(type === 'C') {
+                newItem.cat = document.getElementById('f-cat').value;
+                newItem.e = parseInt(document.getElementById('f-e').value);
+                newItem.s = parseInt(document.getElementById('f-s').value);
+                newItem.g = parseInt(document.getElementById('f-g').value);
+                
+                newItem.sm = Array.from(document.querySelectorAll('.cb-sm:checked')).map(cb => cb.value);
+                newItem.rc = Array.from(document.querySelectorAll('.cb-rc:checked')).map(cb => cb.value);
+                if(newItem.sm.length === 0 || newItem.rc.length === 0) return alert("Cochez au moins une saison de semis et de récolte !");
+            }
+            if(type === 'S') newItem.desc = document.getElementById('f-desc').value;
+            if(type === 'A') { newItem.cat = 'X'; newItem.prot = document.getElementById('f-prot').value; }
+
+            currentData.decks[type].push(newItem);
+        }
+
+        dbConfig.set(currentData);
+        document.getElementById('f-nom').value = ""; // Reset du nom
+        alert("Carte ajoutée avec succès !");
+    }
+
+    // LE BOUTON MAGIQUE : Injecte tout ton deck master initial
+    function injectDefaultData() {
+        if(!confirm("⚠️ Attention : Cela va effacer toutes vos modifications actuelles et restaurer les 40 cartes par défaut. Continuer ?")) return;
+
+        const defaultData = {
+            decks: {
+                C: [
+                    {nom:"Radis",p:0,e:1,s:1,t:1,g:3,cat:'L',sm:['P','E','A','H'],rc:['P','E','A','H']}, {nom:"Laitue",p:0,e:2,s:1,t:1,g:4,cat:'L',sm:['P','A'],rc:['P','E','A']}, 
+                    {nom:"Carotte",p:1,e:4,s:2,t:1,g:6,cat:'L',sm:['P','E'],rc:['A','H']}, {nom:"Tomate",p:1,e:6,s:5,t:1,g:9,cat:'L',sm:['P'],rc:['E','A']}, 
+                    {nom:"Courgette",p:1,e:5,s:4,t:1,g:8,cat:'L',sm:['P'],rc:['E','A']}, {nom:"Aubergine",p:2,e:7,s:6,t:1,g:11,cat:'L',sm:['P'],rc:['E','A']},
+                    {nom:"Poireau",p:1,e:4,s:2,t:1,g:6,cat:'L',sm:['P','A'],rc:['E','H']}, {nom:"Patate",p:1,e:3,s:4,t:1,g:8,cat:'L',sm:['P','E'],rc:['A','H']},
+                    {nom:"Pommier",p:3,e:12,s:6,t:3,g:18,cat:'A',sm:['A','H'],rc:['E','A']}, {nom:"Cerisier",p:3,e:10,s:6,t:3,g:18,cat:'A',sm:['A','H'],rc:['E']},
+                    {nom:"Fraise",p:2,e:3,s:4,t:1,g:8,cat:'A',sm:['P','A'],rc:['E']}, {nom:"Noisetier",p:2,e:8,s:4,t:3,g:12,cat:'A',sm:['A','H'],rc:['A']},
+                    {nom:"Épinard",p:0,e:2,s:1,t:1,g:4,cat:'L',sm:['P','A'],rc:['P','A','H']}, {nom:"Navet",p:1,e:3,s:2,t:1,g:5,cat:'L',sm:['P','A'],rc:['A','H']},
+                    {nom:"Oignon",p:1,e:2,s:3,t:1,g:6,cat:'L',sm:['P','A'],rc:['E','A']}, {nom:"Haricot",p:1,e:3,s:3,t:1,g:6,cat:'L',sm:['P','E'],rc:['E','A']},
+                    {nom:"Tournesol",p:1,e:3,s:6,t:1,g:7,cat:'F',sm:['P'],rc:['E','A']}, {nom:"Pleurote",p:2,e:6,s:0,t:1,g:8,cat:'M',sm:['A'],rc:['H']}
+                ],
+                S: [{nom:"Fumier",p:2,t:1,cat:'S',desc:'+2💩 Compost'}, {nom:"Purin d'Ortie",p:1,t:1,cat:'S',desc:'-4💧 (Zone)'}, {nom:"Corne Broyée",p:2,t:1,cat:'S',desc:'+2💰 récolte (Zone)'}, {nom:"Paillage",p:1,t:1,cat:'S',desc:'-2💧 -1☀️ (Zone)'}],
+                A: [{nom:"Hérisson",p:2,t:1,cat:'X',prot:'Limaces'}, {nom:"Coccinelle",p:1,t:1,cat:'X',prot:'Pucerons'}, {nom:"Mésange",p:2,t:1,cat:'X',prot:'Carpocapses'}, {nom:"Crapaud",p:1,t:1,cat:'X',prot:'Campagnols'}]
+            },
+            ravageurs: [{n:"Limaces",d:3}, {n:"Pucerons",d:2}, {n:"Carpocapses",d:4}, {n:"Campagnols",d:4}]
+        };
+
+        dbConfig.set(defaultData).then(() => {
+            alert("✅ Base de données injectée avec succès !");
+        });
+    }
+</script>
+</body>
+</html>
