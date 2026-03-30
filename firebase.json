@@ -1,8 +1,16 @@
 {
   "hosting": {
-    "site": "main-verte-72483-56761",
-
-    "public": "public"
-    
+    "public": "dist",
+    "ignore": [
+      "firebase.json",
+      "**/.*",
+      "**/node_modules/**"
+    ],
+    "rewrites": [
+      {
+        "source": "**",
+        "destination": "/index.html"
+      }
+    ]
   }
 }
