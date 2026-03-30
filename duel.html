@@ -421,14 +421,33 @@
     function consm() { localPicksLeft--; if(localPicksLeft<=0) { localModalOpen=false; ['C','S','A'].forEach(cat => { if(!state.market[cat]) state.market[cat] = []; while(state.market[cat].length < 2) { let c = draw(cat); if(c) state.market[cat].push(c); else break; } }); } sync(); }
 
     function actT(t, zId = localSelectedId) { const pId = state.turn; const me = state['p'+pId]; if(!zId || zId===0) return; const cost = me.upgrades[5]>=2 ? (me.upgrades[5]===3?0:1) : 2; if(me.money < (t==='AMÉNAGEMENT'?3:cost)) return; me.money -= (t==='AMÉNAGEMENT'?3:cost); me.time -= 3; me.zones[zId].type = t; addLog(`🏗️ Aménagement d'un ${t} sur la Zone ${zId} (-${t==='AMÉNAGEMENT'?3:cost}💰, -3h).`, pId); sync(); }
+
     function actB(zId = localSelectedId) { 
-        const pId = state.turn; const me = state['p'+pId], z=me.zones[zId]; if(!z || z.batiment) return;
-        const ch = prompt("1: Serre (3💰)\n2: Composteur (4💰)\n3: Local Outils (5💰)");
-        if(ch==="1" && z.type==="POTAGER") { if(me.money<3) return; me.money-=3; me.time-=4; z.batiment="SERRE"; addLog(`🏠 Bâtiment SERRE construit sur Zone ${zId} (-3💰, -4h).`, pId); }
-        else if(ch==="2" && (z.type==="POTAGER"||z.type==="AMÉNAGEMENT")) { if(me.money<4) return; me.money-=4; me.time-=4; z.batiment="COMPOSTEUR"; addLog(`🏠 Bâtiment COMPOSTEUR construit sur Zone ${zId} (-4💰, -4h).`, pId); }
-        else if(ch==="3" && (z.type==="POTAGER"||z.type==="AMÉNAGEMENT")) { if(me.money<5) return; me.money-=5; me.time-=4; z.batiment="LOCAL OUTILS"; addLog(`🏠 Bâtiment LOCAL OUTILS construit sur Zone ${zId} (-5💰, -4h).`, pId); }
-        sync(); 
+    const pId = state.turn; const me = state['p'+pId], z=me.zones[zId]; 
+    if(!z || z.batiment) return;
+    
+    const ch = prompt("Choisissez le bâtiment :\n1: Serre (3💰 - Nécessite Potager)\n2: Composteur (4💰 - Nécessite Nature)\n3: Local Outils (5💰 - Nécessite Nature)");
+    
+    if(ch==="1" && z.type==="POTAGER") { 
+        if(me.money<3) return alert("Fonds insuffisants."); 
+        me.money-=3; me.time-=4; z.batiment="SERRE"; 
+        addLog(`🏠 Bâtiment SERRE construit sur Zone ${zId} (-3💰, -4h).`, pId); 
     }
+    else if(ch==="2" && z.type==="AMÉNAGEMENT") { 
+        if(me.money<4) return alert("Fonds insuffisants."); 
+        me.money-=4; me.time-=4; z.batiment="COMPOSTEUR"; 
+        addLog(`🏠 Bâtiment COMPOSTEUR construit sur Zone ${zId} (-4💰, -4h).`, pId); 
+    }
+    else if(ch==="3" && z.type==="AMÉNAGEMENT") { 
+        if(me.money<5) return alert("Fonds insuffisants."); 
+        me.money-=5; me.time-=4; z.batiment="LOCAL OUTILS"; 
+        addLog(`🏠 Bâtiment LOCAL OUTILS construit sur Zone ${zId} (-5💰, -4h).`, pId); 
+    }
+    else if(ch) {
+        alert("❌ Erreur d'emplacement !\nLa Serre se construit sur un Potager. Le Composteur et le Local se construisent sur une zone Nature (Aménagement).");
+    }
+    sync(); 
+}
     
     function actArr(zId = localSelectedId) { const pId = state.turn; const me=state['p'+pId], z=me.zones[zId]; if(z && z.culture) { me.time--; z.culture.eCur = Math.max(0, z.culture.eCur-2); addLog(`💧 Arrosage manuel de ${z.culture.nom} sur Zone ${zId} (-2💧, -1h).`, pId); sync(); } }
     
