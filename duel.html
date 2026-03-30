@@ -2,7 +2,7 @@
 <html lang="fr">
 <head>
     <meta charset="UTF-8">
-    <title>La Main Verte - V15.1 (Infos-Bulles)</title>
+    <title>La Main Verte - V16 (Indicateurs Logs & Upgrades Payants)</title>
     <script src="https://www.gstatic.com/firebasejs/9.17.1/firebase-app-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/9.17.1/firebase-database-compat.js"></script>
     <style>
@@ -100,7 +100,7 @@
     <div class="hud" id="my-hud">
         <div id="season-display">📅 Saison...</div>
         <div>💰 <span id="res-money">0</span> | ⏳ <span id="res-time">0</span>/<span id="res-timemax">10</span>h</div>
-        <div title="Déchets verts accumulés dans le Composteur">💩 <span id="res-compost" class="res-pill">0</span></div>
+        <div title="Points de Compost accumulés">💩 <span id="res-compost" class="res-pill">0</span></div>
         <div id="meteo-display" style="background:#e3f2fd; padding:3px 10px; border-radius:10px;">🎲 --</div>
         <button id="bot-btn" onclick="toggleBot()" style="background:#9c27b0; color:white; border:none; border-radius:4px; padding:4px 8px; cursor:pointer; font-weight:bold; transition:0.3s;" title="Laisser l'ordinateur jouer à votre place">🤖 Bot: OFF</button>
         <button onclick="confirmReset()" style="background:#ff5252; color:white; border:none; border-radius:4px; padding:4px 8px; cursor:pointer; font-weight:bold;">🧹 Reset</button>
@@ -164,17 +164,14 @@
     let localPicksLeft = 0;
     let isInitializing = false;
 
-    // --- GESTION DU LOBBY & CONNEXION ---
+    // --- LOBBY & CONNEXION ---
     function startNewGame(mode) {
         myId = 1;
         document.getElementById('lobby').style.display = 'none';
         document.getElementById('my-hud').style.borderTopColor = 'var(--p1)';
         
-        if (mode === 'IA_SOLO' || mode === 'IA_VS_IA' || mode === 'VS_IA') {
-            botEnabled = true;
-        } else {
-            botEnabled = false;
-        }
+        if (mode === 'IA_SOLO' || mode === 'IA_VS_IA' || mode === 'VS_IA') { botEnabled = true; } 
+        else { botEnabled = false; }
         
         initNewGame(1, mode);
     }
@@ -188,9 +185,7 @@
 
     db.on("value", snap => {
         const val = snap.val();
-        if(!val || !val.p1) {
-            // En attente
-        } else {
+        if(val && val.p1) {
             if (state && (state.saisonIdx !== val.saisonIdx || state.annee !== val.annee) && !val.gameOver) {
                 playSeasonAnimation(val.saisonIdx, val.annee);
             }
@@ -201,17 +196,25 @@
 
     function sync() { if(state) db.set(state); }
 
+    // GESTION INTELLIGENTE DES LOGS (Ajout auto des indicateurs 💰⏳💩)
     function addLog(msg, pid = myId) {
         if(!state.gameLogs) state.gameLogs = [];
-        state.gameLogs.unshift(`[J${pid}] ` + msg);
-        if(state.gameLogs.length > 200) state.gameLogs.pop(); 
+        
+        // Ajoute dynamiquement les stats du joueur à la fin de la phrase
+        let suffix = "";
+        if(state && state['p'+pid] && !msg.startsWith("🏆") && !msg.startsWith("> 🧹")) {
+            let p = state['p'+pid];
+            suffix = ` [💰${p.money} | ⏳${p.time} | 💩${p.compost||0}]`;
+        }
+        
+        state.gameLogs.unshift(`[J${pid}] ` + msg + suffix);
+        if(state.gameLogs.length > 250) state.gameLogs.pop(); 
     }
 
     function generatePlayer() {
         return { money: 10, time: 10, timeMax: 10, compost: 0, upgrades: Array(8).fill(1), hand: [], auxActifs: [], zones: Array(6).fill(null).map((_, i) => ({ id: i, type: i === 0 ? "LIFE" : null, culture: null, batiment: null })) };
     }
 
-    // --- INITIALISATION DU JEU ---
     async function initNewGame(creatorId = null, mode = 'MULTI') {
         if(isInitializing) return;
         isInitializing = true;
@@ -272,7 +275,7 @@
         }
     }
 
-    // --- MOTEUR D'AFFICHAGE PRINCIPAL ---
+    // --- MOTEUR D'AFFICHAGE ---
     function render() {
         if(!state || !myId) return;
         
@@ -356,17 +359,16 @@
         document.getElementById('jardinerie-modal').style.display = localModalOpen ? 'flex' : 'none';
         if(localModalOpen) renderJardModal(me);
 
-        // --- GESTION DES BOTS (Hooks) ---
+        // Hooks des Bots
         if(typeof triggerBot === "function" && !state.gameOver) {
             let shouldRunBot = false;
             if(state.turn === myId && botEnabled) shouldRunBot = true; 
             if((state.mode === 'VS_IA' || state.mode === 'IA_VS_IA') && state.turn === 2 && myId === 1) shouldRunBot = true; 
-
             if(shouldRunBot && !localModalOpen) triggerBot(state.turn);
         }
     }
 
-    // --- ACTIONS ET INFOS-BULLES ---
+    // --- BOUTONS, INFOS-BULLES & COUTS OR POUR UPGRADES ---
     function renderButtons(me, isMyTurn) {
         const costT = me.upgrades[5] >= 2 ? (me.upgrades[5] === 3 ? 0 : 1) : 2;
         const dis = !isMyTurn || botEnabled || state.gameOver || (state.mode === 'IA_VS_IA' || state.mode === 'IA_SOLO'); 
@@ -387,7 +389,9 @@
 
         const upG = document.getElementById('up-grid'); upG.innerHTML = "";
         UP_NAMES.forEach((n, i) => {
-            const cost = me.upgrades[i]===1?3:5;
+            const costH = me.upgrades[i]===1?3:5;
+            const costM = me.upgrades[i]===1?2:4; // LE PRIX EN OR
+
             let desc = "";
             if(n === "Terrain") desc = "Déverrouille de nouvelles zones de votre plateau pour vous étendre.";
             if(n === "Énergie") desc = "Augmente votre réserve de temps maximum (+4h par niveau).";
@@ -398,7 +402,7 @@
             if(n === "Vente") desc = "Réduit le coût en temps (h) du voyage vers la Jardinerie.";
             if(n === "VIP") desc = "Vous donne accès à des emplacements de Jardinerie plus avantageux.";
 
-            upG.innerHTML += `<div style="font-size:0.7em; background:#fafafa; padding:4px; border:1px solid #ddd; border-radius:4px;" title="Niv. ${me.upgrades[i]} : ${desc}"><b>${n}</b> L${me.upgrades[i]} <button onclick="upgr(${i})" style="float:right;" title="Passer au Niveau ${me.upgrades[i]+1}. Coût : ${cost}h" ${dis||me.upgrades[i]>=3||me.time<cost?'disabled':''}>UP</button></div>`;
+            upG.innerHTML += `<div style="font-size:0.7em; background:#fafafa; padding:4px; border:1px solid #ddd; border-radius:4px;" title="Niv. ${me.upgrades[i]} : ${desc}"><b>${n}</b> L${me.upgrades[i]} <button onclick="upgr(${i})" style="float:right;" title="Passer au Niveau ${me.upgrades[i]+1}. Coût : ${costM}💰 et ${costH}h" ${dis||me.upgrades[i]>=3||me.time<costH||me.money<costM?'disabled':''}>UP</button></div>`;
         });
 
         const jCont = document.getElementById('jard-buttons-container'); jCont.innerHTML = "";
@@ -409,7 +413,7 @@
         });
     }
 
-    // --- ACTIONS DYNAMIQUES (AVEC LOGS DÉTAILLÉS) ---
+    // --- ACTIONS DU JEU ---
     function openJard(h, p) { const me = state['p'+state.turn]; me.time -= h; localPicksLeft = p; localModalOpen = true; addLog(`📦 Voyage à la Jardinerie pour piocher ${p} cartes (-${h}h).`, state.turn); sync(); }
     
     function renderJardModal(me) {
@@ -467,7 +471,7 @@
         if(!hasComp) return alert("Il vous faut un Composteur !");
         if(!z || !z.culture) return;
 
-        me.time--; // Coûte 1h
+        me.time--; 
         if(z.culture.cat === 'A') {
             z.culture.eCur = z.culture.e;
             z.culture.sCur = z.culture.s;
@@ -481,7 +485,20 @@
         sync();
     }
     
-    function upgr(i) { const pId = state.turn; const me=state['p'+pId]; const cost = me.upgrades[i]===1?3:5; me.time -= cost; me.upgrades[i]++; if(i===1) me.timeMax += 4; addLog(`⚙️ Amélioration ${UP_NAMES[i]} au niveau ${me.upgrades[i]} (-${cost}h).`, pId); sync(); }
+    function upgr(i) { 
+        const pId = state.turn; const me = state['p'+pId]; 
+        const costH = me.upgrades[i]===1 ? 3 : 5; 
+        const costM = me.upgrades[i]===1 ? 2 : 4; 
+        
+        if(me.time < costH || me.money < costM) return;
+        
+        me.time -= costH; 
+        me.money -= costM;
+        me.upgrades[i]++; 
+        if(i===1) me.timeMax += 4; 
+        addLog(`⚙️ Amélioration ${UP_NAMES[i]} au niveau ${me.upgrades[i]} (-${costM}💰, -${costH}h).`, pId); 
+        sync(); 
+    }
     
     function actionRecolter(id) { 
         const pId = state.turn; const me = state['p'+pId], z = me.zones[id]; 
@@ -525,6 +542,7 @@
         sync(); 
     }
 
+    // --- FIN DE TOUR ET RÉSOLUTION ---
     function resolveSeason() {
         let curS = ALL_SEASONS[state.saisonIdx];
         let pBase = Math.floor(Math.random()*3)+1; 
@@ -571,6 +589,13 @@
         if(state.annee > 3) {
             state.gameOver = true;
             addLog("🏁 Fin des 3 années de jeu.", myId);
+            
+            // Log des scores finaux
+            addLog(`🏆 SCORE FINAL J1 : ${state.p1.money}💰 | ${state.p1.compost||0}💩`, 1);
+            if(state.mode !== 'SOLO' && state.mode !== 'IA_SOLO') {
+                addLog(`🏆 SCORE FINAL J2 : ${state.p2.money}💰 | ${state.p2.compost||0}💩`, 2);
+            }
+            
             sync();
             return;
         }
