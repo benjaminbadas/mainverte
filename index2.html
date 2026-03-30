@@ -2,34 +2,31 @@
 <html lang="fr">
 <head>
     <meta charset="UTF-8">
-    <title>La Main Verte - V5.11 Ultra-Stable</title>
+    <title>La Main Verte - V6.0 Master</title>
     <script src="https://www.gstatic.com/firebasejs/9.17.1/firebase-app-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/9.17.1/firebase-database-compat.js"></script>
     <style>
         :root { --p1: #2e7d32; --bg: #f4f7f1; --potager: #81c784; --verger: #fff176; --amenag: #ffccbc; --batiment: #455a64; --dark: #263238; --gold: #ffd700; --serre: #e1f5fe; }
         body { font-family: 'Segoe UI', sans-serif; background: var(--bg); margin: 0; display: flex; height: 100vh; overflow: hidden; }
         .main-game { flex: 1; display: flex; flex-direction: column; padding: 10px; overflow-y: auto; }
-        .sidebar { width: 420px; background: white; border-left: 2px solid #ddd; padding: 10px; display: flex; flex-direction: column; }
-        .hud { display: flex; justify-content: space-between; align-items: center; background: white; padding: 10px; border-radius: 8px; box-shadow: 0 2px 5px rgba(0,0,0,0.1); margin-bottom: 10px; font-weight: bold; }
+        .sidebar { width: 420px; background: white; border-left: 2px solid #ddd; padding: 10px; display: flex; flex-direction: column; overflow-y: auto;}
+        .hud { display: flex; justify-content: space-between; align-items: center; background: white; padding: 10px; border-radius: 8px; box-shadow: 0 2px 5px rgba(0,0,0,0.1); margin-bottom: 10px; font-weight: bold; font-size: 0.9em; }
         .farm-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; background: #d7ccc8; padding: 10px; border-radius: 12px; }
-        .zone { min-height: 155px; background: #efebe9; border: 2px dashed #bcaaa4; border-radius: 8px; display: flex; flex-direction: column; align-items: center; justify-content: center; position: relative; font-size: 0.72em; cursor: pointer; text-align: center; }
+        .zone { min-height: 140px; background: #efebe9; border: 2px dashed #bcaaa4; border-radius: 8px; display: flex; flex-direction: column; align-items: center; justify-content: center; position: relative; font-size: 0.75em; cursor: pointer; text-align: center; }
         .zone.selected { border: 3px solid #ff9800 !important; box-shadow: 0 0 8px rgba(255,152,0,0.4); }
         .tuile-potager { background: var(--potager) !important; border: 2px solid #2e7d32 !important; }
         .tuile-verger { background: var(--verger) !important; border: 2px solid #fbc02d !important; }
-        .tuile-amenag { background: var(--amenag) !important; border: 2px solid #ff5722 !important; }
-        .tuile-batiment { background: var(--batiment) !important; border: 2px solid #263238 !important; color: white; }
         .has-serre { box-shadow: inset 0 0 15px rgba(3, 169, 244, 0.6); border: 3px solid #03a9f4 !important; background: var(--serre) !important; }
-        .card { border: 1px solid #ddd; border-radius: 6px; padding: 8px; margin-bottom: 5px; background: white; font-size: 0.75em; border-left: 4px solid var(--p1); }
-        .logs { height: 80px; background: var(--dark); color: #a5d6a7; padding: 8px; font-family: monospace; font-size: 0.7em; overflow-y: auto; border-radius: 6px; }
-        .btn-action { width: 100%; padding: 8px; border: none; border-radius: 4px; font-weight: bold; color: white; cursor: pointer; font-size: 0.72em; margin-bottom: 4px; display: flex; flex-direction: column; align-items: center; justify-content: center; }
-        button:disabled { background: #cfd8dc !important; color: #78909c !important; cursor: not-allowed !important; }
-        .res-pill { background: #e8f5e9; padding: 2px 8px; border-radius: 10px; color: var(--p1); border: 1px solid var(--p1); }
+        .card { border: 1px solid #ddd; border-radius: 6px; padding: 6px; margin-bottom: 4px; background: white; font-size: 0.72em; border-left: 4px solid var(--p1); }
+        .btn-action { width: 100%; padding: 6px; border: none; border-radius: 4px; font-weight: bold; color: white; cursor: pointer; font-size: 0.7em; margin-bottom: 3px; }
+        .res-pill { background: #e8f5e9; padding: 2px 6px; border-radius: 10px; color: var(--p1); border: 1px solid var(--p1); }
         .modal-overlay { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.8); z-index: 100; align-items: center; justify-content: center; }
-        .modal-content { background: #fff; padding: 20px; border-radius: 12px; width: 90%; max-width: 900px; }
-        .rayon-grid { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 15px; }
-        .rayon { background: #f9f9f9; padding: 10px; border-radius: 8px; border: 1px solid #ccc; }
-        .jard-card { border: 2px solid #ddd; padding: 10px; border-radius: 6px; margin-bottom: 8px; cursor: pointer; background: white; position: relative; }
-        .price-tag { position: absolute; top: -8px; right: -8px; background: var(--gold); padding: 2px 6px; border-radius: 10px; font-size: 0.85em; font-weight: bold; border: 1px solid #b8860b; }
+        .modal-content { background: #fff; padding: 15px; border-radius: 12px; width: 95%; max-width: 1000px; max-height: 90vh; overflow-y: auto; }
+        .rayon-grid { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 10px; }
+        .rayon { background: #f9f9f9; padding: 8px; border-radius: 8px; border: 1px solid #ccc; }
+        .jard-card { border: 2px solid #ddd; padding: 6px; border-radius: 6px; margin-bottom: 6px; cursor: pointer; background: white; position: relative; font-size: 0.85em; }
+        .price-tag { position: absolute; top: -6px; right: -6px; background: var(--gold); padding: 1px 5px; border-radius: 8px; font-size: 0.8em; font-weight: bold; border: 1px solid #b8860b; }
+        .alert-rav { background: #ffebee; color: #c62828; padding: 4px; border-radius: 4px; font-size: 0.75em; margin-bottom: 5px; border: 1px solid #ef9a9a; text-align: center; }
     </style>
 </head>
 <body>
@@ -38,24 +35,26 @@
     <div class="hud">
         <div id="season-display">📅 Saison...</div>
         <div>💰 <span id="res-money">0</span> | ⏳ <span id="res-time">0</span>/<span id="res-timemax">10</span>h</div>
-        <div>💩 Compost: <span id="res-compost" class="res-pill">0</span></div>
-        <div id="meteo-display" style="background:#e3f2fd; padding:3px 10px; border-radius:10px; font-weight:bold;">🎲 --</div>
-        <button onclick="confirmReset()" style="background:#ff5252; color:white; border:none; border-radius:4px; padding:4px 8px; cursor:pointer;">🧹 Reset</button>
+        <div>💩 <span id="res-compost" class="res-pill">0</span></div>
+        <div id="meteo-display" style="background:#e3f2fd; padding:3px 10px; border-radius:10px;">🎲 --</div>
+        <button onclick="confirmReset()" style="background:#ff5252; color:white; border:none; border-radius:4px; padding:3px 6px; cursor:pointer; font-size: 0.8em;">Reset</button>
     </div>
-    <div id="ravageur-alert" style="background:#ffebee; color:#c62828; padding:5px; font-size:0.8em; text-align:center; display:none; border-radius:5px; margin-bottom:5px;"></div>
+    <div id="ravageur-zone" class="alert-rav" style="display:none;"></div>
     <div class="farm-grid" id="farm-grid"></div>
-    <div class="logs" id="game-logs">> Prêt.</div>
-    <div id="action-buttons-container" style="display: grid; grid-template-columns: repeat(4, 1fr); gap:4px; margin-top:10px;"></div>
+    <div id="action-buttons-container" style="display: grid; grid-template-columns: repeat(6, 1fr); gap:4px; margin-top:10px;"></div>
 </div>
 
 <div class="sidebar">
+    <div style="background:#f0f4f7; padding:8px; border-radius:6px; margin-bottom:10px; font-size:0.8em;">
+        <b>🎴 Pioches :</b> <span id="deck-count">C:0 | S:0 | A:0</span>
+    </div>
     <h3>⚙️ Améliorations</h3>
     <div id="up-grid" style="display:grid; grid-template-columns: 1fr 1fr; gap:4px;"></div>
-    <h3>🛒 Jardinerie (Marché)</h3>
-    <div id="market-preview" style="background:#fffde7; padding:8px; border:1px solid #ffd54f; border-radius:6px; font-size:0.75em; margin-bottom:6px; min-height:50px;"></div>
+    <h3>🛒 Marché</h3>
+    <div id="market-preview" style="background:#fffde7; padding:6px; border:1px solid #ffd54f; border-radius:6px; font-size:0.72em; margin-bottom:6px;"></div>
     <div id="jard-buttons-container" style="display:grid; grid-template-columns: 1fr 1fr; gap:4px;"></div>
     <h3>🎒 Ma Main</h3>
-    <div class="scroll-area" id="player-hand"></div>
+    <div id="player-hand"></div>
 </div>
 
 <div class="modal-overlay" id="jardinerie-modal"><div class="modal-content" id="modal-content-inner"></div></div>
@@ -70,26 +69,34 @@
         messagingSenderId: "633454274346",
         appId: "1:633454274346:web:7261efcfe1b9cecdd6e053"
     };
-
     firebase.initializeApp(firebaseConfig);
     const db = firebase.database().ref("game-session-001");
 
-    const DECKS = {
+    // --- BASE DE DONNÉES 40+ CARTES ---
+    const DECK_MASTER = {
         C: [
-            { nom: "Radis", prix: 0, e: 1, s: 1, t: 1, g: 3, cat: 'L', semis: ['P','E','A','H'], rec: ['P','E','A','H'] },
-            { nom: "Carotte", prix: 1, e: 4, s: 2, t: 1, g: 6, cat: 'L', semis: ['P','E'], rec: ['A','H'] },
-            { nom: "Tomate", prix: 1, e: 6, s: 5, t: 1, g: 9, cat: 'L', semis: ['P'], rec: ['E','A'] },
-            { nom: "Pommier", prix: 2, e: 12, s: 5, t: 3, g: 15, cat: 'A', semis: ['A','H'], rec: ['E','A'] }
+            {nom:"Radis",p:0,e:1,s:1,t:1,g:3,cat:'L'}, {nom:"Laitue",p:0,e:2,s:1,t:1,g:4,cat:'L'}, {nom:"Épinard",p:0,e:2,s:1,t:1,g:4,cat:'L'},
+            {nom:"Carotte",p:1,e:4,s:2,t:1,g:6,cat:'L'}, {nom:"Navet",p:1,e:3,s:2,t:1,g:5,cat:'L'}, {nom:"Oignon",p:1,e:2,s:3,t:1,g:6,cat:'L'},
+            {nom:"Poireau",p:1,e:4,s:1,t:2,g:7,cat:'L'}, {nom:"Tomate",p:1,e:6,s:5,t:1,g:9,cat:'L'}, {nom:"Courgette",p:1,e:5,s:4,t:1,g:8,cat:'L'},
+            {nom:"Aubergine",p:2,e:6,s:6,t:1,g:10,cat:'L'}, {nom:"Poivron",p:2,e:5,s:6,t:1,g:10,cat:'L'}, {nom:"Piment",p:2,e:4,s:6,t:1,g:10,cat:'L'},
+            {nom:"Haricot",p:1,e:3,s:3,t:1,g:6,cat:'L'}, {nom:"Petit Pois",p:1,e:3,s:2,t:1,g:6,cat:'L'}, {nom:"Fève",p:1,e:4,s:2,t:1,g:7,cat:'L'},
+            {nom:"Chou Rouge",p:2,e:6,s:3,t:2,g:12,cat:'L'}, {nom:"Brocoli",p:2,e:5,s:3,t:2,g:11,cat:'L'}, {nom:"Patate",p:1,e:3,s:4,t:1,g:8,cat:'L'},
+            {nom:"Pommier",p:3,e:12,s:6,t:3,g:18,cat:'A'}, {nom:"Poirier",p:3,e:10,s:7,t:3,g:18,cat:'A'}, {nom:"Cerisier",p:3,e:8,s:8,t:3,g:18,cat:'A'},
+            {nom:"Prunier",p:3,e:9,s:7,t:3,g:18,cat:'A'}, {nom:"Framboisier",p:2,e:6,s:4,t:2,g:12,cat:'A'}, {nom:"Groseillier",p:2,e:5,s:4,t:2,g:11,cat:'A'},
+            {nom:"Basilic",p:1,e:2,s:4,t:1,g:5,cat:'F'}, {nom:"Menthe",p:1,e:4,s:2,t:1,g:5,cat:'F'}, {nom:"Persil",p:0,e:3,s:2,t:1,g:4,cat:'F'},
+            {nom:"Ciboulette",p:0,e:2,s:2,t:1,g:4,cat:'F'}, {nom:"Tournesol",p:1,e:3,s:6,t:1,g:7,cat:'F'}, {nom:"Souci",p:1,e:2,s:4,t:1,g:6,cat:'F'},
+            {nom:"Lavande",p:2,e:1,s:8,t:2,g:10,cat:'F'}, {nom:"Pleurote",p:2,e:6,s:0,t:1,g:8,cat:'M'}, {nom:"Shiitake",p:3,e:8,s:0,t:2,g:12,cat:'M'}
         ],
-        S: [{ nom: "Fumier", prix: 2, t: 1, cat: 'S', desc: "+2💩 Compost" }, { nom: "Purin d'Ortie", prix: 1, t: 1, cat: 'S', desc: "-4💧" }],
-        A: [{ nom: "Hérisson", prix: 2, t: 1, cat: 'Aux', prot: "Limaces" }]
+        S: [{nom:"Fumier",p:2,t:1,cat:'S',eff:'💩+2'}, {nom:"Terreau",p:1,t:1,cat:'S',eff:'💧-3'}, {nom:"Engrais Bio",p:2,t:1,cat:'S',eff:'💰+3'}],
+        A: [{nom:"Hérisson",p:2,t:1,cat:'X',prot:'Limaces'}, {nom:"Coccinelle",p:1,t:1,cat:'X',prot:'Pucerons'}]
     };
-    const UP_NAMES = ["Agrandissement", "Efficacité", "Formation", "Qualité Sol", "Microclimat", "Bricoleur", "Fidélité", "Pass VIP"];
-    const ALL_SEASONS = ["P","E","A","H"];
+
+    const RAV_TYPES = [{n:"Limaces",d:3}, {n:"Pucerons",d:2}, {n:"Mildiou",d:4}];
+    const UP_NAMES = ["Terrain", "Énergie", "Savoir", "Sol", "Climat", "Outils", "Vente", "VIP"];
 
     let state = null, localSelectedId = null;
 
-    db.on("value", (snap) => {
+    db.on("value", snap => {
         const val = snap.val();
         if(!val || !val.zones) initNewGame(); else { state = val; render(); }
     });
@@ -101,67 +108,70 @@
             annee: 1, saisonIdx: 0, money: 10, time: 10, timeMax: 10, compost: 3,
             upgrades: Array(8).fill(1), hand: [], auxActifs: [],
             zones: Array(6).fill(null).map((_, i) => ({ id: i, type: i === 0 ? "LIFE" : null, culture: null, batiment: null })),
-            market: { C: [draw('C'), draw('C')], S: [draw('S'), draw('S')], A: [draw('A'), draw('A')] },
-            picksLeft: 0, modalOpen: false, currentMeteo: {p:0, s:0}
+            decks: { C: [...DECK_MASTER.C], S: [...DECK_MASTER.S], A: [...DECK_MASTER.A] },
+            market: { C: [], S: [], A: [] },
+            picksLeft: 0, modalOpen: false, currentMeteo: {p:0, s:0}, currentRav: null
         };
+        // Remplir le marché initial
+        ['C','S','A'].forEach(cat => { for(let i=0;i<2;i++) state.market[cat].push(draw(cat)); });
         sync();
     }
 
-    function confirmReset() { if(confirm("Réinitialiser ?")) initNewGame(); }
-    function draw(cat) { return {...DECKS[cat][Math.floor(Math.random()*DECKS[cat].length)]}; }
+    function draw(cat) {
+        if(!state.decks[cat] || state.decks[cat].length === 0) return null;
+        return state.decks[cat].splice(Math.floor(Math.random()*state.decks[cat].length), 1)[0];
+    }
 
     function render() {
-        if(!state || !state.zones) return;
-        
+        if(!state) return;
         const setTxt = (id, txt) => { const el = document.getElementById(id); if(el) el.innerText = txt; };
-        setTxt('res-money', state.money);
-        setTxt('res-time', state.time);
-        setTxt('res-timemax', state.timeMax);
-        setTxt('res-compost', state.compost || 0);
+        setTxt('res-money', state.money); setTxt('res-time', state.time); setTxt('res-timemax', state.timeMax); setTxt('res-compost', state.compost);
         setTxt('season-display', `📅 ${["Printemps","Été","Automne","Hiver"][state.saisonIdx]} - An ${state.annee}`);
-        
-        const mEl = document.getElementById('meteo-display');
-        if(mEl) mEl.innerHTML = state.currentMeteo ? `🌧️ ${state.currentMeteo.p} | ☀️ ${state.currentMeteo.s}` : "🎲 --";
+        setTxt('meteo-display', `🌧️ ${state.currentMeteo.p} | ☀️ ${state.currentMeteo.s}`);
+        setTxt('deck-count', `C:${state.decks.C.length} | S:${state.decks.S.length} | A:${state.decks.A.length}`);
 
-        // Vitrine Marché sécurisée
-        const prev = document.getElementById('market-preview');
-        if(prev && state.market) {
-            const getNames = (cat) => (state.market[cat] || []).map(c => c.nom).join(', ') || "...";
-            prev.innerHTML = `🌾 <b>C:</b> ${getNames('C')} <br>🛠️ <b>S:</b> ${getNames('S')} <br>🦊 <b>A:</b> ${getNames('A')}`;
-        }
+        // Alerte Ravageur
+        const ravEl = document.getElementById('ravageur-zone');
+        if(state.currentRav) { ravEl.innerText = `⚠️ ATTENTION : ${state.currentRav.n} (-${state.currentRav.d}💰)`; ravEl.style.display = 'block'; }
+        else ravEl.style.display = 'none';
 
-        const grid = document.getElementById('farm-grid'); 
-        grid.innerHTML = "";
+        // Marché Preview
+        document.getElementById('market-preview').innerHTML = `
+            🌾 ${state.market.C.map(c=>c.nom).join(', ') || 'Vidé'} | 🛠️ ${state.market.S.map(c=>c.nom).join(', ') || 'Vidé'}
+        `;
+
+        // Grille
+        const grid = document.getElementById('farm-grid'); grid.innerHTML = "";
         state.zones.forEach(z => {
             const acc = z.id <= (state.upgrades[0] === 1 ? 3 : (state.upgrades[0] === 2 ? 4 : 5));
             const isS = z.batiment === 'SERRE';
             const d = document.createElement('div');
-            d.className = `zone ${z.type ? 'tuile-'+z.type.toLowerCase() : ''} ${z.batiment && !isS ? 'tuile-batiment' : ''} ${isS ? 'has-serre' : ''} ${localSelectedId === z.id ? 'selected' : ''}`;
+            d.className = `zone ${z.type ? 'tuile-'+z.type.toLowerCase() : ''} ${isS ? 'has-serre' : ''} ${localSelectedId === z.id ? 'selected' : ''}`;
             d.style.opacity = acc ? "1" : "0.3";
             d.onclick = () => { if(acc) { localSelectedId = z.id; render(); } };
             
             if(z.id === 0) d.innerHTML = "🏠 MAISON";
             else if(!z.type) d.innerHTML = `ZONE ${z.id}${acc?'':'<br>🔒'}`;
             else {
-                d.innerHTML = `<span style="font-size:0.7em; font-weight:bold;">${isS ? "SERRE" : (z.batiment || z.type)}</span>`;
+                d.innerHTML = `<b>${isS ? "SERRE" : z.type}</b>`;
                 if(z.culture) {
-                    d.innerHTML += `<br><b>${z.culture.nom}</b><br>💧${z.culture.eCur} ☀️${z.culture.sCur}`;
+                    d.innerHTML += `<br>${z.culture.nom}<br>💧${z.culture.eCur} ☀️${z.culture.sCur}`;
                     if(z.culture.eCur <= 0 && z.culture.sCur <= 0) {
-                        d.innerHTML += `<br><button onclick="actionRecolter(${z.id})" style="background:var(--p1); color:white; border:none; padding:2px 5px; font-size:0.8em; cursor:pointer;">🧺 Récolter</button>`;
+                        d.innerHTML += `<br><button onclick="actionRecolter(${z.id})" style="background:var(--p1); color:white; border:none; padding:3px; cursor:pointer; font-size:0.9em; border-radius:4px;">🧺 Récolter</button>`;
                     }
                 }
             }
             grid.appendChild(d);
         });
 
-        renderButtons();
-        
+        // Main
         const hDiv = document.getElementById('player-hand'); hDiv.innerHTML = "";
         (state.hand || []).forEach((c, i) => {
             const cost = Math.max(0, (c.t||1) - (state.upgrades[2]-1));
-            hDiv.innerHTML += `<div class="card"><b>${c.nom}</b><br><button onclick="playC(${i})" ${state.time<cost?'disabled':''}>Jouer (-${cost}h)</button></div>`;
+            hDiv.innerHTML += `<div class="card"><b>${c.nom}</b> (${cost}h)<br><button onclick="playC(${i})" ${state.time<cost?'disabled':''}>Jouer</button></div>`;
         });
-        
+
+        renderButtons();
         document.getElementById('jardinerie-modal').style.display = state.modalOpen ? 'flex' : 'none';
         if(state.modalOpen) renderJardModal();
     }
@@ -169,88 +179,65 @@
     function renderButtons() {
         const costT = state.upgrades[5] >= 2 ? (state.upgrades[5] === 3 ? 0 : 1) : 2;
         document.getElementById('action-buttons-container').innerHTML = `
-            <button class="btn-action" style="background:#4caf50" onclick="actT('P')" ${state.time<3||state.money<costT?'disabled':''}>Potager (-${costT}💰)</button>
-            <button class="btn-action" style="background:#fbc02d;color:#333" onclick="actT('V')" ${state.time<3||state.money<costT?'disabled':''}>Verger (-${costT}💰)</button>
-            <button class="btn-action" style="background:#607d8b" onclick="actB()" ${state.time<4?'disabled':''}>Bâtiment</button>
+            <button class="btn-action" style="background:#4caf50" onclick="actT('POTAGER')" ${state.time<3||state.money<costT?'disabled':''}>Potager</button>
+            <button class="btn-action" style="background:#fbc02d;color:#333" onclick="actT('VERGER')" ${state.time<3||state.money<costT?'disabled':''}>Verger</button>
+            <button class="btn-action" style="background:#607d8b" onclick="actB()" ${state.time<4?'disabled':''}>Serre</button>
             <button class="btn-action" style="background:#2196f3" onclick="actArr()" ${state.time<1?'disabled':''}>💧 Arroser</button>
-            <button class="btn-action" style="background:#795548" onclick="actAmd()" ${state.time<1||(state.compost||0)<1?'disabled':''}>💩 Amender</button>
-            <button class="btn-action" style="background:#e53935" onclick="actFin()">💤 Fin Saison</button>
+            <button class="btn-action" style="background:#795548" onclick="actAmd()" ${state.time<1||state.compost<1?'disabled':''}>💩 Amender</button>
+            <button class="btn-action" style="background:#e53935" onclick="actFin()">💤 Saison</button>
         `;
-        const redJ = state.upgrades[6]>=2?1:0;
-        const jCont = document.getElementById('jard-buttons-container'); jCont.innerHTML = "";
-        [[3,5],[2,3],[2,2],[1,1]].forEach((ex, i) => {
-            const c = Math.max(0, ex[0]-redJ);
-            jCont.innerHTML += `<button class="btn-action" style="background:#8d6e63" onclick="openJard(${c},${ex[1]})" ${state.time<c?'disabled':''}>📦 E${i+1} (${ex[1]}p)</button>`;
-        });
         const upG = document.getElementById('up-grid'); upG.innerHTML = "";
         UP_NAMES.forEach((n, i) => {
             const cost = state.upgrades[i]===1?3:5;
-            upG.innerHTML += `<div class="up-card"><b>${n}</b> L${state.upgrades[i]}<br><button class="btn-up" onclick="upgr(${i})" ${state.upgrades[i]>=3||state.time<cost?'disabled':''}>UP</button></div>`;
+            upG.innerHTML += `<div style="font-size:0.7em;">${n} L${state.upgrades[i]} <button onclick="upgr(${i})" ${state.upgrades[i]>=3||state.time<cost?'disabled':''}>UP</button></div>`;
         });
+        const jCont = document.getElementById('jard-buttons-container'); jCont.innerHTML = "";
+        [[3,5],[2,2]].forEach((ex, i) => { jCont.innerHTML += `<button class="btn-action" style="background:#8d6e63" onclick="openJard(${ex[0]},${ex[1]})" ${state.time<ex[0]?'disabled':''}>📦 Expédition E${i+1}</button>`; });
     }
 
     function openJard(h, p) { state.time -= h; state.picksLeft = p; state.modalOpen = true; sync(); }
     function renderJardModal() {
         const inner = document.getElementById('modal-content-inner');
-        if(!inner || !state.market) return;
-        inner.innerHTML = `<h2>🛒 Jardinerie (Actions: ${state.picksLeft})</h2><div class="rayon-grid"></div>`;
-        const grid = inner.querySelector('.rayon-grid');
+        inner.innerHTML = `<h2>🛒 Marché - Actions: ${state.picksLeft}</h2><div class="rayon-grid"></div>`;
         ['C','S','A'].forEach(cat => {
             const r = document.createElement('div'); r.className = "rayon";
-            r.innerHTML = `<h3>${cat}</h3><button class="btn-jard-action" onclick="jardP('${cat}')">❓ Pioche</button><hr>`;
+            r.innerHTML = `<h3>${cat}</h3><button onclick="jardP('${cat}')">🎲 Pioche</button><hr>`;
             (state.market[cat] || []).forEach((c, idx) => {
-                const can = state.money >= c.prix;
-                const d = document.createElement('div'); d.className = "jard-card";
-                d.style.opacity = can ? "1" : "0.4";
-                d.innerHTML = `${c.prix>0?`<div class="price-tag">${c.prix}💰</div>`:''}<b>${c.nom}</b>`;
-                d.onclick = () => { if(can) { 
-                    state.money -= c.prix; 
-                    if(!state.hand) state.hand = [];
-                    state.hand.push(c); 
-                    state.market[cat].splice(idx,1); 
-                    if(state.upgrades[6]>=3) state.market[cat].push(draw(cat)); 
-                    consm(); 
-                } };
+                const can = state.money >= c.p;
+                const d = document.createElement('div'); d.className = "jard-card"; d.style.opacity = can?"1":"0.4";
+                d.innerHTML = `<div class="price-tag">${c.p}💰</div><b>${c.nom}</b>`;
+                d.onclick = () => { if(can) { state.money-=c.p; state.hand.push(c); state.market[cat].splice(idx,1); consm(); } };
                 r.appendChild(d);
             });
-            grid.appendChild(r);
+            inner.querySelector('.rayon-grid').appendChild(r);
         });
     }
 
-    function jardP(cat) { 
-        const c = draw(cat); 
-        if(c.prix === 0 || (state.money >= c.prix && confirm(`Acheter ${c.nom} ?`))) { 
-            if(c.prix > 0) state.money -= c.prix; 
-            if(!state.hand) state.hand=[]; state.hand.push(c); 
-        } 
-        consm(); 
-    }
-    function consm() { state.picksLeft--; if(state.picksLeft <= 0) { state.modalOpen = false; ['C','S','A'].forEach(cat => { if(!state.market[cat]) state.market[cat] = []; while(state.market[cat].length<2) state.market[cat].push(draw(cat)); }); } sync(); }
+    function jardP(cat) { const c = draw(cat); if(c) { if(c.p <= state.money) { state.money-=c.p; state.hand.push(c); consm(); } else { alert("Pas assez d'argent"); state.decks[cat].push(c); } } }
+    function consm() { state.picksLeft--; if(state.picksLeft<=0) { state.modalOpen=false; ['C','S','A'].forEach(cat => { while(state.market[cat].length<2) { let c = draw(cat); if(c) state.market[cat].push(c); else break; } }); } sync(); }
+    function actT(t) { if(!localSelectedId) return; state.money -= 2; state.time -= 3; state.zones[localSelectedId].type = t; sync(); }
+    function actB() { if(!localSelectedId) return; state.money -= 3; state.time -= 4; state.zones[localSelectedId].batiment = "SERRE"; sync(); }
+    function actArr() { if(state.zones[localSelectedId]?.culture) { state.time--; state.zones[localSelectedId].culture.eCur = Math.max(0, state.zones[localSelectedId].culture.eCur-2); sync(); } }
+    function actAmd() { if(state.zones[localSelectedId]?.culture) { state.time--; state.compost--; state.zones[localSelectedId].culture.sCur = Math.max(0, state.zones[localSelectedId].culture.sCur-1); sync(); } }
+    function upgr(i) { state.time -= (state.upgrades[i]===1?3:5); state.upgrades[i]++; if(i===1) state.timeMax += 4; sync(); }
+    function actionRecolter(id) { const z = state.zones[id]; state.money += (z.culture.g + (state.upgrades[3]-1)); z.culture = null; sync(); }
+    function playC(idx) { const c = state.hand[idx], z = state.zones[localSelectedId]; if(!z || z.culture || !z.type) return; state.time -= Math.max(0, (c.t||1)-(state.upgrades[2]-1)); z.culture = {...c, eCur:c.e, sCur:c.s}; state.hand.splice(idx,1); sync(); }
 
-    function actT(t) { if(!localSelectedId || localSelectedId === 0) return; const cost = state.upgrades[5] >= 2 ? (state.upgrades[5] === 3 ? 0 : 1) : 2; state.money -= cost; state.time -= 3; state.zones[localSelectedId].type = (t==='P'?'POTAGER':'VERGER'); sync(); }
-    function actB() { const z = state.zones[localSelectedId]; if(!z || z.batiment) return; const ch = prompt("1: Serre(3💰)"); if(ch==="1" && state.money>=3) { state.money-=3; state.time-=4; z.batiment="SERRE"; } sync(); }
-    function actArr() { const z = state.zones[localSelectedId]; if(z && z.culture) { state.time -= 1; z.culture.eCur = Math.max(0, z.culture.eCur-2); sync(); } }
-    function actAmd() { const z = state.zones[localSelectedId]; if(z && z.culture) { state.time -= 1; state.compost -= 1; z.culture.amd = (z.culture.amd||0)+1; sync(); } }
-    function upgr(i) { const cost = state.upgrades[i]===1?3:5; state.time -= cost; state.upgrades[i]++; if(i===1) state.timeMax += 4; sync(); }
-    function actionRecolter(id) { const z = state.zones[id]; state.time -= 2; state.money += (z.culture.g + (state.upgrades[3]-1) + (z.culture.amd||0)); z.culture = null; sync(); }
-    function playC(idx) { const c = state.hand[idx], z = state.zones[localSelectedId], cost = Math.max(0, (c.t||1)-(state.upgrades[2]-1)); if(!z || z.culture) return; state.time-=cost; z.culture={...c, eCur:c.e, sCur:c.s, amd:0}; state.hand.splice(idx,1); sync(); }
-    
-    // FIN DE SAISON - AVANCEMENT RÉCOLTES REPARÉ
-    function actFin() { 
-        state.saisonIdx++; if(state.saisonIdx > 3) { state.saisonIdx = 0; state.annee++; } 
-        let dPluie = Math.floor(Math.random()*3)+1; 
-        let dSoleil = Math.floor(Math.random()*2)+1; 
-        state.currentMeteo = {p: dPluie, s: dSoleil}; 
-        
+    function actFin() {
+        state.saisonIdx++; if(state.saisonIdx > 3) { state.saisonIdx = 0; state.annee++; }
+        let p = Math.floor(Math.random()*3)+1; let s = Math.floor(Math.random()*3)+1;
+        state.currentMeteo = {p, s};
         state.zones.forEach(z => { 
-            if(z && z.culture) { 
-                z.culture.eCur = Math.max(0, z.culture.eCur - dPluie); 
-                z.culture.sCur = Math.max(0, z.culture.sCur - dSoleil); 
+            if(z.culture) { 
+                z.culture.eCur = Math.max(0, z.culture.eCur - p); 
+                z.culture.sCur = Math.max(0, z.culture.sCur - s); 
             } 
-        }); 
-        state.time = state.timeMax; state.compost = (state.compost||0)+1; 
-        sync(); 
+        });
+        if(Math.random() < 0.3) { state.currentRav = RAV_TYPES[Math.floor(Math.random()*RAV_TYPES.length)]; state.money -= state.currentRav.d; }
+        else state.currentRav = null;
+        state.time = state.timeMax; state.compost++; sync();
     }
+    function confirmReset() { if(confirm("Reset ?")) initNewGame(); }
 </script>
 </body>
 </html>
