@@ -1,9 +1,8 @@
 <!DOCTYPE html>
 <html lang="fr">
 <head>
-    
     <meta charset="UTF-8">
-    <title>La Main Verte - V8.0 Tour par Tour</title>
+    <title>La Main Verte - V8.1 Édition Finale</title>
     <script src="https://www.gstatic.com/firebasejs/9.17.1/firebase-app-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/9.17.1/firebase-database-compat.js"></script>
     <style>
@@ -12,8 +11,8 @@
         
         /* LOBBY */
         #lobby { position: fixed; top:0; left:0; width:100%; height:100%; background:rgba(0,0,0,0.9); z-index: 1000; display: flex; flex-direction: column; align-items: center; justify-content: center; color: white; }
-        .btn-lobby { background: var(--p1); color: white; border: none; padding: 15px 30px; font-size: 1.2em; border-radius: 8px; margin: 10px; cursor: pointer; width: 300px; transition: 0.2s; }
-        .btn-lobby:hover { filter: brightness(1.2); }
+        .btn-lobby { background: var(--p1); color: white; border: none; padding: 15px 30px; font-size: 1.2em; border-radius: 8px; margin: 10px; cursor: pointer; width: 300px; transition: 0.2s; font-weight: bold;}
+        .btn-lobby:hover { filter: brightness(1.2); transform: scale(1.05); }
         .btn-lobby.j2 { background: var(--p2); }
 
         /* JEU */
@@ -21,11 +20,11 @@
         .sidebar { width: 420px; background: white; border-left: 2px solid #ddd; padding: 10px; display: flex; flex-direction: column; overflow-y: auto;}
         
         .hud { display: flex; justify-content: space-between; align-items: center; background: white; padding: 10px; border-radius: 8px; box-shadow: 0 2px 5px rgba(0,0,0,0.1); margin-bottom: 5px; font-weight: bold; font-size: 0.9em; border-top: 4px solid var(--p1); }
-        .hud-opp { background: #e3f2fd; padding: 6px 10px; border-radius: 8px; margin-bottom: 10px; font-size: 0.8em; color: #1565c0; border: 1px solid #bbdefb; display: flex; justify-content: space-between;}
+        .hud-opp { background: #e3f2fd; padding: 6px 10px; border-radius: 8px; margin-bottom: 10px; font-size: 0.8em; color: #1565c0; border: 1px solid #bbdefb; display: flex; justify-content: space-between; align-items: center;}
         
         .farm-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; background: #d7ccc8; padding: 10px; border-radius: 12px; }
-        .zone { min-height: 140px; background: #efebe9; border: 2px dashed #bcaaa4; border-radius: 8px; display: flex; flex-direction: column; align-items: center; justify-content: center; position: relative; font-size: 0.75em; cursor: pointer; text-align: center; }
-        .zone.selected { border: 3px solid #ff9800 !important; box-shadow: 0 0 8px rgba(255,152,0,0.4); }
+        .zone { min-height: 140px; background: #efebe9; border: 2px dashed #bcaaa4; border-radius: 8px; display: flex; flex-direction: column; align-items: center; justify-content: center; position: relative; font-size: 0.75em; cursor: pointer; text-align: center; transition: 0.2s; }
+        .zone.selected { border: 3px solid #ff9800 !important; box-shadow: 0 0 10px rgba(255,152,0,0.6); transform: scale(1.02); z-index: 10;}
         .tuile-potager { background: var(--potager) !important; border: 2px solid #2e7d32 !important; }
         .tuile-verger { background: var(--verger) !important; border: 2px solid #fbc02d !important; }
         .tuile-amenag { background: var(--amenag) !important; border: 2px solid #ff5722 !important; }
@@ -33,33 +32,57 @@
         .has-serre { box-shadow: inset 0 0 15px rgba(3, 169, 244, 0.6); border: 3px solid #03a9f4 !important; background: var(--serre) !important; }
         
         .card { border: 1px solid #ddd; border-radius: 6px; padding: 6px; margin-bottom: 4px; background: white; font-size: 0.75em; border-left: 4px solid var(--p1); cursor: help; position: relative;}
-        .btn-action { width: 100%; padding: 8px; border: none; border-radius: 4px; font-weight: bold; color: white; cursor: pointer; font-size: 0.75em; margin-bottom: 3px; }
+        .btn-action { width: 100%; padding: 8px; border: none; border-radius: 4px; font-weight: bold; color: white; cursor: pointer; font-size: 0.75em; margin-bottom: 3px; transition: 0.2s; }
+        .btn-action:hover:not(:disabled) { filter: brightness(1.1); }
         .res-pill { background: #e8f5e9; padding: 2px 6px; border-radius: 10px; color: var(--p1); border: 1px solid var(--p1); }
-        button:disabled { filter: grayscale(100%); opacity: 0.5; cursor: not-allowed; }
+        button:disabled { filter: grayscale(100%); opacity: 0.5; cursor: not-allowed; transform: none; }
         
         .modal-overlay { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.8); z-index: 100; align-items: center; justify-content: center; }
-        .modal-content { background: #fff; padding: 15px; border-radius: 12px; width: 95%; max-width: 1000px; max-height: 90vh; overflow-y: auto; }
+        .modal-content { background: #fff; padding: 15px; border-radius: 12px; width: 95%; max-width: 1000px; max-height: 90vh; overflow-y: auto; box-shadow: 0 10px 30px rgba(0,0,0,0.5); }
         .rayon-grid { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 10px; }
         .rayon { background: #f9f9f9; padding: 8px; border-radius: 8px; border: 1px solid #ccc; }
         .btn-jard-action { width: 100%; margin-bottom: 5px; padding: 4px; font-size: 0.8em; cursor: pointer; background: #eee; border: 1px solid #ccc; border-radius: 4px; }
-        .jard-card { border: 2px solid #ddd; padding: 6px; border-radius: 6px; margin-bottom: 6px; cursor: pointer; background: white; position: relative; font-size: 0.85em; }
+        .jard-card { border: 2px solid #ddd; padding: 6px; border-radius: 6px; margin-bottom: 6px; cursor: pointer; background: white; position: relative; font-size: 0.85em; transition: 0.2s;}
+        .jard-card:hover:not([style*="opacity: 0.4"]) { border-color: var(--p1); transform: scale(1.02); }
         .price-tag { position: absolute; top: -6px; right: -6px; background: var(--gold); padding: 1px 5px; border-radius: 8px; font-size: 0.8em; font-weight: bold; border: 1px solid #b8860b; }
         
         .alert-rav { background: #ffebee; color: #c62828; padding: 4px; border-radius: 4px; font-size: 0.75em; margin-bottom: 5px; border: 1px solid #ef9a9a; text-align: center; font-weight: bold;}
-        .logs { height: 95px; background: var(--dark); color: #a5d6a7; padding: 8px; font-family: monospace; font-size: 0.75em; overflow-y: auto; border-radius: 6px; margin-top:5px;}
+        .logs { height: 95px; background: var(--dark); color: #a5d6a7; padding: 8px; font-family: monospace; font-size: 0.75em; overflow-y: auto; border-radius: 6px; margin-top:5px; border: 2px solid #455a64;}
         
-        .turn-banner { background: #ff9800; color: white; text-align: center; padding: 5px; font-weight: bold; display: none; }
+        .turn-banner { background: #ff9800; color: white; text-align: center; padding: 5px; font-weight: bold; display: none; border-radius: 4px; margin-bottom: 5px;}
         .turn-banner.active { display: block; background: #4caf50; }
+
+        /* ANIMATION SAISON */
+        #season-anim-overlay {
+            display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+            background: rgba(255,255,255,0.7); z-index: 2000; align-items: center; justify-content: center;
+            opacity: 0; transition: opacity 0.5s ease-in-out;
+        }
+        .anim-box {
+            background: white; border: 5px solid var(--p1); border-radius: 20px; padding: 40px 80px;
+            box-shadow: 0 15px 40px rgba(0,0,0,0.3); text-align: center;
+            transform: scale(0.8); transition: transform 0.5s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+        }
+        #anim-title { font-size: 3.5em; font-weight: bold; color: var(--p1); margin-bottom: 10px; }
+        #anim-subtitle { font-size: 1.5em; color: #555; font-weight: bold; }
     </style>
 </head>
 <body>
 
 <div id="lobby">
-    <h1>La Main Verte</h1>
-    <p>Choisissez votre place pour cette partie :</p>
-    <button class="btn-lobby" onclick="joinGame(1)">🌱 Rejoindre en tant que JOUEUR 1</button>
-    <button class="btn-lobby j2" onclick="joinGame(2)">🚜 Rejoindre en tant que JOUEUR 2</button>
-    <button class="btn-lobby" style="background:#d32f2f; margin-top:40px; width:200px; font-size:0.9em;" onclick="confirmReset()">⚠️ Reset Partie</button>
+    <h1 style="font-size: 3em; margin-bottom: 10px;">🌱 La Main Verte</h1>
+    <p style="font-size: 1.2em; margin-bottom: 40px;">Mode Multijoueur En Ligne</p>
+    <button class="btn-lobby" onclick="joinGame(1)">Rejoindre en tant que JOUEUR 1</button>
+    <button class="btn-lobby j2" onclick="joinGame(2)">Rejoindre en tant que JOUEUR 2</button>
+    <hr style="width: 50%; border-color: #555; margin: 30px 0;">
+    <button class="btn-lobby" style="background:#d32f2f; width:250px; font-size:0.9em;" onclick="confirmReset(true)">⚠️ Forcer le Reset Global</button>
+</div>
+
+<div id="season-anim-overlay">
+    <div class="anim-box" id="anim-box">
+        <div id="anim-title">🌷 Printemps</div>
+        <div id="anim-subtitle">Année 1</div>
+    </div>
 </div>
 
 <div class="main-game">
@@ -67,9 +90,10 @@
     
     <div class="hud" id="my-hud">
         <div id="season-display">📅 Saison...</div>
-        <div>💰 <span id="res-money">0</span> | ⏳ <span id="res-time">0</span>/<span id="res-timemax">10</span>h</div>
-        <div>💩 <span id="res-compost" class="res-pill">0</span></div>
-        <div id="meteo-display" style="background:#e3f2fd; padding:3px 10px; border-radius:10px;">🎲 --</div>
+        <div title="Cagnotte Commune / Heures Restantes du Joueur">💰 <span id="res-money">0</span> | ⏳ <span id="res-time">0</span>/<span id="res-timemax">10</span>h</div>
+        <div title="Stock de Compost (Utilisé pour l'action ☀️ Amender)">💩 <span id="res-compost" class="res-pill">0</span></div>
+        <div id="meteo-display" title="Météo tirée cette saison" style="background:#e3f2fd; padding:3px 10px; border-radius:10px;">🎲 --</div>
+        <button onclick="confirmReset()" style="background:#ff5252; color:white; border:none; border-radius:4px; padding:4px 8px; cursor:pointer; font-weight:bold;" title="Réinitialiser entièrement la partie pour tous les joueurs">🧹 Reset</button>
     </div>
     
     <div class="hud-opp" id="opp-hud">
@@ -97,7 +121,7 @@
     <div id="jard-buttons-container" style="display:grid; grid-template-columns: 1fr 1fr; gap:4px;"></div>
     
     <h3 style="margin:10px 0 5px 0;">🎒 Ma Main</h3>
-    <div id="player-hand" style="flex:1; overflow-y:auto;"></div>
+    <div id="player-hand" style="flex:1; overflow-y:auto; padding-right:5px;"></div>
 </div>
 
 <div class="modal-overlay" id="jardinerie-modal"><div class="modal-content" id="modal-content-inner"></div></div>
@@ -132,10 +156,11 @@
     };
     const RAV_TYPES = [{n:"Limaces",d:3}, {n:"Pucerons",d:2}, {n:"Carpocapses",d:4}, {n:"Campagnols",d:4}];
     const UP_NAMES = ["Terrain", "Énergie", "Savoir", "Sol", "Climat", "Outils", "Vente", "VIP"];
+    const SAISON_NOMS = ["🌷 Printemps", "☀️ Été", "🍂 Automne", "❄️ Hiver"];
     const ALL_SEASONS = ["P","E","A","H"];
 
     let state = null;
-    let myId = null; // 1 ou 2
+    let myId = null; 
     let localSelectedId = null;
     let localModalOpen = false;
     let localPicksLeft = 0;
@@ -149,7 +174,16 @@
 
     db.on("value", snap => {
         const val = snap.val();
-        if(!val || !val.p1) initNewGame(); else { state = val; render(); }
+        if(!val || !val.p1) {
+            if(myId !== null) initNewGame(myId);
+        } else {
+            // DETECTEUR DE CHANGEMENT DE SAISON POUR L'ANIMATION
+            if (state && (state.saisonIdx !== val.saisonIdx || state.annee !== val.annee)) {
+                playSeasonAnimation(val.saisonIdx, val.annee);
+            }
+            state = val; 
+            render(); 
+        }
     });
 
     function sync() { if(state) db.set(state); }
@@ -157,7 +191,7 @@
     function addLog(msg) {
         if(!state.gameLogs) state.gameLogs = [];
         state.gameLogs.unshift(`[J${myId}] ` + msg);
-        if(state.gameLogs.length > 20) state.gameLogs.pop();
+        if(state.gameLogs.length > 25) state.gameLogs.pop();
     }
 
     function generatePlayer() {
@@ -167,13 +201,14 @@
         };
     }
 
-    function initNewGame() {
+    function initNewGame(creatorId = null) {
+        let msg = creatorId ? `> 🧹 La partie a été réinitialisée par le Joueur ${creatorId}.` : "> Nouvelle partie initialisée.";
         state = {
             turn: 1, annee: 1, saisonIdx: 0,
             decks: JSON.parse(JSON.stringify(DECK_MASTER)), market: { C: [], S: [], A: [] },
             currentMeteo: {p:0, s:0}, currentRav: null,
             p1: generatePlayer(), p2: generatePlayer(),
-            gameLogs: ["> Nouvelle partie initialisée."]
+            gameLogs: [msg]
         };
         ['C','S','A'].forEach(cat => { for(let i=0;i<2;i++) { let d = draw(cat); if(d) state.market[cat].push(d); } });
         sync();
@@ -184,42 +219,58 @@
         return state.decks[cat].splice(Math.floor(Math.random()*state.decks[cat].length), 1)[0];
     }
 
+    // --- ANIMATION ---
+    function playSeasonAnimation(sIdx, annee) {
+        const overlay = document.getElementById('season-anim-overlay');
+        const box = document.getElementById('anim-box');
+        document.getElementById('anim-title').innerText = SAISON_NOMS[sIdx];
+        document.getElementById('anim-subtitle').innerText = "Année " + annee;
+        
+        overlay.style.display = 'flex';
+        // Petit délai pour laisser le display s'appliquer avant l'opacité
+        setTimeout(() => { 
+            overlay.style.opacity = '1'; 
+            box.style.transform = 'scale(1)';
+        }, 50);
+        
+        setTimeout(() => {
+            overlay.style.opacity = '0';
+            box.style.transform = 'scale(0.8)';
+            setTimeout(() => { overlay.style.display = 'none'; }, 500);
+        }, 2500);
+    }
+
     function render() {
         if(!state || !myId) return;
         const me = state['p'+myId];
         const opp = state['p'+(myId === 1 ? 2 : 1)];
         const isMyTurn = state.turn === myId;
 
-        // BANNIERE TOUR
         const banner = document.getElementById('turn-banner');
-        if(isMyTurn) { banner.innerText = "C'est à votre tour de jouer !"; banner.className = "turn-banner active"; }
-        else { banner.innerText = `Veuillez patienter, c'est le tour du Joueur ${state.turn}...`; banner.className = "turn-banner"; }
+        if(isMyTurn) { banner.innerText = "🎮 C'est à votre tour de jouer !"; banner.className = "turn-banner active"; }
+        else { banner.innerText = `⏳ Veuillez patienter, le Joueur ${state.turn} réfléchit...`; banner.className = "turn-banner"; }
 
         const setTxt = (id, txt) => { const el = document.getElementById(id); if(el) el.innerText = txt; };
         
-        // MON HUD
         setTxt('res-money', me.money); setTxt('res-time', me.time); setTxt('res-timemax', me.timeMax); setTxt('res-compost', me.compost);
-        setTxt('season-display', `📅 ${["Printemps","Été","Automne","Hiver"][state.saisonIdx]} - An ${state.annee}`);
+        setTxt('season-display', `📅 ${SAISON_NOMS[state.saisonIdx]} - An ${state.annee}`);
         setTxt('meteo-display', `🌧️ ${state.currentMeteo.p} | ☀️ ${state.currentMeteo.s}`);
         
-        // HUD ADVERSAIRE
         setTxt('opp-money', opp.money); setTxt('opp-time', opp.time); setTxt('opp-compost', opp.compost);
-
         setTxt('deck-count', `C:${(state.decks.C||[]).length} | S:${(state.decks.S||[]).length} | A:${(state.decks.A||[]).length}`);
         
         const logBox = document.getElementById('game-logs');
         if(logBox && state.gameLogs) logBox.innerHTML = state.gameLogs.map(l => `<div>${l}</div>`).join('');
 
         const rZone = document.getElementById('ravageur-zone');
-        if(state.currentRav) { rZone.innerText = `⚠️ RAVAGEUR GLOBAL : ${state.currentRav.n} actif ! (-${state.currentRav.d}💰 si non protégé)`; rZone.style.display = 'block'; }
+        if(state.currentRav) { rZone.innerText = `⚠️ RAVAGEUR GLOBAL : ${state.currentRav.n} ! (-${state.currentRav.d}💰 si non protégé)`; rZone.style.display = 'block'; }
         else rZone.style.display = 'none';
 
         const tray = document.getElementById('aux-tray');
         if(me.auxActifs && me.auxActifs.length > 0) {
-            tray.style.display="flex"; tray.innerHTML = '<b>🛡️ Mes Boucliers : </b> ' + me.auxActifs.map(a => `<span style="background:white; padding:2px 4px; border-radius:4px; margin-left:4px;">🦊 Anti-${a}</span>`).join('');
+            tray.style.display="flex"; tray.innerHTML = '<b>🛡️ Mes Boucliers : </b> ' + me.auxActifs.map(a => `<span style="background:white; padding:2px 4px; border-radius:4px; margin-left:4px; border:1px solid #90caf9;">🦊 Anti-${a}</span>`).join('');
         } else tray.style.display="none";
 
-        // MA GRILLE
         const grid = document.getElementById('farm-grid'); grid.innerHTML = "";
         me.zones.forEach(z => {
             const acc = z.id <= (me.upgrades[0] === 1 ? 3 : (me.upgrades[0] === 2 ? 4 : 5));
@@ -230,7 +281,7 @@
             d.onclick = () => { if(acc && isMyTurn) { localSelectedId = z.id; render(); } };
             
             if(z.id === 0) d.innerHTML = "🏠 MAISON";
-            else if(!z.type) d.innerHTML = `ZONE ${z.id}${acc?'':'<br>🔒'}`;
+            else if(!z.type) { d.innerHTML = `ZONE ${z.id}${acc?'':'<br>🔒'}`; d.title = "Aménagez la zone."; }
             else {
                 let header = z.type; if(z.batiment) header += ` + ${z.batiment}`;
                 d.innerHTML = `<b>${header}</b>`;
@@ -249,13 +300,12 @@
             prev.innerHTML = `🌾 ${(state.market.C||[]).map(c=>c.nom).join(', ')||'-'}<br>🛠️ ${(state.market.S||[]).map(c=>c.nom).join(', ')||'-'}<br>🦊 ${(state.market.A||[]).map(c=>c.nom).join(', ')||'-'}`;
         }
 
-        // MA MAIN
         const hDiv = document.getElementById('player-hand'); hDiv.innerHTML = "";
         (me.hand || []).forEach((c, i) => {
             const cost = Math.max(0, (c.t||1) - (me.upgrades[2]-1));
             const card = document.createElement('div'); card.className = "card";
             let details = c.cat==='S' ? c.desc : (c.cat==='X' ? c.prot : `💧${c.e} ☀️${c.s}<br>🌱 ${c.sm.join(',')} | 🧺 ${c.rc.join(',')}`);
-            card.innerHTML = `<b>${c.nom}</b><br><span style="font-size:0.9em;">${details}</span><br><button onclick="playC(${i})" style="width:100%; margin-top:4px; padding:3px; cursor:pointer;" ${!isMyTurn || me.time<cost ? 'disabled':''}>Jouer (-${cost}h)</button>`;
+            card.innerHTML = `<b>${c.nom}</b><br><span style="font-size:0.9em;">${details}</span><br><button onclick="playC(${i})" style="width:100%; margin-top:4px; padding:4px; cursor:pointer; background:#e8eaf6; border:1px solid #ccc; font-weight:bold;" ${!isMyTurn || me.time<cost ? 'disabled':''}>Jouer (-${cost}h)</button>`;
             hDiv.appendChild(card);
         });
 
@@ -272,9 +322,9 @@
             <button class="btn-action" style="background:#fbc02d;color:#333" onclick="actT('VERGER')" ${dis||me.time<3||me.money<costT?'disabled':''}>🏗️ Verger (-${costT}💰)</button>
             <button class="btn-action" style="background:#ff5722" onclick="actT('AMÉNAGEMENT')" ${dis||me.time<3||me.money<3?'disabled':''}>🌳 Nature (-3💰)</button>
             <button class="btn-action" style="background:#607d8b" onclick="actB()" ${dis||me.time<4?'disabled':''}>🏠 Bâtiment</button>
-            <button class="btn-action" style="background:#2196f3" onclick="actArr()" ${dis||me.time<1?'disabled':''}>💧 Arroser</button>
-            <button class="btn-action" style="background:#795548" onclick="actAmd()" ${dis||me.time<1||(me.compost||0)<1?'disabled':''}>☀️ Amender</button>
-            <button class="btn-action" style="background:#e53935; grid-column:span 2;" onclick="actFin()" ${dis?'disabled':''}>${state.turn===1 ? '⏭️ Fin de Tour (Passer au J2)' : '💤 Fin de Saison (Résoudre)'}</button>
+            <button class="btn-action" style="background:#2196f3" onclick="actArr()" ${dis||me.time<1?'disabled':''}>💧 Arroser (-1h)</button>
+            <button class="btn-action" style="background:#795548" onclick="actAmd()" ${dis||me.time<1||(me.compost||0)<1?'disabled':''}>☀️ Amender (-1h)</button>
+            <button class="btn-action" style="background:#e53935; grid-column:span 2; font-size:1em;" onclick="actFin()" ${dis?'disabled':''}>${state.turn===1 ? '⏭️ Terminer le Tour' : '💤 Fin de Saison (Résoudre)'}</button>
         `;
 
         const upG = document.getElementById('up-grid'); upG.innerHTML = "";
@@ -287,11 +337,10 @@
         const redJ = me.upgrades[6]>=2?1:0;
         [[3,5],[2,3],[2,2],[1,1]].forEach((ex, i) => {
             const c = Math.max(0, ex[0]-redJ);
-            jCont.innerHTML += `<button class="btn-action" style="background:#8d6e63" onclick="openJard(${c},${ex[1]})" ${dis||me.time<c?'disabled':''}>📦 Empl. ${i+1} (${ex[1]} Cartes)</button>`;
+            jCont.innerHTML += `<button class="btn-action" style="background:#8d6e63" onclick="openJard(${c},${ex[1]})" ${dis||me.time<c?'disabled':''}>📦 Empl. ${i+1} (${ex[1]} Pioches)</button>`;
         });
     }
 
-    // --- JARDINERIE MODALE LÉGÈRE ---
     function openJard(h, p) { const me = state['p'+myId]; me.time -= h; localPicksLeft = p; localModalOpen = true; addLog(`📦 Visite la Jardinerie.`); sync(); }
     
     function renderJardModal(me) {
@@ -318,7 +367,6 @@
     function jardR(cat) { state.market[cat] = []; for(let i=0; i<2; i++) { let d = draw(cat); if(d) state.market[cat].push(d); } addLog(`🔄 Rayon renouvelé.`); consm(); }
     function consm() { localPicksLeft--; if(localPicksLeft<=0) { localModalOpen=false; ['C','S','A'].forEach(cat => { while((state.market[cat]||[]).length<2) { let c = draw(cat); if(c) state.market[cat].push(c); else break; } }); } sync(); }
 
-    // --- ACTIONS INDIVIDUELLES ---
     function actT(t) { const me=state['p'+myId]; if(!localSelectedId || localSelectedId===0) return; const cost = me.upgrades[5]>=2 ? (me.upgrades[5]===3?0:1) : 2; me.money -= (t==='AMÉNAGEMENT'?3:cost); me.time -= 3; me.zones[localSelectedId].type = t; addLog(`🏗️ Aménagement : ${t}.`); sync(); }
     function actB() { 
         const me=state['p'+myId], z=me.zones[localSelectedId]; if(!z || z.batiment) return alert("Zone invalide.");
@@ -329,7 +377,7 @@
         sync(); 
     }
     function actArr() { const me=state['p'+myId], z=me.zones[localSelectedId]; if(z && z.culture) { me.time--; z.culture.eCur = Math.max(0, z.culture.eCur-2); addLog(`💧 Arrosage manuel.`); sync(); } }
-    function actAmd() { const me=state['p'+myId], z=me.zones[localSelectedId]; if(z && z.culture && me.compost>0) { me.time--; me.compost--; z.culture.sCur = Math.max(0, z.culture.sCur-1); addLog(`☀️ Amendement.`); sync(); } }
+    function actAmd() { const me=state['p'+myId], z=me.zones[localSelectedId]; if(z && z.culture && me.compost>0) { me.time--; me.compost--; z.culture.sCur = Math.max(0, z.culture.sCur-1); addLog(`☀️ Amendement au Compost.`); sync(); } }
     function upgr(i) { const me=state['p'+myId]; me.time -= (me.upgrades[i]===1?3:5); me.upgrades[i]++; if(i===1) me.timeMax += 4; addLog(`⚙️ Upgrade : ${UP_NAMES[i]}`); sync(); }
     function actionRecolter(id) { const me=state['p'+myId], z=me.zones[id]; me.time-=2; me.money += (z.culture.g + (me.upgrades[3]-1) + (z.culture.amd||0)); addLog(`🧺 Récolte : ${z.culture.nom} !`); z.culture = null; sync(); }
 
@@ -355,30 +403,25 @@
         sync(); 
     }
 
-    // --- LE MOTEUR DE TOUR ---
     function actFin() {
         if(state.turn === 1) {
             state.turn = 2;
-            addLog(`⏭️ Fin du tour du Joueur 1.`);
+            addLog(`⏭️ Tour terminé.`);
             sync();
         } else {
-            // C'est le J2 qui termine la saison globale
             state.saisonIdx++; if(state.saisonIdx > 3) { state.saisonIdx = 0; state.annee++; }
             let curS = ALL_SEASONS[state.saisonIdx];
             
-            // Calcul Météo Globale
             let pBase = Math.floor(Math.random()*3)+1; 
             let sBase = Math.floor(Math.random()*2)+1;
             state.currentMeteo = {p: pBase, s: sBase};
 
-            // Gestion Ravageur Global
             if(Math.random() < 0.3) { state.currentRav = RAV_TYPES[Math.floor(Math.random()*RAV_TYPES.length)]; }
             else { state.currentRav = null; }
 
-            // Application à J1 et J2
             [1, 2].forEach(pid => {
                 let pData = state['p'+pid];
-                let bClimat = pData.upgrades[4] > 1 ? 1 : 0; // Bonus individuel Climat
+                let bClimat = pData.upgrades[4] > 1 ? 1 : 0; 
                 
                 pData.zones.forEach(z => { 
                     if(z && z.culture) { 
@@ -398,12 +441,16 @@
             });
 
             state.turn = 1;
-            addLog(`💤 Fin de saison. Bienvenue en ${curS} !`);
+            addLog(`💤 Résolution de la saison effectuée.`);
             sync();
         }
     }
     
-    function confirmReset() { if(confirm("Voulez-vous tout effacer ?")) initNewGame(); }
+    function confirmReset(force = false) { 
+        if(confirm("⚠️ Êtes-vous sûr de vouloir réinitialiser la partie pour LES DEUX joueurs ?")) {
+            initNewGame(myId || "Serveur");
+        } 
+    }
 </script>
 </body>
 </html>
