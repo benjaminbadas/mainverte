@@ -1,5 +1,5 @@
 // ==========================================
-// 🤖 MOTEUR D'INTELLIGENCE ARTIFICIELLE (V16)
+// 🤖 MOTEUR D'INTELLIGENCE ARTIFICIELLE (V17 - Anti-Softlock)
 // ==========================================
 
 let botEnabled = false;
@@ -21,7 +21,7 @@ function toggleBot() {
 
 function triggerBot(botId) {
     if(botTimeout) clearTimeout(botTimeout);
-    botTimeout = setTimeout(() => { botThinkAndAct(botId); }, 200); // Vitesse rapide (200ms)
+    botTimeout = setTimeout(() => { botThinkAndAct(botId); }, 200); // Mode rapide
 }
 
 function botThinkAndAct(botId) {
@@ -32,7 +32,7 @@ function botThinkAndAct(botId) {
         let bestAction = { type: 'FIN_TOUR', score: 10 };
         
         let curS = ALL_SEASONS[state.saisonIdx];
-        const costT = me.upgrades[5] >= 2 ? (me.upgrades[5] === 3 ? 0 : 1) : 2;
+        const costT = me.upgrades[5] >= 2 ? (me.upgrades[5] === 3 ? 0 : 1) : 2; // Coût d'un champ
 
         let hasEmptyPotager = false;
         let hasEmptyVerger = false;
@@ -53,24 +53,27 @@ function botThinkAndAct(botId) {
                     if(450 > bestAction.score) bestAction = { type: 'AMENDER', zoneId: z.id, score: 450 };
                 }
             } else if (z.type && z.id !== 0) {
-                if(z.type === 'POTAGER') hasEmptyPotager = true;
-                if(z.type === 'VERGER') hasEmptyVerger = true;
+                // Détecte les zones VRAIMENT vides (sans culture)
+                if(z.type === 'POTAGER' && !z.culture) hasEmptyPotager = true;
+                if(z.type === 'VERGER' && !z.culture) hasEmptyVerger = true;
                 if(z.type === 'AMÉNAGEMENT' && !z.batiment) hasEmptyNature = true;
 
+                // Tente de planter
                 (me.hand || []).forEach((c, idx) => {
                     const costH = Math.max(0, (c.t||1)-(me.upgrades[2]-1));
                     let smValid = z.batiment === 'SERRE' ? (c.sm||[]).map(s => ALL_SEASONS[(ALL_SEASONS.indexOf(s)+3)%4]).concat(c.sm||[]) : (c.sm||[]);
                     
                     if((c.cat === 'L' && z.type === 'POTAGER') || (c.cat === 'A' && z.type === 'VERGER')) {
-                        if(smValid.includes(curS) && me.time >= costH) {
+                        if(smValid.includes(curS) && me.time >= costH && !z.culture) {
                             let score = 600 + (c.g || 0); 
                             if(score > bestAction.score) bestAction = { type: 'PLANTER', handIdx: idx, zoneId: z.id, score: score };
                         }
                     }
                 });
 
-                if(!z.batiment && z.type === 'AMÉNAGEMENT' && !hasComposteur && me.money >= 4 && me.time >= 4) {
-                    if(550 > bestAction.score) bestAction = { type: 'BATIMENT', zoneId: z.id, batiment: 'COMPOSTEUR', score: 550 };
+                // Composteur : Seulement s'il a gardé un budget de sécurité pour ses champs ! (Besoin de 6💰 au lieu de 4💰)
+                if(!z.batiment && z.type === 'AMÉNAGEMENT' && !hasComposteur && me.money >= 6 && me.time >= 4) {
+                    if(400 > bestAction.score) bestAction = { type: 'BATIMENT', zoneId: z.id, batiment: 'COMPOSTEUR', score: 400 };
                 }
 
             } else if (!z.type && z.id !== 0 && z.id <= (me.upgrades[0] === 1 ? 3 : (me.upgrades[0] === 2 ? 4 : 5))) {
@@ -78,29 +81,35 @@ function botThinkAndAct(botId) {
             }
         });
 
-        // 2. PRÉPARATION DU TERRAIN
+        // 2. PRÉPARATION DU TERRAIN (Priorité vitale !)
         if(emptyZoneId && me.time >= 3 && me.money >= costT) {
             let needsPotager = (me.hand||[]).some(c => c.cat === 'L' && (c.sm||[]).includes(curS));
             let needsVerger = (me.hand||[]).some(c => c.cat === 'A' && (c.sm||[]).includes(curS));
             
-            if(!hasComposteur && !hasEmptyNature && me.money >= (costT + 4) && 550 > bestAction.score) {
-                bestAction = { type: 'AMENAGER', zoneId: emptyZoneId, terrain: 'AMÉNAGEMENT', score: 550 };
-            } else if(needsPotager && !hasEmptyPotager && 500 > bestAction.score) {
-                bestAction = { type: 'AMENAGER', zoneId: emptyZoneId, terrain: 'POTAGER', score: 500 };
-            } else if(needsVerger && !hasEmptyVerger && 500 > bestAction.score) {
-                bestAction = { type: 'AMENAGER', zoneId: emptyZoneId, terrain: 'VERGER', score: 500 };
+            // PRIORITY 1 : Si j'ai une graine mais pas de champ, j'en crée un de toute urgence (Score 700)
+            if(needsPotager && !hasEmptyPotager && 700 > bestAction.score) {
+                bestAction = { type: 'AMENAGER', zoneId: emptyZoneId, terrain: 'POTAGER', score: 700 };
+            } else if(needsVerger && !hasEmptyVerger && 700 > bestAction.score) {
+                bestAction = { type: 'AMENAGER', zoneId: emptyZoneId, terrain: 'VERGER', score: 700 };
+            } 
+            // PRIORITY 2 : Préparer la Nature pour un composteur, SEULEMENT si je suis riche (Score 350)
+            else if(!hasComposteur && !hasEmptyNature && me.money >= (costT * 2 + 4) && 350 > bestAction.score) {
+                bestAction = { type: 'AMENAGER', zoneId: emptyZoneId, terrain: 'AMÉNAGEMENT', score: 350 };
             }
         }
 
-        // 3. ACHAT D'AMÉLIORATIONS (Désormais elles coûtent de l'Or !)
+        // 3. ACHAT D'AMÉLIORATIONS
         let redJ = me.upgrades[6] >= 2 ? 1 : 0;
         let costJard = Math.max(0, 3 - redJ); 
 
         UP_NAMES.forEach((n, i) => {
             const costUpH = me.upgrades[i] === 1 ? 3 : 5;
-            const costUpM = me.upgrades[i] === 1 ? 2 : 4; // L'IA vérifie le coût en Or
+            const costUpM = me.upgrades[i] === 1 ? 2 : 4; 
             
-            if(me.upgrades[i] < 3 && me.time >= costUpH && me.money >= costUpM && me.time > costJard) {
+            // Il garde 2 pièces de côté s'il n'a pas encore de champs pour ne pas se bloquer
+            let safeBudget = (!hasEmptyPotager && !hasEmptyVerger) ? costT : 0;
+
+            if(me.upgrades[i] < 3 && me.time >= costUpH && (me.money - safeBudget) >= costUpM && me.time > costJard) {
                 let prio = 300 + (10 - i*10); 
                 if(i===0) prio += 50; 
                 if(prio > bestAction.score) bestAction = { type: 'UPGRADE', upIdx: i, score: prio };
@@ -110,7 +119,14 @@ function botThinkAndAct(botId) {
         // 4. ACHETER DES CARTES
         let plantableCards = (me.hand||[]).filter(c => (c.cat === 'L' || c.cat === 'A') && (c.sm||[]).includes(curS)).length;
         if(plantableCards === 0 && me.time >= costJard && me.money >= 1) {
-            let cartesAchetables = (state.market['C'] || []).filter(c => c.p <= me.money);
+            
+            // LA RÈGLE D'OR DU BOT : Je garde mon argent pour acheter de la terre !
+            let maxPrice = me.money;
+            if (!hasEmptyPotager && !hasEmptyVerger) {
+                maxPrice = me.money - costT; // Garde la réserve pour le champ
+            }
+
+            let cartesAchetables = (state.market['C'] || []).filter(c => c.p <= maxPrice);
             if(cartesAchetables.length > 0) {
                 let bestCard = cartesAchetables.sort((a,b) => (b.g - b.p) - (a.g - a.p))[0];
                 if(400 > bestAction.score) bestAction = { type: 'JARDINERIE', cardTarget: bestCard, score: 400 };
