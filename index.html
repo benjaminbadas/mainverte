@@ -355,11 +355,17 @@
         document.getElementById('jardinerie-modal').style.display = localModalOpen ? 'flex' : 'none';
         if(localModalOpen) renderJardModal(me);
 
-        // Hooks du Bot
-        if(typeof triggerBot === "function" && !state.gameOver) {
+        // Hooks du Bot (Corrigé pour la sauvegarde génétique de fin de partie)
+        if(typeof triggerBot === "function") {
             let shouldRunBot = false;
-            if(state.turn === myId && botEnabled) shouldRunBot = true; 
-            if((state.mode === 'VS_IA' || state.mode === 'IA_VS_IA') && state.turn === 2 && myId === 1) shouldRunBot = true; 
+            
+            // Le bot joue si c'est son tour et que la partie est en cours
+            if(state.turn === myId && botEnabled && !state.gameOver) shouldRunBot = true; 
+            if((state.mode === 'VS_IA' || state.mode === 'IA_VS_IA') && state.turn === 2 && myId === 1 && !state.gameOver) shouldRunBot = true; 
+            
+            // L'IA DOIT avoir le droit de se réveiller une ultime fois à la fin pour sauvegarder son ADN !
+            if(state.gameOver && botEnabled) shouldRunBot = true;
+
             if(shouldRunBot && !localModalOpen) triggerBot(state.turn);
         }
     }
