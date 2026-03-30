@@ -2,7 +2,7 @@
 <html lang="fr">
 <head>
     <meta charset="UTF-8">
-    <title>La Main Verte - V16.1 (Correction IA & Firebase)</title>
+    <title>La Main Verte - V21 (Laboratoire IA & Auto-Train)</title>
     <script src="https://www.gstatic.com/firebasejs/9.17.1/firebase-app-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/9.17.1/firebase-database-compat.js"></script>
     <style>
@@ -102,6 +102,8 @@
         <div>💰 <span id="res-money">0</span> | ⏳ <span id="res-time">0</span>/<span id="res-timemax">10</span>h</div>
         <div title="Points de Compost accumulés">💩 <span id="res-compost" class="res-pill">0</span></div>
         <div id="meteo-display" style="background:#e3f2fd; padding:3px 10px; border-radius:10px;">🎲 --</div>
+        
+        <button id="auto-train-btn" onclick="toggleAutoTrain()" style="background:#009688; color:white; border:none; border-radius:4px; padding:4px 8px; cursor:pointer; font-weight:bold; transition:0.3s;" title="Relance les parties en boucle jusqu'à battre le record">🧬 Auto-Train: OFF</button>
         <button id="bot-btn" onclick="toggleBot()" style="background:#9c27b0; color:white; border:none; border-radius:4px; padding:4px 8px; cursor:pointer; font-weight:bold; transition:0.3s;" title="Laisser l'ordinateur jouer à votre place">🤖 Bot: OFF</button>
         <button onclick="confirmReset()" style="background:#ff5252; color:white; border:none; border-radius:4px; padding:4px 8px; cursor:pointer; font-weight:bold;">🧹 Reset</button>
     </div>
@@ -150,7 +152,6 @@
     const db = firebase.database().ref("game-session-001");
     const dbConfig = firebase.database().ref("game-config");
 
-    // VARIABLES GLOBALES
     const UP_NAMES = ["Terrain", "Énergie", "Savoir", "Sol", "Climat", "Outils", "Vente", "VIP"];
     const SAISON_NOMS = ["🌷 Printemps", "☀️ Été", "🍂 Automne", "❄️ Hiver"];
     const ALL_SEASONS = ["P","E","A","H"];
@@ -359,7 +360,6 @@
         if(typeof triggerBot === "function") {
             let shouldRunBot = false;
             
-            // Le bot joue si c'est son tour et que la partie est en cours
             if(state.turn === myId && botEnabled && !state.gameOver) shouldRunBot = true; 
             if((state.mode === 'VS_IA' || state.mode === 'IA_VS_IA') && state.turn === 2 && myId === 1 && !state.gameOver) shouldRunBot = true; 
             
@@ -414,7 +414,6 @@
         });
     }
 
-    // --- ACTIONS DYNAMIQUES ---
     function openJard(h, p) { const me = state['p'+state.turn]; me.time -= h; localPicksLeft = p; localModalOpen = true; addLog(`📦 Voyage à la Jardinerie pour piocher ${p} cartes (-${h}h).`, state.turn); sync(); }
     
     function renderJardModal(me) {
@@ -543,7 +542,6 @@
         sync(); 
     }
 
-    // --- RÉSOLUTION DES SAISONS ---
     function resolveSeason() {
         let curS = ALL_SEASONS[state.saisonIdx];
         let pBase = Math.floor(Math.random()*3)+1; 
