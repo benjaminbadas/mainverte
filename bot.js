@@ -9,26 +9,26 @@ function toggleBot() {
     botEnabled = !botEnabled;
     const btn = document.getElementById('bot-btn');
     if(btn) {
-        btn.innerText = botEnabled ? "🤖 Auto-J1: ON" : "🤖 Auto-J1: OFF";
+        btn.innerText = botEnabled ? "🤖 Mon Bot: ON" : "🤖 Mon Bot: OFF";
         btn.style.background = botEnabled ? "#4caf50" : "#9c27b0";
     }
     
-    if(botEnabled) addLog("🤖 Mode Auto-Battler activé pour ce joueur.");
-    else addLog("🤖 Mode manuel repris.");
+    if(botEnabled) addLog("🤖 Assistant IA activé pour vous.", myId);
+    else addLog("🤖 Mode manuel repris.", myId);
     
-    if(botEnabled && state && state.turn === myId && !state.gameOver) triggerBot();
+    // Relance immédiate si c'est mon tour
+    if(botEnabled && state && state.turn === myId && !state.gameOver) triggerBot(myId);
 }
 
-function triggerBot() {
+function triggerBot(botId) {
     if(botTimeout) clearTimeout(botTimeout);
-    botTimeout = setTimeout(() => { botThinkAndAct(); }, 1200); 
+    botTimeout = setTimeout(() => { botThinkAndAct(botId); }, 1200); // 1.2s de réflexion
 }
 
-function botThinkAndAct() {
-    if(!state || state.gameOver) return;
+function botThinkAndAct(botId) {
+    if(!state || state.turn !== botId || state.gameOver) return;
     
-    // Le bot analyse le joueur actuellement actif (myId)
-    const me = state['p'+myId];
+    const me = state['p'+botId];
     let bestAction = { type: 'FIN_TOUR', score: 10 };
     
     let curS = ALL_SEASONS[state.saisonIdx];
@@ -105,16 +105,16 @@ function botThinkAndAct() {
 
     // --- EXECUTION DE L'ACTION ---
     if(bestAction.type === 'RECOLTER') {
-        localSelectedId = bestAction.zoneId; actionRecolter(bestAction.zoneId);
+        actionRecolter(bestAction.zoneId);
     }
     else if(bestAction.type === 'ARROSER') {
-        localSelectedId = bestAction.zoneId; actArr();
+        actArr(bestAction.zoneId);
     }
     else if(bestAction.type === 'AMENAGER') {
-        localSelectedId = bestAction.zoneId; actT(bestAction.terrain);
+        actT(bestAction.terrain, bestAction.zoneId);
     }
     else if(bestAction.type === 'PLANTER') {
-        localSelectedId = bestAction.zoneId; playC(bestAction.handIdx);
+        playC(bestAction.handIdx, bestAction.zoneId);
     }
     else if(bestAction.type === 'UPGRADE') {
         upgr(bestAction.upIdx);
@@ -127,8 +127,7 @@ function botThinkAndAct() {
             if(!me.hand) me.hand = [];
             me.hand.push(c);
             state.market['C'] = state.market['C'].filter(mc => mc.nom !== c.nom);
-            addLog(`🤖 Achat Marché : ${c.nom}`);
-            if(!state.market['C']) state.market['C'] = [];
+            addLog(`🤖 Achat Marché : ${c.nom}`, botId);
             while(state.market['C'].length < 2) { let nv = draw('C'); if(nv) state.market['C'].push(nv); else break; }
             sync();
         } else {
@@ -136,7 +135,7 @@ function botThinkAndAct() {
         }
     }
     else {
-        addLog("🤖 Fin de tour.");
+        addLog("🤖 Fin de tour stratégique.", botId);
         actFin();
     }
 }
