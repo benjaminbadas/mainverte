@@ -2,7 +2,7 @@
 <html lang="fr">
 <head>
     <meta charset="UTF-8">
-    <title>La Main Verte - V4.15 Boutons Intelligents</title>
+    <title>La Main Verte - V4.16 Le Grand Deck</title>
     <style>
         :root { --p1: #2e7d32; --bg: #f4f7f1; --potager: #81c784; --verger: #fff176; --amenag: #ffccbc; --batiment: #455a64; --dark: #263238; --gold: #ffd700; --serre: #e1f5fe; }
         body { font-family: 'Segoe UI', sans-serif; background: var(--bg); margin: 0; display: flex; height: 100vh; overflow: hidden; }
@@ -34,18 +34,10 @@
         .btn-cost { font-size: 0.8em; font-weight: normal; margin-top: 2px; opacity: 0.9; }
         .res-pill { background: #e8f5e9; padding: 2px 8px; border-radius: 10px; color: var(--p1); border: 1px solid var(--p1); }
 
-        /* GESTION DES BOUTONS DÉSACTIVÉS (Grisés) */
-        button:disabled, .btn-action:disabled, .btn-up:disabled {
-            background: #cfd8dc !important;
-            color: #78909c !important;
-            cursor: not-allowed !important;
-            box-shadow: none !important;
-            border-color: #b0bec5 !important;
-            transform: none !important;
-        }
+        button:disabled, .btn-action:disabled, .btn-up:disabled { background: #cfd8dc !important; color: #78909c !important; cursor: not-allowed !important; box-shadow: none !important; border-color: #b0bec5 !important; transform: none !important; }
         button:disabled .btn-cost { opacity: 0.6; }
 
-        .market-preview { background: #fffde7; padding: 6px; border: 1px solid #ffd54f; border-radius: 6px; font-size: 0.75em; margin-bottom: 6px; line-height: 1.4; }
+        .market-preview { background: #fffde7; padding: 6px; border: 1px solid #ffd54f; border-radius: 6px; font-size: 0.72em; margin-bottom: 6px; line-height: 1.4; }
         .market-preview b { color: #555; }
 
         .aux-tray { display: flex; gap: 5px; margin-bottom: 8px; min-height: 25px; background: #e3f2fd; padding: 5px 10px; border-radius: 5px; border: 1px solid #90caf9; flex-wrap: wrap; align-items: center; }
@@ -82,7 +74,7 @@
     </div>
 
     <div class="farm-grid" id="farm-grid"></div>
-    <div class="logs" id="game-logs">> Prêt. Les actions impossibles sont maintenant grisées.</div>
+    <div class="logs" id="game-logs">> Le grand jeu de cartes a été ajouté à la Jardinerie !</div>
 
     <div style="display: grid; grid-template-columns: repeat(4, 1fr); gap:4px; margin-top:10px;">
         <button id="btn-act-p" class="btn-action" onclick="actionTuile('P')" style="background:#4caf50" title="Aménage une zone en POTAGER. Requis pour les Légumes.">
@@ -143,20 +135,35 @@
 </div>
 
 <script>
+    // --- NOUVEAUX DECKS COMPLETS ---
     const DECKS = {
         C: [
-            { nom: "Radis", prix: 0, e: 1, s: 1, t: 1, g: 3, cat: 'Cultures', semis: ['P','E','A','H'], rec: ['P','E','A','H'] },
-            { nom: "Carotte", prix: 1, e: 4, s: 2, t: 1, g: 5, cat: 'Cultures', semis: ['P','E'], rec: ['A','H'] },
-            { nom: "Tomate", prix: 1, e: 5, s: 5, t: 1, g: 8, cat: 'Cultures', semis: ['P'], rec: ['E','A'] },
-            { nom: "Pommier", prix: 2, e: 12, s: 5, t: 3, g: 15, cat: 'Cultures', semis: ['A','H'], rec: ['E','A'] }
+            { nom: "Radis", prix: 0, e: 1, s: 1, t: 1, g: 3, cat: 'L', semis: ['P','E','A','H'], rec: ['P','E','A','H'] },
+            { nom: "Laitue", prix: 0, e: 2, s: 1, t: 1, g: 4, cat: 'L', semis: ['P','A'], rec: ['P','E','A'] },
+            { nom: "Carotte", prix: 1, e: 4, s: 2, t: 1, g: 6, cat: 'L', semis: ['P','E'], rec: ['A','H'] },
+            { nom: "Poireau", prix: 1, e: 3, s: 2, t: 1, g: 6, cat: 'L', semis: ['P','E'], rec: ['A','H'] },
+            { nom: "Courgette", prix: 1, e: 5, s: 4, t: 1, g: 8, cat: 'L', semis: ['P'], rec: ['E','A'] },
+            { nom: "Tomate", prix: 1, e: 6, s: 5, t: 1, g: 9, cat: 'L', semis: ['P'], rec: ['E','A'] },
+            { nom: "Aubergine", prix: 2, e: 7, s: 6, t: 1, g: 11, cat: 'L', semis: ['P'], rec: ['E','A'] },
+            { nom: "Pomme de Terre", prix: 2, e: 4, s: 3, t: 2, g: 10, cat: 'L', semis: ['P','E'], rec: ['A','H'] },
+            { nom: "Fraise", prix: 2, e: 3, s: 4, t: 1, g: 8, cat: 'A', semis: ['P','A'], rec: ['E'] },
+            { nom: "Noisetier", prix: 2, e: 8, s: 4, t: 3, g: 12, cat: 'A', semis: ['A','H'], rec: ['A'] },
+            { nom: "Pommier", prix: 2, e: 12, s: 5, t: 3, g: 15, cat: 'A', semis: ['A','H'], rec: ['E','A'] },
+            { nom: "Pêcher", prix: 3, e: 11, s: 6, t: 3, g: 16, cat: 'A', semis: ['A','H'], rec: ['E'] },
+            { nom: "Cerisier", prix: 3, e: 10, s: 6, t: 3, g: 18, cat: 'A', semis: ['A','H'], rec: ['E'] }
         ],
         S: [
-            { nom: "Purin d'Ortie", prix: 1, t: 1, g: 0, cat: 'Soutien', desc: "Arrosage express: -4💧" },
-            { nom: "Fumier", prix: 2, t: 1, g: 0, cat: 'Soutien', desc: "Gain immédiat de +2💩 Compost." }
+            { nom: "Purin d'Ortie", prix: 1, t: 1, g: 0, cat: 'Soutien', desc: "Arrosage express: -4💧 sur une zone." },
+            { nom: "Paillage", prix: 1, t: 1, g: 0, cat: 'Soutien', desc: "Protection chaleur: -2💧 -1☀️ sur une zone." },
+            { nom: "Compost Maison", prix: 1, t: 1, g: 0, cat: 'Soutien', desc: "Gain de +1💩 Compost." },
+            { nom: "Fumier", prix: 2, t: 1, g: 0, cat: 'Soutien', desc: "Gain massif de +2💩 Compost." },
+            { nom: "Corne Broyée", prix: 3, t: 1, g: 0, cat: 'Soutien', desc: "Super engrais: +2💰 sur la future récolte d'une zone." }
         ],
         A: [
+            { nom: "Coccinelle", prix: 1, t: 1, g: 0, cat: 'Auxiliaire', prot: "Pucerons" },
+            { nom: "Crapaud", prix: 1, t: 1, g: 0, cat: 'Auxiliaire', prot: "Campagnols" },
             { nom: "Hérisson", prix: 2, t: 1, g: 0, cat: 'Auxiliaire', prot: "Limaces" },
-            { nom: "Coccinelle", prix: 1, t: 1, g: 0, cat: 'Auxiliaire', prot: "Pucerons" }
+            { nom: "Mésange", prix: 2, t: 1, g: 0, cat: 'Auxiliaire', prot: "Carpocapses" }
         ]
     };
 
@@ -172,7 +179,13 @@
         "Permet de nouvelles actions de revente."
     ];
 
-    const RAV_LIST = [{n:"Limaces",d:3,c:'Cultures'}, {n:"Pucerons",d:1,c:'Cultures'}];
+    // Mise à jour des ravageurs
+    const RAV_LIST = [
+        {n:"Limaces", d:3, c:'L'},
+        {n:"Pucerons", d:2, c:'L'},
+        {n:"Campagnols", d:4, c:'L'},
+        {n:"Carpocapses", d:5, c:'A'}
+    ];
     const ALL_SEASONS = ["P","E","A","H"];
 
     let state = {
@@ -214,7 +227,6 @@
         document.getElementById('res-compost').innerText = state.compost;
         document.getElementById('season-display').innerText = `📅 ${["Printemps","Été","Automne","Hiver"][state.saisonIdx]} - An ${state.annee}`;
 
-        // 1. CALCUL DES COÛTS DYNAMIQUES
         let costTuile = state.upgrades[5] >= 2 ? (state.upgrades[5] === 3 ? 0 : 1) : 2;
         document.getElementById('c-s-p').innerText = costTuile; document.getElementById('c-s-v').innerText = costTuile;
         
@@ -224,11 +236,10 @@
         let c3 = Math.max(0, 2 - redJard); document.getElementById('jard-c3').innerText = c3;
         let c4 = Math.max(0, 1 - redJard); document.getElementById('jard-c4').innerText = c4;
 
-        // 2. DÉSACTIVATION DES BOUTONS (Grise auto)
         document.getElementById('btn-act-p').disabled = (state.time < 3 || state.money < costTuile);
         document.getElementById('btn-act-v').disabled = (state.time < 3 || state.money < costTuile);
         document.getElementById('btn-act-n').disabled = (state.time < 3 || state.money < 3);
-        document.getElementById('btn-act-b').disabled = (state.time < 4 || state.money < 3); // min 3 sous pour serre
+        document.getElementById('btn-act-b').disabled = (state.time < 4 || state.money < 3);
         document.getElementById('btn-act-arr').disabled = (state.time < 1);
         document.getElementById('btn-act-amd').disabled = (state.time < 1 || state.compost < 1);
 
@@ -282,7 +293,7 @@
             if(z.id === 0) d.innerHTML = "🏠 MAISON";
             else if(!z.type) d.innerHTML = `ZONE ${z.id}${accessible ? '' : '<br>🔒'}`;
             else {
-                let entete = z.batiment && !isSerre ? `🏗️ ${z.batiment}` : z.type;
+                let entete = z.batiment && !isSerre ? `🏗️ ${z.batiment}` : (z.type === 'POTAGER' ? '🥬 POTAGER' : (z.type === 'VERGER' ? '🍎 VERGER' : z.type));
                 if(isSerre) entete = "POTAGER + SERRE";
                 d.innerHTML = `<span style="font-size:0.75em; opacity:0.7; font-weight:bold;">${entete}</span>`;
                 
@@ -324,13 +335,14 @@
             const d = document.createElement('div'); d.className = "card";
             if(c.cat === 'Auxiliaire') { d.title = `Auxiliaire\nProtège: ${c.prot}`; } 
             else if(c.cat === 'Soutien') { d.title = `Soutien\nEffet: ${c.desc}`; }
-            else { d.title = `Type: ${c.cat}\nSemis: ${c.semis}\nRécolte: ${c.rec}`; }
+            else { d.title = `Type: ${c.cat === 'L' ? 'Légume (Potager)' : 'Arbre (Verger)'}\nSemis: ${c.semis}\nRécolte: ${c.rec}`; }
             
             let btnText = c.cat === 'Auxiliaire' ? "🦊 Activer" : (c.cat === 'Soutien' ? "✨ Utiliser" : "🌱 Jouer");
-            let cardDisabled = state.time < c.t ? "disabled" : "";
+            let cardCostT = Math.max(0, c.t - (state.upgrades[2] - 1)); // Réduction Formation
+            let cardDisabled = state.time < cardCostT ? "disabled" : "";
             
-            d.innerHTML = `<b>${c.nom}</b> [${c.cat}]<br>
-                <button ${cardDisabled} onclick="jouerCarte(${i})" style="width:100%; margin-top:4px; padding:4px; cursor:pointer; border:1px solid #ccc; border-radius:3px; background:#e8eaf6; font-weight:bold;">${btnText} (-${c.t}h)</button>`;
+            d.innerHTML = `<b>${c.nom}</b> [${c.cat === 'L' ? 'Légume' : (c.cat === 'A' ? 'Arbre' : c.cat)}]<br>
+                <button ${cardDisabled} onclick="jouerCarte(${i})" style="width:100%; margin-top:4px; padding:4px; cursor:pointer; border:1px solid #ccc; border-radius:3px; background:#e8eaf6; font-weight:bold;">${btnText} (-${cardCostT}h)</button>`;
             hDiv.appendChild(d);
         });
     }
@@ -365,7 +377,7 @@
                 else { d.title = `Cliquez pour acheter (Coût: ${c.prix}💰)`; d.onclick = () => acheterVisible(cat, i); }
                 
                 if(c.prix > 0) d.innerHTML += `<div class="price-tag">${c.prix}💰</div>`;
-                let detail = c.cat === 'Cultures' ? `S:${c.semis} | R:${c.rec}` : `<i>${c.prot || c.desc}</i>`;
+                let detail = (c.cat === 'L' || c.cat === 'A') ? `S:${c.semis} | R:${c.rec}` : `<i>${c.prot || c.desc}</i>`;
                 d.innerHTML += `<b>${c.nom}</b><br><span style="font-size:0.8em">${detail}<br>⏳${c.t}h</span>`;
                 cont.appendChild(d);
             });
@@ -432,18 +444,29 @@
 
     function jouerCarte(i) {
         let c = state.hand[i];
-        if(state.time < c.t) return addLog("Pas assez de temps.");
+        let cardCostT = Math.max(0, c.t - (state.upgrades[2] - 1)); // L'amélioration Formation réduit le temps !
+        if(state.time < cardCostT) return addLog("Pas assez de temps.");
         
-        if(c.cat === 'Auxiliaire') { state.time -= c.t; state.auxActifs.push(c.prot); state.hand.splice(i,1); addLog(`🦊 Protection Anti-${c.prot} ajoutée !`); render(); }
+        if(c.cat === 'Auxiliaire') { state.time -= cardCostT; state.auxActifs.push(c.prot); state.hand.splice(i,1); addLog(`🦊 Protection Anti-${c.prot} ajoutée !`); render(); }
         else if(c.cat === 'Soutien') {
-            state.time -= c.t; state.hand.splice(i,1);
+            state.time -= cardCostT; state.hand.splice(i,1);
             if(c.nom === "Fumier") { state.compost += 2; addLog("+2 Compost !"); }
-            if(c.nom === "Purin d'Ortie" && state.selZoneId) { let z = state.zones[state.selZoneId]; if(z.culture) z.culture.eCur = Math.max(0, z.culture.eCur - 4); }
+            if(c.nom === "Compost Maison") { state.compost += 1; addLog("+1 Compost !"); }
+            if(c.nom === "Purin d'Ortie" && state.selZoneId) { let z = state.zones[state.selZoneId]; if(z.culture) z.culture.eCur = Math.max(0, z.culture.eCur - 4); addLog("Arrosage express !"); }
+            if(c.nom === "Paillage" && state.selZoneId) { let z = state.zones[state.selZoneId]; if(z.culture) { z.culture.eCur = Math.max(0, z.culture.eCur - 2); z.culture.sCur = Math.max(0, z.culture.sCur - 1); } addLog("Paillage appliqué !"); }
+            if(c.nom === "Corne Broyée" && state.selZoneId) { let z = state.zones[state.selZoneId]; if(z.culture) { z.culture.amend = (z.culture.amend || 0) + 2; } addLog("Corne broyée : +2💰 à la récolte !"); }
             render();
         } else {
             let z = state.zones[state.selZoneId];
             if(!z || !z.type || z.culture) return addLog("Sélectionnez une zone vierge adaptée.");
-            state.time -= c.t; z.culture = {...c, eCur: c.e, sCur: c.s, amend:0}; state.hand.splice(i,1); render();
+            if(c.cat === 'L' && z.type !== 'POTAGER') return addLog("Les légumes se plantent sur un POTAGER.");
+            if(c.cat === 'A' && z.type !== 'VERGER') return addLog("Les arbres se plantent sur un VERGER.");
+            
+            const isSerre = z.batiment === 'SERRE';
+            const s_valides = calcSaisons(c.semis, isSerre, true);
+            if(!s_valides.includes(ALL_SEASONS[state.saisonIdx])) return addLog("Ce n'est pas la bonne saison de semis !");
+
+            state.time -= cardCostT; z.culture = {...c, eCur: c.e, sCur: c.s, amend:0}; state.hand.splice(i,1); render();
         }
     }
 
@@ -468,7 +491,7 @@
         state.saisonIdx++; if(state.saisonIdx > 3) { state.saisonIdx = 0; state.annee++; }
         let p = Math.floor(Math.random()*2)+1; let s = Math.floor(Math.random()*2);
         document.getElementById('meteo-display').innerText = `🎲 🌧️${p} ☀️${s}`;
-        state.currentRav = Math.random() > 0.6 ? RAV_LIST[Math.floor(Math.random()*RAV_LIST.length)] : null;
+        state.currentRav = Math.random() > 0.5 ? RAV_LIST[Math.floor(Math.random()*RAV_LIST.length)] : null;
         
         state.zones.forEach(z => { 
             if(z.culture) { 
@@ -484,7 +507,9 @@
         state.time = state.timeMax; state.compost += 1; render();
     }
 
-    initMarket(); render();
+    initMarket(); 
+    state.hand.push(drawCard('C')); state.hand.push(drawCard('S')); // Main de départ
+    render();
 </script>
 </body>
 </html>
