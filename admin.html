@@ -285,34 +285,66 @@
         });
     }
 
-    function injectDefaultData() {
-        if(!confirm("⚠️ Attention : Écraser tout par le deck par défaut ?")) return;
+   function injectDefaultData() {
+        if(!confirm("⚠️ Attention : Écraser tout par le nouveau deck équilibré officiel ?")) return;
 
         const defaultData = {
             decks: {
                 C: [
-                    {nom:"Radis",qte:2,p:0,e:1,s:1,t:1,g:3,cat:'L',sm:['P','E','A','H'],rc:['P','E','A','H']}, {nom:"Laitue",qte:2,p:0,e:2,s:1,t:1,g:4,cat:'L',sm:['P','A'],rc:['P','E','A']}, 
-                    {nom:"Carotte",qte:2,p:1,e:4,s:2,t:1,g:6,cat:'L',sm:['P','E'],rc:['A','H']}, {nom:"Tomate",qte:2,p:1,e:6,s:5,t:1,g:9,cat:'L',sm:['P'],rc:['E','A']}, 
-                    {nom:"Courgette",qte:2,p:1,e:5,s:4,t:1,g:8,cat:'L',sm:['P'],rc:['E','A']}, {nom:"Aubergine",qte:2,p:2,e:7,s:6,t:1,g:11,cat:'L',sm:['P'],rc:['E','A']},
-                    {nom:"Poireau",qte:2,p:1,e:4,s:2,t:1,g:6,cat:'L',sm:['P','A'],rc:['E','H']}, {nom:"Patate",qte:2,p:1,e:3,s:4,t:1,g:8,cat:'L',sm:['P','E'],rc:['A','H']},
-                    {nom:"Pommier",qte:2,p:3,e:12,s:6,t:3,g:18,cat:'A',sm:['A','H'],rc:['E','A']}, {nom:"Cerisier",qte:2,p:3,e:10,s:6,t:3,g:18,cat:'A',sm:['A','H'],rc:['E']},
-                    {nom:"Fraise",qte:2,p:2,e:3,s:4,t:1,g:8,cat:'A',sm:['P','A'],rc:['E']}, {nom:"Noisetier",qte:2,p:2,e:8,s:4,t:3,g:12,cat:'A',sm:['A','H'],rc:['A']},
-                    {nom:"Épinard",qte:2,p:0,e:2,s:1,t:1,g:4,cat:'L',sm:['P','A'],rc:['P','A','H']}, {nom:"Navet",qte:2,p:1,e:3,s:2,t:1,g:5,cat:'L',sm:['P','A'],rc:['A','H']},
-                    {nom:"Oignon",qte:2,p:1,e:2,s:3,t:1,g:6,cat:'L',sm:['P','A'],rc:['E','A']}, {nom:"Haricot",qte:2,p:1,e:3,s:3,t:1,g:6,cat:'L',sm:['P','E'],rc:['E','A']},
-                    {nom:"Tournesol",qte:2,p:1,e:3,s:6,t:1,g:7,cat:'F',sm:['P'],rc:['E','A']}, {nom:"Pleurote",qte:2,p:2,e:6,s:0,t:1,g:8,cat:'M',sm:['A'],rc:['H']}
+                    // --- LÉGUMES DE BASE (Rapides, pas chers, peu d'eau) ---
+                    {nom:"Radis", qte:4, p:0, t:1, e:1, s:1, g:3, cat:'L', sm:['P','E','A','H'], rc:['P','E','A','H']}, 
+                    {nom:"Laitue", qte:4, p:0, t:1, e:2, s:1, g:4, cat:'L', sm:['P','A'], rc:['P','E','A']}, 
+                    {nom:"Épinard", qte:3, p:0, t:1, e:2, s:1, g:4, cat:'L', sm:['P','A'], rc:['P','A','H']},
+                    
+                    // --- LÉGUMES DE SAISON (Rentables mais demandent plus de soleil/eau) ---
+                    {nom:"Carotte", qte:3, p:1, t:1, e:3, s:2, g:6, cat:'L', sm:['P','E'], rc:['A','H']}, 
+                    {nom:"Tomate", qte:3, p:1, t:1, e:4, s:4, g:8, cat:'L', sm:['P'], rc:['E','A']}, 
+                    {nom:"Courgette", qte:3, p:1, t:1, e:4, s:3, g:7, cat:'L', sm:['P'], rc:['E','A']}, 
+                    {nom:"Aubergine", qte:2, p:2, t:1, e:5, s:4, g:10, cat:'L', sm:['P'], rc:['E','A']},
+                    {nom:"Poireau", qte:3, p:1, t:1, e:3, s:2, g:6, cat:'L', sm:['P','A'], rc:['E','H']}, 
+                    {nom:"Patate", qte:3, p:1, t:1, e:2, s:3, g:6, cat:'L', sm:['P','E'], rc:['A','H']},
+                    {nom:"Navet", qte:2, p:1, t:1, e:2, s:2, g:5, cat:'L', sm:['P','A'], rc:['A','H']},
+                    {nom:"Oignon", qte:2, p:1, t:1, e:2, s:2, g:5, cat:'L', sm:['P','A'], rc:['E','A']}, 
+                    {nom:"Haricot", qte:2, p:1, t:1, e:2, s:3, g:6, cat:'L', sm:['P','E'], rc:['E','A']},
+                    
+                    // --- ARBRES ET PETITS FRUITS (Chers, longs, mais persistants !) ---
+                    {nom:"Pommier", qte:1, p:3, t:2, e:10, s:5, g:14, cat:'A', sm:['A','H'], rc:['E','A']}, 
+                    {nom:"Cerisier", qte:1, p:3, t:2, e:8, s:5, g:12, cat:'A', sm:['A','H'], rc:['E']},
+                    {nom:"Noisetier", qte:1, p:2, t:2, e:6, s:4, g:10, cat:'A', sm:['A','H'], rc:['A']},
+                    {nom:"Fraisier", qte:2, p:2, t:1, e:4, s:3, g:7, cat:'A', sm:['P','A'], rc:['E']}, // Persistant aussi
+                    
+                    // --- PLANTES COMPAGNES (Bonus) ---
+                    {nom:"Tournesol", qte:2, p:1, t:1, e:2, s:5, g:6, cat:'F', sm:['P'], rc:['E','A']}, 
+                    {nom:"Pleurote", qte:2, p:2, t:1, e:5, s:0, g:8, cat:'M', sm:['A'], rc:['H']}
                 ],
-                S: [{nom:"Fumier",qte:2,p:2,t:1,cat:'S',desc:'+2💩 Compost'}, {nom:"Purin d'Ortie",qte:2,p:1,t:1,cat:'S',desc:'-4💧 (Zone)'}, {nom:"Corne Broyée",qte:2,p:2,t:1,cat:'S',desc:'+2💰 récolte (Zone)'}, {nom:"Paillage",qte:2,p:1,t:1,cat:'S',desc:'-2💧 -1☀️ (Zone)'}],
-                A: [{nom:"Hérisson",qte:2,p:2,t:1,cat:'X',prot:'Limaces'}, {nom:"Coccinelle",qte:2,p:1,t:1,cat:'X',prot:'Pucerons'}, {nom:"Mésange",qte:2,p:2,t:1,cat:'X',prot:'Carpocapses'}, {nom:"Crapaud",qte:2,p:1,t:1,cat:'X',prot:'Campagnols'}]
+                S: [
+                    {nom:"Fumier", qte:3, p:2, t:1, cat:'S', desc:'+2💩 Compost'}, 
+                    {nom:"Purin d'Ortie", qte:2, p:1, t:1, cat:'S', desc:'-4💧 (Zone)'}, 
+                    {nom:"Corne Broyée", qte:2, p:2, t:1, cat:'S', desc:'+2💰 de rendement (Zone)'}, 
+                    {nom:"Paillage", qte:3, p:1, t:1, cat:'S', desc:'-2💧 -1☀️ (Zone)'}
+                ],
+                A: [
+                    {nom:"Hérisson", qte:1, p:2, t:1, cat:'X', prot:'Limaces'}, 
+                    {nom:"Coccinelle", qte:1, p:1, t:1, cat:'X', prot:'Pucerons'}, 
+                    {nom:"Mésange", qte:1, p:2, t:1, cat:'X', prot:'Carpocapses'}, 
+                    {nom:"Crapaud", qte:1, p:1, t:1, cat:'X', prot:'Campagnols'}
+                ]
             },
-            ravageurs: [{n:"Limaces",qte:2,d:3}, {n:"Pucerons",qte:2,d:2}, {n:"Carpocapses",qte:2,d:4}, {n:"Campagnols",qte:2,d:4}]
+            ravageurs: [
+                {n:"Limaces", qte:2, d:3}, 
+                {n:"Pucerons", qte:2, d:2}, 
+                {n:"Carpocapses", qte:1, d:4}, 
+                {n:"Campagnols", qte:1, d:4}
+            ]
         };
 
         dbConfig.set(defaultData).then(() => {
             currentData = defaultData;
             renderTable();
-            alert("✅ Données restaurées avec succès !");
+            alert("✅ Données équilibrées restaurées avec succès !");
         });
     }
+
 </script>
 </body>
 </html>
