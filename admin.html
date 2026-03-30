@@ -2,121 +2,66 @@
 <html lang="fr">
 <head>
     <meta charset="UTF-8">
-    <title>Administration - La Main Verte</title>
+    <title>Admin Tableur - La Main Verte</title>
     <script src="https://www.gstatic.com/firebasejs/9.17.1/firebase-app-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/9.17.1/firebase-database-compat.js"></script>
     <style>
         body { font-family: 'Segoe UI', sans-serif; background: #eceff1; margin: 0; padding: 20px; color: #263238; }
         .header { display: flex; justify-content: space-between; align-items: center; background: white; padding: 15px 25px; border-radius: 8px; box-shadow: 0 2px 4px rgba(0,0,0,0.1); margin-bottom: 20px; }
         h1 { margin: 0; color: #2e7d32; }
-        .btn-danger { background: #d32f2f; color: white; border: none; padding: 10px 15px; border-radius: 5px; cursor: pointer; font-weight: bold; }
-        .btn-primary { background: #1976d2; color: white; border: none; padding: 10px 15px; border-radius: 5px; cursor: pointer; font-weight: bold; }
-        .btn-secondary { background: #78909c; color: white; border: none; padding: 10px 15px; border-radius: 5px; cursor: pointer; font-weight: bold; }
         
-        .dashboard { display: grid; grid-template-columns: 1fr 2fr; gap: 20px; }
+        .btn-danger { background: #d32f2f; color: white; border: none; padding: 8px 12px; border-radius: 5px; cursor: pointer; font-weight: bold; }
+        .btn-primary { background: #1976d2; color: white; border: none; padding: 10px 20px; border-radius: 5px; cursor: pointer; font-weight: bold; font-size: 1.1em; }
+        .btn-success { background: #4caf50; color: white; border: none; padding: 8px 12px; border-radius: 5px; cursor: pointer; font-weight: bold; }
         
-        .panel { background: white; padding: 20px; border-radius: 8px; box-shadow: 0 2px 4px rgba(0,0,0,0.1); }
-        .form-group { margin-bottom: 12px; }
-        label { display: block; font-weight: bold; margin-bottom: 5px; font-size: 0.9em; }
-        input, select { width: 100%; padding: 8px; border: 1px solid #ccc; border-radius: 4px; box-sizing: border-box; }
-        
-        .checkbox-group { display: flex; gap: 10px; margin-top: 5px; }
-        .checkbox-group label { font-weight: normal; display: flex; align-items: center; gap: 4px; }
-        
-        .list-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(220px, 1fr)); gap: 10px; margin-top: 15px; }
-        .card-item { background: #f8f9fa; border: 1px solid #cfd8dc; padding: 10px; border-radius: 6px; position: relative; font-size: 0.85em; }
-        .action-btns { position: absolute; top: 5px; right: 5px; display: flex; gap: 4px; }
-        .btn-icon { color: white; border: none; border-radius: 3px; cursor: pointer; font-size: 0.8em; padding: 4px 6px; }
-        .btn-edit { background: #ffb300; }
-        .btn-del { background: #ff5252; }
+        .panel { background: white; padding: 20px; border-radius: 8px; box-shadow: 0 2px 4px rgba(0,0,0,0.1); overflow-x: auto; }
         
         .tabs { display: flex; gap: 10px; margin-bottom: 15px; border-bottom: 2px solid #ddd; padding-bottom: 10px; }
-        .tab { background: #e0e0e0; border: none; padding: 8px 15px; border-radius: 5px; cursor: pointer; font-weight: bold; }
+        .tab { background: #e0e0e0; border: none; padding: 10px 20px; border-radius: 5px; cursor: pointer; font-weight: bold; font-size: 1em; }
         .tab.active { background: #2e7d32; color: white; }
+
+        table { width: 100%; border-collapse: collapse; margin-bottom: 20px; }
+        th { background: #cfd8dc; padding: 10px; text-align: left; font-size: 0.9em; border: 1px solid #b0bec5; }
+        td { padding: 4px; border: 1px solid #eceff1; }
+        
+        input[type="text"], input[type="number"], select { 
+            width: 100%; padding: 6px; border: 1px solid transparent; border-radius: 3px; 
+            box-sizing: border-box; background: transparent; font-family: inherit; font-size: 0.95em;
+        }
+        input[type="text"]:focus, input[type="number"]:focus, select:focus {
+            border: 1px solid #1976d2; background: #fff; outline: none;
+        }
+        input[type="number"] { width: 60px; text-align: center; }
+        .input-wide { width: 100% !important; text-align: left !important; }
+        
+        .action-bar { display: flex; justify-content: space-between; align-items: center; margin-top: 10px; }
+        .notice { font-size: 0.85em; color: #546e7a; }
     </style>
 </head>
 <body>
 
 <div class="header">
-    <h1>⚙️ Base de Données - La Main Verte</h1>
+    <h1>⚙️ Base de Données - Mode Tableur</h1>
     <div>
-        <button class="btn-danger" onclick="injectDefaultData()">⚠️ Injecter le Deck de Base (Écrase tout)</button>
+        <button class="btn-danger" onclick="injectDefaultData()">⚠️ Injecter le Deck de Base</button>
     </div>
 </div>
 
-<div class="dashboard">
-    <div class="panel" id="form-panel">
-        <h2 style="margin-top:0;" id="form-title">➕ Ajouter une carte</h2>
-        <div class="form-group">
-            <label>Type de carte</label>
-            <select id="card-type" onchange="toggleFormFields()">
-                <option value="C">🌾 Culture (Légume, Arbre...)</option>
-                <option value="S">🛠️ Soutien (Fumier, Outils...)</option>
-                <option value="A">🦊 Auxiliaire (Animaux)</option>
-                <option value="RAV">👾 Ravageur</option>
-            </select>
-        </div>
-        
-        <div class="form-group"><label>Nom de la carte</label><input type="text" id="f-nom" placeholder="Ex: Radis, Fumier..."></div>
-        <div class="form-group" id="wrap-qte"><label>Quantité dans la pioche (x)</label><input type="number" id="f-qte" value="2" min="1"></div>
-        <div class="form-group" id="wrap-prix"><label>Prix d'achat (💰)</label><input type="number" id="f-p" value="1"></div>
-        <div class="form-group" id="wrap-temps"><label>Temps d'action (⏳)</label><input type="number" id="f-t" value="1"></div>
-        
-        <div id="fields-culture">
-            <div class="form-group"><label>Catégorie</label>
-                <select id="f-cat"><option value="L">Légume (L)</option><option value="A">Arbre (A)</option><option value="F">Fleur (F)</option><option value="M">Champignon (M)</option></select>
-            </div>
-            <div style="display:flex; gap:10px;">
-                <div class="form-group"><label>Besoin Eau (💧)</label><input type="number" id="f-e" value="1"></div>
-                <div class="form-group"><label>Besoin Soleil (☀️)</label><input type="number" id="f-s" value="1"></div>
-                <div class="form-group"><label>Gain Revente (💰)</label><input type="number" id="f-g" value="3"></div>
-            </div>
-            <div class="form-group">
-                <label>Saisons de Semis</label>
-                <div class="checkbox-group">
-                    <label><input type="checkbox" class="cb-sm" value="P"> Printemps</label>
-                    <label><input type="checkbox" class="cb-sm" value="E"> Été</label>
-                    <label><input type="checkbox" class="cb-sm" value="A"> Automne</label>
-                    <label><input type="checkbox" class="cb-sm" value="H"> Hiver</label>
-                </div>
-            </div>
-            <div class="form-group">
-                <label>Saisons de Récolte</label>
-                <div class="checkbox-group">
-                    <label><input type="checkbox" class="cb-rc" value="P"> Printemps</label>
-                    <label><input type="checkbox" class="cb-rc" value="E"> Été</label>
-                    <label><input type="checkbox" class="cb-rc" value="A"> Automne</label>
-                    <label><input type="checkbox" class="cb-rc" value="H"> Hiver</label>
-                </div>
-            </div>
-        </div>
-
-        <div id="fields-soutien" style="display:none;">
-            <div class="form-group"><label>Description / Effet</label><input type="text" id="f-desc" placeholder="Ex: +2💩 Compost"></div>
-        </div>
-
-        <div id="fields-aux" style="display:none;">
-            <div class="form-group"><label>Ravageur Protégé</label><input type="text" id="f-prot" placeholder="Ex: Limaces"></div>
-        </div>
-
-        <div id="fields-rav" style="display:none;">
-            <div class="form-group"><label>Dégâts (💰)</label><input type="number" id="f-d" value="3"></div>
-        </div>
-
-        <div style="display:flex; gap:10px; margin-top:15px;">
-            <button class="btn-primary" id="btn-submit" style="flex:1;" onclick="saveCard()">Enregistrer</button>
-            <button class="btn-secondary" id="btn-cancel" style="display:none;" onclick="cancelEdit()">Annuler</button>
-        </div>
+<div class="panel">
+    <div class="tabs">
+        <button class="tab active" onclick="switchTab('C', this)">🌾 Cultures</button>
+        <button class="tab" onclick="switchTab('S', this)">🛠️ Soutiens</button>
+        <button class="tab" onclick="switchTab('A', this)">🦊 Auxiliaires</button>
+        <button class="tab" onclick="switchTab('RAV', this)">👾 Ravageurs</button>
     </div>
 
-    <div class="panel">
-        <div class="tabs">
-            <button class="tab active" onclick="showTab('C', this)">🌾 Cultures</button>
-            <button class="tab" onclick="showTab('S', this)">🛠️ Soutiens</button>
-            <button class="tab" onclick="showTab('A', this)">🦊 Auxiliaires</button>
-            <button class="tab" onclick="showTab('RAV', this)">👾 Ravageurs</button>
-        </div>
-        <div id="data-container" class="list-grid">Chargement...</div>
+    <table id="data-table">
+        </table>
+
+    <div class="action-bar">
+        <button class="btn-success" onclick="addRow()">➕ Ajouter une ligne</button>
+        <span class="notice">Saisons acceptées : P (Printemps), E (Été), A (Automne), H (Hiver). Séparez par des virgules (ex: P, E).</span>
+        <button class="btn-primary" onclick="saveTable()">💾 Enregistrer les modifications</button>
     </div>
 </div>
 
@@ -135,163 +80,149 @@
 
     let currentData = { decks: { C: [], S: [], A: [] }, ravageurs: [] };
     let currentTab = 'C';
-    let editingIndex = null; // Stocke l'index si on est en mode édition
-    let editingType = null; // Stocke le type de la carte éditée
 
-    dbConfig.on("value", snap => {
-        const val = snap.val();
-        if(val) {
-            currentData = val;
+    // Récupération unique au chargement
+    dbConfig.once("value").then(snap => {
+        if(snap.exists()) {
+            currentData = snap.val();
             if(!currentData.decks) currentData.decks = { C: [], S: [], A: [] };
             if(!currentData.ravageurs) currentData.ravageurs = [];
         }
-        renderList();
+        renderTable();
     });
 
-    function toggleFormFields() {
-        const type = document.getElementById('card-type').value;
-        document.getElementById('fields-culture').style.display = type === 'C' ? 'block' : 'none';
-        document.getElementById('fields-soutien').style.display = type === 'S' ? 'block' : 'none';
-        document.getElementById('fields-aux').style.display = type === 'A' ? 'block' : 'none';
-        document.getElementById('fields-rav').style.display = type === 'RAV' ? 'block' : 'none';
-        document.getElementById('wrap-prix').style.display = type === 'RAV' ? 'none' : 'block';
-        document.getElementById('wrap-temps').style.display = type === 'RAV' ? 'none' : 'block';
-    }
-
-    function showTab(tab, btnElement) {
+    function switchTab(tab, btn) {
+        // Sauvegarde silencieuse de l'onglet actuel avant de changer
+        saveTableToArray();
         currentTab = tab;
         document.querySelectorAll('.tab').forEach(b => b.classList.remove('active'));
-        btnElement.classList.add('active');
-        renderList();
+        btn.classList.add('active');
+        renderTable();
     }
 
-    function renderList() {
-        const container = document.getElementById('data-container');
-        container.innerHTML = "";
-        let items = currentTab === 'RAV' ? (currentData.ravageurs || []) : (currentData.decks[currentTab] || []);
-        
-        if(items.length === 0) { container.innerHTML = "<i>Aucune donnée.</i>"; return; }
+    function renderTable() {
+        const table = document.getElementById('data-table');
+        let html = '';
 
-        items.forEach((item, index) => {
-            const div = document.createElement('div');
-            div.className = "card-item";
+        if(currentTab === 'C') {
+            html += `<tr><th>Nom</th><th>Qté</th><th>Cat</th><th>Prix💰</th><th>Tps⏳</th><th>Eau💧</th><th>Sol☀️</th><th>Gain💰</th><th>Semis (P,E,A,H)</th><th>Récolte (P,E,A,H)</th><th>🗑️</th></tr>`;
+            (currentData.decks.C || []).forEach((c, i) => {
+                html += `<tr>
+                    <td><input type="text" class="v-nom" value="${c.nom}"></td>
+                    <td><input type="number" class="v-qte" value="${c.qte || 2}"></td>
+                    <td><select class="v-cat"><option value="L" ${c.cat==='L'?'selected':''}>L</option><option value="A" ${c.cat==='A'?'selected':''}>A</option><option value="F" ${c.cat==='F'?'selected':''}>F</option><option value="M" ${c.cat==='M'?'selected':''}>M</option></select></td>
+                    <td><input type="number" class="v-p" value="${c.p}"></td>
+                    <td><input type="number" class="v-t" value="${c.t}"></td>
+                    <td><input type="number" class="v-e" value="${c.e}"></td>
+                    <td><input type="number" class="v-s" value="${c.s}"></td>
+                    <td><input type="number" class="v-g" value="${c.g}"></td>
+                    <td><input type="text" class="v-sm input-wide" value="${(c.sm||[]).join(', ')}"></td>
+                    <td><input type="text" class="v-rc input-wide" value="${(c.rc||[]).join(', ')}"></td>
+                    <td><button class="btn-danger" onclick="removeRow(this)">X</button></td>
+                </tr>`;
+            });
+        } 
+        else if(currentTab === 'S') {
+            html += `<tr><th>Nom</th><th>Qté</th><th>Prix💰</th><th>Tps⏳</th><th>Effet / Description</th><th>🗑️</th></tr>`;
+            (currentData.decks.S || []).forEach((c, i) => {
+                html += `<tr>
+                    <td><input type="text" class="v-nom input-wide" value="${c.nom}"></td>
+                    <td><input type="number" class="v-qte" value="${c.qte || 2}"></td>
+                    <td><input type="number" class="v-p" value="${c.p}"></td>
+                    <td><input type="number" class="v-t" value="${c.t}"></td>
+                    <td><input type="text" class="v-desc input-wide" value="${c.desc}"></td>
+                    <td><button class="btn-danger" onclick="removeRow(this)">X</button></td>
+                </tr>`;
+            });
+        }
+        else if(currentTab === 'A') {
+            html += `<tr><th>Nom</th><th>Qté</th><th>Prix💰</th><th>Tps⏳</th><th>Protège contre</th><th>🗑️</th></tr>`;
+            (currentData.decks.A || []).forEach((c, i) => {
+                html += `<tr>
+                    <td><input type="text" class="v-nom input-wide" value="${c.nom}"></td>
+                    <td><input type="number" class="v-qte" value="${c.qte || 2}"></td>
+                    <td><input type="number" class="v-p" value="${c.p}"></td>
+                    <td><input type="number" class="v-t" value="${c.t}"></td>
+                    <td><input type="text" class="v-prot input-wide" value="${c.prot}"></td>
+                    <td><button class="btn-danger" onclick="removeRow(this)">X</button></td>
+                </tr>`;
+            });
+        }
+        else if(currentTab === 'RAV') {
+            html += `<tr><th>Nom du Ravageur</th><th>Probabilité (Qté)</th><th>Dégâts💰</th><th>🗑️</th></tr>`;
+            (currentData.ravageurs || []).forEach((c, i) => {
+                html += `<tr>
+                    <td><input type="text" class="v-nom input-wide" value="${c.n || c.nom}"></td>
+                    <td><input type="number" class="v-qte" value="${c.qte || 2}"></td>
+                    <td><input type="number" class="v-d" value="${c.d}"></td>
+                    <td><button class="btn-danger" onclick="removeRow(this)">X</button></td>
+                </tr>`;
+            });
+        }
+        table.innerHTML = html;
+    }
+
+    function addRow() {
+        // Ajoute un objet vide par défaut selon l'onglet
+        if(currentTab === 'C') currentData.decks.C.push({nom:"Nouveau", qte:2, p:1, t:1, cat:'L', e:1, s:1, g:3, sm:['P'], rc:['E']});
+        else if(currentTab === 'S') currentData.decks.S.push({nom:"Nouveau", qte:2, p:1, t:1, desc:"Effet", cat:'S'});
+        else if(currentTab === 'A') currentData.decks.A.push({nom:"Nouveau", qte:2, p:1, t:1, prot:"Cible", cat:'X'});
+        else if(currentTab === 'RAV') currentData.ravageurs.push({n:"Nouveau", qte:2, d:3});
+        renderTable();
+    }
+
+    function removeRow(btn) {
+        if(confirm("Supprimer cette ligne ?")) {
+            btn.closest('tr').remove();
+        }
+    }
+
+    function parseSeasons(str) {
+        // Transforme "p, E, a " en ["P", "E", "A"]
+        if(!str) return [];
+        return str.toUpperCase().split(',').map(s => s.trim()).filter(s => ['P','E','A','H'].includes(s));
+    }
+
+    // Lit le HTML du tableau et le transforme en tableau JS
+    function saveTableToArray() {
+        const rows = document.querySelectorAll('#data-table tr');
+        let arr = [];
+        
+        for(let i=1; i<rows.length; i++) { // Skip header (i=0)
+            const r = rows[i];
+            const getVal = (cls) => { const el = r.querySelector('.'+cls); return el ? el.value : ''; };
+            const getNum = (cls) => { const el = r.querySelector('.'+cls); return el ? parseInt(el.value)||0 : 0; };
             
-            let content = `<b style="font-size:1.1em; color:var(--p1);">${item.nom || item.n} (x${item.qte || 2})</b><br>`;
-            if(currentTab === 'C') content += `Prix:${item.p}💰 | Gain:${item.g}💰<br>💧${item.e} ☀️${item.s}<br>Cat: ${item.cat}`;
-            if(currentTab === 'S') content += `Prix:${item.p}💰<br>Effet: ${item.desc}`;
-            if(currentTab === 'A') content += `Prix:${item.p}💰<br>Protège: ${item.prot}`;
-            if(currentTab === 'RAV') content += `Dégâts: -${item.d}💰`;
-
-            div.innerHTML = content + `
-                <div class="action-btns">
-                    <button class="btn-icon btn-edit" title="Modifier" onclick="editItem('${currentTab}', ${index})">✏️</button>
-                    <button class="btn-icon btn-del" title="Supprimer" onclick="deleteItem('${currentTab}', ${index})">❌</button>
-                </div>`;
-            container.appendChild(div);
-        });
-    }
-
-    function deleteItem(tab, index) {
-        if(confirm("Supprimer cette carte de la base de données ?")) {
-            if(tab === 'RAV') currentData.ravageurs.splice(index, 1);
-            else currentData.decks[tab].splice(index, 1);
-            dbConfig.set(currentData);
-        }
-    }
-
-    function editItem(tab, index) {
-        editingIndex = index;
-        editingType = tab;
-        
-        const item = tab === 'RAV' ? currentData.ravageurs[index] : currentData.decks[tab][index];
-        
-        document.getElementById('card-type').value = tab;
-        toggleFormFields();
-        document.getElementById('card-type').disabled = true; // Empêche de changer le type pendant l'édition
-
-        document.getElementById('form-title').innerHTML = "✏️ Modifier la carte";
-        document.getElementById('btn-submit').innerText = "💾 Sauvegarder";
-        document.getElementById('btn-submit').style.background = "#ffb300";
-        document.getElementById('btn-cancel').style.display = "block";
-
-        document.getElementById('f-nom').value = item.nom || item.n;
-        document.getElementById('f-qte').value = item.qte || 2;
-        
-        if(tab !== 'RAV') {
-            document.getElementById('f-p').value = item.p;
-            document.getElementById('f-t').value = item.t || 1;
-        }
-        
-        if(tab === 'C') {
-            document.getElementById('f-cat').value = item.cat;
-            document.getElementById('f-e').value = item.e;
-            document.getElementById('f-s').value = item.s;
-            document.getElementById('f-g').value = item.g;
-            document.querySelectorAll('.cb-sm').forEach(cb => cb.checked = (item.sm || []).includes(cb.value));
-            document.querySelectorAll('.cb-rc').forEach(cb => cb.checked = (item.rc || []).includes(cb.value));
-        } else if(tab === 'S') {
-            document.getElementById('f-desc').value = item.desc;
-        } else if(tab === 'A') {
-            document.getElementById('f-prot').value = item.prot;
-        } else if(tab === 'RAV') {
-            document.getElementById('f-d').value = item.d;
-        }
-        
-        window.scrollTo(0, 0); // Remonte la page
-    }
-
-    function cancelEdit() {
-        editingIndex = null;
-        editingType = null;
-        document.getElementById('card-type').disabled = false;
-        document.getElementById('form-title').innerHTML = "➕ Ajouter une carte";
-        document.getElementById('btn-submit').innerText = "Enregistrer";
-        document.getElementById('btn-submit').style.background = "#1976d2";
-        document.getElementById('btn-cancel').style.display = "none";
-        document.getElementById('f-nom').value = "";
-    }
-
-    function saveCard() {
-        const type = document.getElementById('card-type').value;
-        const nom = document.getElementById('f-nom').value;
-        const qte = parseInt(document.getElementById('f-qte').value) || 2;
-        if(!nom) return alert("Le nom est obligatoire !");
-
-        let newItem = {};
-
-        if(type === 'RAV') {
-            newItem = { n: nom, qte: qte, d: parseInt(document.getElementById('f-d').value) };
-        } else {
-            newItem = { nom: nom, qte: qte, p: parseInt(document.getElementById('f-p').value), t: parseInt(document.getElementById('f-t').value) };
-            if(type === 'C') {
-                newItem.cat = document.getElementById('f-cat').value;
-                newItem.e = parseInt(document.getElementById('f-e').value);
-                newItem.s = parseInt(document.getElementById('f-s').value);
-                newItem.g = parseInt(document.getElementById('f-g').value);
-                newItem.sm = Array.from(document.querySelectorAll('.cb-sm:checked')).map(cb => cb.value);
-                newItem.rc = Array.from(document.querySelectorAll('.cb-rc:checked')).map(cb => cb.value);
-                if(newItem.sm.length===0 || newItem.rc.length===0) return alert("Cochez au moins une saison de semis et récolte !");
+            if(currentTab === 'C') {
+                arr.push({
+                    nom: getVal('v-nom'), qte: getNum('v-qte'), cat: getVal('v-cat'),
+                    p: getNum('v-p'), t: getNum('v-t'), e: getNum('v-e'), s: getNum('v-s'), g: getNum('v-g'),
+                    sm: parseSeasons(getVal('v-sm')), rc: parseSeasons(getVal('v-rc'))
+                });
+            } else if(currentTab === 'S') {
+                arr.push({ nom: getVal('v-nom'), qte: getNum('v-qte'), p: getNum('v-p'), t: getNum('v-t'), desc: getVal('v-desc'), cat: 'S' });
+            } else if(currentTab === 'A') {
+                arr.push({ nom: getVal('v-nom'), qte: getNum('v-qte'), p: getNum('v-p'), t: getNum('v-t'), prot: getVal('v-prot'), cat: 'X' });
+            } else if(currentTab === 'RAV') {
+                arr.push({ n: getVal('v-nom'), qte: getNum('v-qte'), d: getNum('v-d') });
             }
-            if(type === 'S') newItem.desc = document.getElementById('f-desc').value;
-            if(type === 'A') { newItem.cat = 'X'; newItem.prot = document.getElementById('f-prot').value; }
         }
+        
+        if(currentTab === 'RAV') currentData.ravageurs = arr;
+        else currentData.decks[currentTab] = arr;
+    }
 
-        if(editingIndex !== null) {
-            // Modification
-            if(type === 'RAV') currentData.ravageurs[editingIndex] = newItem;
-            else currentData.decks[type][editingIndex] = newItem;
-        } else {
-            // Ajout
-            if(type === 'RAV') currentData.ravageurs.push(newItem);
-            else currentData.decks[type].push(newItem);
-        }
-
-        dbConfig.set(currentData);
-        cancelEdit();
+    function saveTable() {
+        saveTableToArray(); // Capture les dernières modifs de l'écran actif
+        
+        // Envoi à Firebase
+        dbConfig.set(currentData)
+            .then(() => alert("✅ Enregistrement réussi ! Le jeu utilisera ces données au prochain redémarrage."))
+            .catch(err => alert("Erreur : " + err.message));
     }
 
     function injectDefaultData() {
-        if(!confirm("⚠️ Attention : Cela va effacer toutes vos modifications actuelles et restaurer les cartes par défaut avec Quantité=2. Continuer ?")) return;
+        if(!confirm("⚠️ Attention : Écraser tout par le deck par défaut ?")) return;
 
         const defaultData = {
             decks: {
@@ -313,7 +244,9 @@
         };
 
         dbConfig.set(defaultData).then(() => {
-            alert("✅ Base de données injectée avec succès !");
+            currentData = defaultData;
+            renderTable();
+            alert("✅ Données injectées.");
         });
     }
 </script>
