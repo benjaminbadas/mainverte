@@ -1,0 +1,140 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <title>⚙️ Paramètres de l'Économie</title>
+    <script src="https://www.gstatic.com/firebasejs/9.17.1/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.17.1/firebase-database-compat.js"></script>
+    <style>
+        body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; background: #f4f7f1; padding: 20px; }
+        h1 { color: #2e7d32; text-align: center; }
+        .container { max-width: 800px; margin: 0 auto; background: white; padding: 20px; border-radius: 12px; box-shadow: 0 4px 15px rgba(0,0,0,0.1); }
+        .section { margin-bottom: 20px; padding: 15px; background: #e8f5e9; border-left: 5px solid #2e7d32; border-radius: 4px; }
+        .grid { display: grid; grid-template-columns: 1fr 1fr; gap: 15px; }
+        label { font-weight: bold; display: block; margin-bottom: 5px; font-size: 0.9em; color: #333; }
+        input { width: 100%; padding: 8px; border: 1px solid #ccc; border-radius: 4px; box-sizing: border-box; font-size: 1.1em; }
+        .btn { display: block; width: 100%; background: #ff9800; color: white; border: none; padding: 15px; font-size: 1.2em; font-weight: bold; border-radius: 8px; cursor: pointer; margin-top: 20px; transition: 0.2s; }
+        .btn:hover { background: #f57c00; transform: scale(1.02); }
+        .badge-or { background: #ffd700; color: #855e00; padding: 2px 6px; border-radius: 4px; font-size: 0.8em; }
+        .badge-temps { background: #bbdefb; color: #0d47a1; padding: 2px 6px; border-radius: 4px; font-size: 0.8em; }
+    </style>
+</head>
+<body>
+
+<div class="container">
+    <h1>⚙️ Équilibrage de l'Économie</h1>
+    <p style="text-align:center; color:#555;">Modifiez les coûts globaux du jeu. Les modifications s'appliqueront à la prochaine partie créée.</p>
+    
+    <div id="form-container">
+        </div>
+
+    <button class="btn" onclick="saveSettings()">💾 Sauvegarder les Paramètres</button>
+</div>
+
+<script>
+    // --- CONNEXION FIREBASE ---
+    const firebaseConfig = {
+        apiKey: "AIzaSyA_OHv6TDiVsn4PwM9s25gij8lBwQH8xrg",
+        authDomain: "main-verte-72483.firebaseapp.com",
+        databaseURL: "https://main-verte-72483-default-rtdb.europe-west1.firebasedatabase.app",
+        projectId: "main-verte-72483",
+        storageBucket: "main-verte-72483.firebasestorage.app",
+        messagingSenderId: "633454274346",
+        appId: "1:633454274346:web:7261efcfe1b9cecdd6e053"
+    };
+    firebase.initializeApp(firebaseConfig);
+    const dbSettings = firebase.database().ref("game-config/settings");
+
+    // Paramètres par défaut (ceux actuels du jeu)
+    const defaultSettings = {
+        // Aménagements
+        costAmenagerPotagerOr: 2, costAmenagerPotagerTemps: 3,
+        costAmenagerNatureOr: 3, costAmenagerNatureTemps: 3,
+        // Bâtiments
+        costSerreOr: 3, costSerreTemps: 4,
+        costComposteurOr: 4, costComposteurTemps: 4,
+        costLocalOr: 5, costLocalTemps: 4,
+        // Actions Rapides
+        costArroserTemps: 1, costAmenderTemps: 1, costComposterTemps: 1, costRecolterTemps: 2,
+        // Améliorations
+        costUp2Or: 2, costUp2Temps: 3,
+        costUp3Or: 4, costUp3Temps: 5
+    };
+
+    let currentSettings = {};
+
+    // Charger les paramètres depuis Firebase
+    dbSettings.once("value").then(snap => {
+        if (snap.exists()) {
+            currentSettings = snap.val();
+        } else {
+            currentSettings = defaultSettings; // Si vide, on prend les valeurs par défaut
+        }
+        renderForm();
+    });
+
+    function renderForm() {
+        const container = document.getElementById('form-container');
+        container.innerHTML = `
+            <div class="section">
+                <h3>🏗️ Aménagements de Terrain</h3>
+                <div class="grid">
+                    <div><label>Potager/Verger (<span class="badge-or">💰 Or</span>)</label><input type="number" id="costAmenagerPotagerOr" value="${currentSettings.costAmenagerPotagerOr}"></div>
+                    <div><label>Potager/Verger (<span class="badge-temps">⏳ Temps</span>)</label><input type="number" id="costAmenagerPotagerTemps" value="${currentSettings.costAmenagerPotagerTemps}"></div>
+                    <div><label>Zone Nature (<span class="badge-or">💰 Or</span>)</label><input type="number" id="costAmenagerNatureOr" value="${currentSettings.costAmenagerNatureOr}"></div>
+                    <div><label>Zone Nature (<span class="badge-temps">⏳ Temps</span>)</label><input type="number" id="costAmenagerNatureTemps" value="${currentSettings.costAmenagerNatureTemps}"></div>
+                </div>
+            </div>
+
+            <div class="section">
+                <h3>🏠 Bâtiments</h3>
+                <div class="grid">
+                    <div><label>Serre (<span class="badge-or">💰 Or</span>)</label><input type="number" id="costSerreOr" value="${currentSettings.costSerreOr}"></div>
+                    <div><label>Serre (<span class="badge-temps">⏳ Temps</span>)</label><input type="number" id="costSerreTemps" value="${currentSettings.costSerreTemps}"></div>
+                    <div><label>Composteur (<span class="badge-or">💰 Or</span>)</label><input type="number" id="costComposteurOr" value="${currentSettings.costComposteurOr}"></div>
+                    <div><label>Composteur (<span class="badge-temps">⏳ Temps</span>)</label><input type="number" id="costComposteurTemps" value="${currentSettings.costComposteurTemps}"></div>
+                    <div><label>Local Outils (<span class="badge-or">💰 Or</span>)</label><input type="number" id="costLocalOr" value="${currentSettings.costLocalOr}"></div>
+                    <div><label>Local Outils (<span class="badge-temps">⏳ Temps</span>)</label><input type="number" id="costLocalTemps" value="${currentSettings.costLocalTemps}"></div>
+                </div>
+            </div>
+
+            <div class="section">
+                <h3>⚙️ Améliorations (Arbre de Compétences)</h3>
+                <div class="grid">
+                    <div><label>Passage Niveau 2 (<span class="badge-or">💰 Or</span>)</label><input type="number" id="costUp2Or" value="${currentSettings.costUp2Or}"></div>
+                    <div><label>Passage Niveau 2 (<span class="badge-temps">⏳ Temps</span>)</label><input type="number" id="costUp2Temps" value="${currentSettings.costUp2Temps}"></div>
+                    <div><label>Passage Niveau 3 (<span class="badge-or">💰 Or</span>)</label><input type="number" id="costUp3Or" value="${currentSettings.costUp3Or}"></div>
+                    <div><label>Passage Niveau 3 (<span class="badge-temps">⏳ Temps</span>)</label><input type="number" id="costUp3Temps" value="${currentSettings.costUp3Temps}"></div>
+                </div>
+            </div>
+
+            <div class="section">
+                <h3>⚡ Actions Rapides (Coût en Temps uniquement)</h3>
+                <div class="grid">
+                    <div><label>💧 Arroser (<span class="badge-temps">⏳ Temps</span>)</label><input type="number" id="costArroserTemps" value="${currentSettings.costArroserTemps}"></div>
+                    <div><label>💩 Amender (<span class="badge-temps">⏳ Temps</span>)</label><input type="number" id="costAmenderTemps" value="${currentSettings.costAmenderTemps}"></div>
+                    <div><label>♻️ Composter Plante (<span class="badge-temps">⏳ Temps</span>)</label><input type="number" id="costComposterTemps" value="${currentSettings.costComposterTemps}"></div>
+                    <div><label>🧺 Récolter (<span class="badge-temps">⏳ Temps</span>)</label><input type="number" id="costRecolterTemps" value="${currentSettings.costRecolterTemps}"></div>
+                </div>
+            </div>
+        `;
+    }
+
+    function saveSettings() {
+        // Récupérer toutes les valeurs
+        const newSettings = {};
+        for(let key in defaultSettings) {
+            newSettings[key] = parseInt(document.getElementById(key).value) || 0;
+        }
+
+        // Sauvegarder dans Firebase
+        dbSettings.set(newSettings).then(() => {
+            alert("✅ Paramètres sauvegardés avec succès ! Ils seront appliqués à la prochaine partie créée.");
+        }).catch(err => {
+            console.error(err);
+            alert("❌ Erreur lors de la sauvegarde.");
+        });
+    }
+</script>
+</body>
+</html>
