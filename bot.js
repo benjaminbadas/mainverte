@@ -1,5 +1,5 @@
 // ==========================================
-// 🤖 MOTEUR D'INTELLIGENCE ARTIFICIELLE (V13)
+// 🤖 MOTEUR D'INTELLIGENCE ARTIFICIELLE (V14)
 // ==========================================
 
 let botEnabled = false;
@@ -21,7 +21,7 @@ function toggleBot() {
 
 function triggerBot(botId) {
     if(botTimeout) clearTimeout(botTimeout);
-    botTimeout = setTimeout(() => { botThinkAndAct(botId); }, 1200); 
+    botTimeout = setTimeout(() => { botThinkAndAct(botId); }, 1000); // 1s de réflexion
 }
 
 function botThinkAndAct(botId) {
@@ -41,15 +41,12 @@ function botThinkAndAct(botId) {
     // 1. ANALYSE DES ZONES
     me.zones.forEach(z => {
         if(z.culture) {
-            // Récolter l'argent
             if(z.culture.eCur <= 0 && z.culture.sCur <= 0 && me.time >= 2) {
                 if(1000 > bestAction.score) bestAction = { type: 'RECOLTER', zoneId: z.id, score: 1000 };
             } 
-            // Arroser si urgence
             else if(z.culture.eCur >= 2 && me.time >= 1) {
                 if(800 > bestAction.score) bestAction = { type: 'ARROSER', zoneId: z.id, score: 800 + z.culture.eCur };
             }
-            // Amender (Augmenter le rendement)
             else if(hasComposteur && me.compost > 0 && me.time >= 1) {
                 if(450 > bestAction.score) bestAction = { type: 'AMENDER', zoneId: z.id, score: 450 };
             }
@@ -57,7 +54,6 @@ function botThinkAndAct(botId) {
             if(z.type === 'POTAGER') hasEmptyPotager = true;
             if(z.type === 'VERGER') hasEmptyVerger = true;
 
-            // Planter
             (me.hand || []).forEach((c, idx) => {
                 const costH = Math.max(0, (c.t||1)-(me.upgrades[2]-1));
                 let smValid = z.batiment === 'SERRE' ? (c.sm||[]).map(s => ALL_SEASONS[(ALL_SEASONS.indexOf(s)+3)%4]).concat(c.sm||[]) : (c.sm||[]);
@@ -70,7 +66,6 @@ function botThinkAndAct(botId) {
                 }
             });
 
-            // Construire un Composteur si riche
             if(!z.batiment && (z.type === 'POTAGER' || z.type === 'AMÉNAGEMENT') && !hasComposteur && me.money >= 4 && me.time >= 4) {
                 if(550 > bestAction.score) bestAction = { type: 'BATIMENT', zoneId: z.id, batiment: 'COMPOSTEUR', score: 550 };
             }
@@ -124,7 +119,7 @@ function botThinkAndAct(botId) {
     else if(bestAction.type === 'UPGRADE') { upgr(bestAction.upIdx); }
     else if(bestAction.type === 'BATIMENT') {
         me.money -= 4; me.time -= 4; me.zones[bestAction.zoneId].batiment = 'COMPOSTEUR';
-        addLog("🤖 Bâtiment construit : Composteur.", botId); sync();
+        addLog(`🤖 Bâtiment COMPOSTEUR construit sur Zone ${bestAction.zoneId} (-4💰, -4h).`, botId); sync();
     }
     else if(bestAction.type === 'JARDINERIE') {
         me.time -= costJard;
@@ -134,7 +129,7 @@ function botThinkAndAct(botId) {
             if(!me.hand) me.hand = [];
             me.hand.push(c);
             state.market['C'] = state.market['C'].filter(mc => mc.nom !== c.nom);
-            addLog(`🤖 Achat Marché : ${c.nom}`, botId);
+            addLog(`🤖 Achat au Marché par l'IA : ${c.nom} (-${c.p}💰, -${costJard}h).`, botId);
             while(state.market['C'].length < 2) { let nv = draw('C'); if(nv) state.market['C'].push(nv); else break; }
             sync();
         } else { actFin(); }
