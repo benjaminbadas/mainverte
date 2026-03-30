@@ -2,20 +2,18 @@
 <html lang="fr">
 <head>
     <meta charset="UTF-8">
-    <title>La Main Verte - V9.1 LiveOps Safe</title>
+    <title>La Main Verte - V10.0 Autoplay Edition</title>
     <script src="https://www.gstatic.com/firebasejs/9.17.1/firebase-app-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/9.17.1/firebase-database-compat.js"></script>
     <style>
         :root { --p1: #2e7d32; --p2: #1565c0; --bg: #f4f7f1; --potager: #81c784; --verger: #fff176; --amenag: #ffccbc; --batiment: #455a64; --dark: #263238; --gold: #ffd700; --serre: #e1f5fe; }
         body { font-family: 'Segoe UI', sans-serif; background: var(--bg); margin: 0; display: flex; height: 100vh; overflow: hidden; }
         
-        /* LOBBY */
         #lobby { position: fixed; top:0; left:0; width:100%; height:100%; background:rgba(0,0,0,0.9); z-index: 1000; display: flex; flex-direction: column; align-items: center; justify-content: center; color: white; }
         .btn-lobby { background: var(--p1); color: white; border: none; padding: 15px 30px; font-size: 1.2em; border-radius: 8px; margin: 10px; cursor: pointer; width: 300px; transition: 0.2s; font-weight: bold;}
         .btn-lobby:hover { filter: brightness(1.2); transform: scale(1.05); }
         .btn-lobby.j2 { background: var(--p2); }
 
-        /* JEU */
         .main-game { flex: 1; display: flex; flex-direction: column; padding: 10px; overflow-y: auto; }
         .sidebar { width: 420px; background: white; border-left: 2px solid #ddd; padding: 10px; display: flex; flex-direction: column; overflow-y: auto;}
         
@@ -43,7 +41,6 @@
         .rayon { background: #f9f9f9; padding: 8px; border-radius: 8px; border: 1px solid #ccc; }
         .btn-jard-action { width: 100%; margin-bottom: 5px; padding: 4px; font-size: 0.8em; cursor: pointer; background: #eee; border: 1px solid #ccc; border-radius: 4px; }
         .jard-card { border: 2px solid #ddd; padding: 6px; border-radius: 6px; margin-bottom: 6px; cursor: pointer; background: white; position: relative; font-size: 0.85em; transition: 0.2s;}
-        .jard-card:hover:not([style*="opacity: 0.4"]) { border-color: var(--p1); transform: scale(1.02); }
         .price-tag { position: absolute; top: -6px; right: -6px; background: var(--gold); padding: 1px 5px; border-radius: 8px; font-size: 0.8em; font-weight: bold; border: 1px solid #b8860b; }
         
         .alert-rav { background: #ffebee; color: #c62828; padding: 4px; border-radius: 4px; font-size: 0.75em; margin-bottom: 5px; border: 1px solid #ef9a9a; text-align: center; font-weight: bold;}
@@ -53,16 +50,8 @@
         .turn-banner.active { display: block; background: #4caf50; }
 
         /* ANIMATION SAISON */
-        #season-anim-overlay {
-            display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%;
-            background: rgba(255,255,255,0.7); z-index: 2000; align-items: center; justify-content: center;
-            opacity: 0; transition: opacity 0.5s ease-in-out;
-        }
-        .anim-box {
-            background: white; border: 5px solid var(--p1); border-radius: 20px; padding: 40px 80px;
-            box-shadow: 0 15px 40px rgba(0,0,0,0.3); text-align: center;
-            transform: scale(0.8); transition: transform 0.5s cubic-bezier(0.175, 0.885, 0.32, 1.275);
-        }
+        #season-anim-overlay { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(255,255,255,0.7); z-index: 2000; align-items: center; justify-content: center; opacity: 0; transition: opacity 0.5s ease-in-out; }
+        .anim-box { background: white; border: 5px solid var(--p1); border-radius: 20px; padding: 40px 80px; box-shadow: 0 15px 40px rgba(0,0,0,0.3); text-align: center; transform: scale(0.8); transition: transform 0.5s cubic-bezier(0.175, 0.885, 0.32, 1.275); }
         #anim-title { font-size: 3.5em; font-weight: bold; color: var(--p1); margin-bottom: 10px; }
         #anim-subtitle { font-size: 1.5em; color: #555; font-weight: bold; }
     </style>
@@ -71,7 +60,7 @@
 
 <div id="lobby">
     <h1 style="font-size: 3em; margin-bottom: 10px;">🌱 La Main Verte</h1>
-    <p style="font-size: 1.2em; margin-bottom: 40px;">Mode Multijoueur En Ligne</p>
+    <p style="font-size: 1.2em; margin-bottom: 40px;">Mode Multijoueur & IA</p>
     <button class="btn-lobby" onclick="joinGame(1)">Rejoindre en tant que JOUEUR 1</button>
     <button class="btn-lobby j2" onclick="joinGame(2)">Rejoindre en tant que JOUEUR 2</button>
     <hr style="width: 50%; border-color: #555; margin: 30px 0;">
@@ -91,9 +80,12 @@
     <div class="hud" id="my-hud">
         <div id="season-display">📅 Saison...</div>
         <div title="Cagnotte Commune / Heures Restantes du Joueur">💰 <span id="res-money">0</span> | ⏳ <span id="res-time">0</span>/<span id="res-timemax">10</span>h</div>
-        <div title="Stock de Compost (Utilisé pour l'action ☀️ Amender)">💩 <span id="res-compost" class="res-pill">0</span></div>
+        <div title="Stock de Compost">💩 <span id="res-compost" class="res-pill">0</span></div>
         <div id="meteo-display" title="Météo tirée cette saison" style="background:#e3f2fd; padding:3px 10px; border-radius:10px;">🎲 --</div>
-        <button onclick="confirmReset()" style="background:#ff5252; color:white; border:none; border-radius:4px; padding:4px 8px; cursor:pointer; font-weight:bold;" title="Réinitialiser entièrement la partie pour tous les joueurs">🧹 Reset</button>
+        
+        <button id="bot-btn" onclick="toggleBot()" style="background:#9c27b0; color:white; border:none; border-radius:4px; padding:4px 8px; cursor:pointer; font-weight:bold; transition:0.3s;" title="Laisser l'IA jouer à votre place">🤖 Bot: OFF</button>
+        
+        <button onclick="confirmReset()" style="background:#ff5252; color:white; border:none; border-radius:4px; padding:4px 8px; cursor:pointer; font-weight:bold;" title="Réinitialiser la partie">🧹 Reset</button>
     </div>
     
     <div class="hud-opp" id="opp-hud">
@@ -151,6 +143,26 @@
     let localPicksLeft = 0;
     let isInitializing = false;
 
+    // --- VARIABLES DU BOT ---
+    let botEnabled = false;
+    let botTimeout = null;
+
+    function toggleBot() {
+        botEnabled = !botEnabled;
+        const btn = document.getElementById('bot-btn');
+        btn.innerText = botEnabled ? "🤖 Bot: ON" : "🤖 Bot: OFF";
+        btn.style.background = botEnabled ? "#4caf50" : "#9c27b0";
+        if(botEnabled) addLog("🤖 Intelligence Artificielle activée.");
+        else addLog("🤖 Mode manuel repris.");
+        
+        if(botEnabled && state && state.turn === myId) triggerBot();
+    }
+
+    function triggerBot() {
+        if(botTimeout) clearTimeout(botTimeout);
+        botTimeout = setTimeout(() => { botThinkAndAct(); }, 1200); // 1.2s de réflexion pour voir l'action
+    }
+
     function joinGame(id) {
         myId = id;
         document.getElementById('lobby').style.display = 'none';
@@ -195,47 +207,20 @@
         try {
             const snapConf = await dbConfig.once("value");
             let config = snapConf.val();
-
-            if(!config || !config.decks) {
-                alert("ERREUR CRITIQUE : La base de données de cartes est vide ! Allez sur la page admin.html et cliquez sur 'Injecter le Deck de base'.");
-                isInitializing = false;
-                return;
-            }
+            if(!config || !config.decks) { alert("ERREUR: Base de données Admin vide !"); isInitializing = false; return; }
 
             let builtDecks = { C: [], S: [], A: [] };
-            ['C','S','A'].forEach(cat => {
-                (config.decks[cat] || []).forEach(c => {
-                    let q = c.qte || 1;
-                    for(let i=0; i<q; i++) builtDecks[cat].push({...c});
-                });
-            });
-
+            ['C','S','A'].forEach(cat => { (config.decks[cat] || []).forEach(c => { let q = c.qte || 1; for(let i=0; i<q; i++) builtDecks[cat].push({...c}); }); });
             let builtRavs = [];
-            (config.ravageurs || []).forEach(r => {
-                let q = r.qte || 1;
-                for(let i=0; i<q; i++) builtRavs.push({...r});
-            });
+            (config.ravageurs || []).forEach(r => { let q = r.qte || 1; for(let i=0; i<q; i++) builtRavs.push({...r}); });
 
             state = {
-                turn: 1, annee: 1, saisonIdx: 0,
-                decks: builtDecks, 
-                ravPool: builtRavs,
-                market: { C: [], S: [], A: [] },
-                currentMeteo: {p:0, s:0}, currentRav: null,
-                p1: generatePlayer(), p2: generatePlayer(),
-                gameLogs: [msg]
+                turn: 1, annee: 1, saisonIdx: 0, decks: builtDecks, ravPool: builtRavs, market: { C: [], S: [], A: [] },
+                currentMeteo: {p:0, s:0}, currentRav: null, p1: generatePlayer(), p2: generatePlayer(), gameLogs: [msg]
             };
-
-            ['C','S','A'].forEach(cat => { 
-                for(let i=0; i<2; i++) { let d = draw(cat); if(d) state.market[cat].push(d); } 
-            });
-
+            ['C','S','A'].forEach(cat => { for(let i=0; i<2; i++) { let d = draw(cat); if(d) state.market[cat].push(d); } });
             await db.set(state);
-        } catch(e) {
-            console.error(e);
-            alert("Erreur de connexion à Firebase lors du chargement des cartes.");
-        }
-        
+        } catch(e) { console.error(e); }
         isInitializing = false;
     }
 
@@ -246,13 +231,11 @@
 
     function playSeasonAnimation(sIdx, annee) {
         const overlay = document.getElementById('season-anim-overlay');
-        const box = document.getElementById('anim-box');
         document.getElementById('anim-title').innerText = SAISON_NOMS[sIdx];
         document.getElementById('anim-subtitle').innerText = "Année " + annee;
-        
         overlay.style.display = 'flex';
-        setTimeout(() => { overlay.style.opacity = '1'; box.style.transform = 'scale(1)'; }, 50);
-        setTimeout(() => { overlay.style.opacity = '0'; box.style.transform = 'scale(0.8)'; setTimeout(() => { overlay.style.display = 'none'; }, 500); }, 2500);
+        setTimeout(() => { overlay.style.opacity = '1'; document.getElementById('anim-box').style.transform = 'scale(1)'; }, 50);
+        setTimeout(() => { overlay.style.opacity = '0'; document.getElementById('anim-box').style.transform = 'scale(0.8)'; setTimeout(() => overlay.style.display = 'none', 500); }, 2500);
     }
 
     function render() {
@@ -278,7 +261,7 @@
         if(logBox && state.gameLogs) logBox.innerHTML = state.gameLogs.map(l => `<div>${l}</div>`).join('');
 
         const rZone = document.getElementById('ravageur-zone');
-        if(state.currentRav) { rZone.innerText = `⚠️ RAVAGEUR GLOBAL : ${state.currentRav.n || state.currentRav.nom} ! (-${state.currentRav.d}💰 si non protégé)`; rZone.style.display = 'block'; }
+        if(state.currentRav) { rZone.innerText = `⚠️ RAVAGEUR GLOBAL : ${state.currentRav.n || state.currentRav.nom} ! (-${state.currentRav.d}💰)`; rZone.style.display = 'block'; }
         else rZone.style.display = 'none';
 
         const tray = document.getElementById('aux-tray');
@@ -293,46 +276,48 @@
             const d = document.createElement('div');
             d.className = `zone ${z.type ? 'tuile-'+z.type.toLowerCase() : ''} ${z.batiment && !isS ? 'tuile-batiment' : ''} ${isS ? 'has-serre' : ''} ${localSelectedId === z.id ? 'selected' : ''}`;
             d.style.opacity = acc ? "1" : "0.3";
-            d.onclick = () => { if(acc && isMyTurn) { localSelectedId = z.id; render(); } };
+            d.onclick = () => { if(acc && isMyTurn && !botEnabled) { localSelectedId = z.id; render(); } };
             
             if(z.id === 0) { d.innerHTML = "🏠 MAISON"; d.title = "La maison principale."; }
-            else if(!z.type) { d.innerHTML = `ZONE ${z.id}${acc?'':'<br>🔒'}`; d.title = acc ? "Zone vierge. Aménagez-la avec les boutons verts/oranges." : "Zone verrouillée."; }
+            else if(!z.type) { d.innerHTML = `ZONE ${z.id}${acc?'':'<br>🔒'}`; }
             else {
                 let header = z.type; if(z.batiment) header += ` + ${z.batiment}`;
                 d.innerHTML = `<b>${header}</b>`;
                 if(z.culture) {
                     d.innerHTML += `<br>${z.culture.nom}<br>💧${z.culture.eCur} ☀️${z.culture.sCur}`;
-                    d.title = `${z.culture.nom}\nBesoins: ${z.culture.eCur}💧 | ${z.culture.sCur}☀️\nGain: ${z.culture.g + (me.upgrades[3]-1) + (z.culture.amd||0)}💰`;
                     if(z.culture.eCur <= 0 && z.culture.sCur <= 0) {
-                        d.innerHTML += `<br><button onclick="actionRecolter(${z.id})" style="background:var(--p1); color:white; border:none; padding:4px 8px; cursor:pointer; border-radius:4px; margin-top:4px;" ${!isMyTurn || me.time<2 ? 'disabled':''}>🧺 Récolter</button>`;
+                        d.innerHTML += `<br><button onclick="actionRecolter(${z.id})" style="background:var(--p1); color:white; border:none; padding:4px 8px; cursor:pointer; border-radius:4px; margin-top:4px;" ${!isMyTurn || me.time<2 || botEnabled ? 'disabled':''}>🧺 Récolter</button>`;
                     }
-                } else d.title = `${header}. Prêt pour un semis.`;
+                }
             }
             grid.appendChild(d);
         });
 
         const prev = document.getElementById('market-preview');
-        if(prev && state.market) {
-            prev.innerHTML = `🌾 ${(state.market.C||[]).map(c=>c.nom).join(', ')||'Vidé'}<br>🛠️ ${(state.market.S||[]).map(c=>c.nom).join(', ')||'Vidé'}<br>🦊 ${(state.market.A||[]).map(c=>c.nom).join(', ')||'Vidé'}`;
-        }
+        if(prev && state.market) { prev.innerHTML = `🌾 ${(state.market.C||[]).map(c=>c.nom).join(', ')||'Vidé'}<br>🛠️ ${(state.market.S||[]).map(c=>c.nom).join(', ')||'Vidé'}<br>🦊 ${(state.market.A||[]).map(c=>c.nom).join(', ')||'Vidé'}`; }
 
         const hDiv = document.getElementById('player-hand'); hDiv.innerHTML = "";
         (me.hand || []).forEach((c, i) => {
             const cost = Math.max(0, (c.t||1) - (me.upgrades[2]-1));
             const card = document.createElement('div'); card.className = "card";
             let details = c.cat==='S' ? c.desc : (c.cat==='X' ? c.prot : `💧${c.e} ☀️${c.s}<br>🌱 ${(c.sm||[]).join(',')} | 🧺 ${(c.rc||[]).join(',')}`);
-            card.innerHTML = `<b>${c.nom}</b><br><span style="font-size:0.9em;">${details}</span><br><button onclick="playC(${i})" style="width:100%; margin-top:4px; padding:4px; cursor:pointer; background:#e8eaf6; border:1px solid #ccc; font-weight:bold;" ${!isMyTurn || me.time<cost ? 'disabled':''}>Jouer (-${cost}h)</button>`;
+            card.innerHTML = `<b>${c.nom}</b><br><span style="font-size:0.9em;">${details}</span><br><button onclick="playC(${i})" style="width:100%; margin-top:4px; padding:4px; cursor:pointer; background:#e8eaf6; border:1px solid #ccc; font-weight:bold;" ${!isMyTurn || me.time<cost || botEnabled ? 'disabled':''}>Jouer (-${cost}h)</button>`;
             hDiv.appendChild(card);
         });
 
         renderButtons(me, isMyTurn);
         document.getElementById('jardinerie-modal').style.display = localModalOpen ? 'flex' : 'none';
         if(localModalOpen) renderJardModal(me);
+
+        // SI BOT ACTIVE ET C'EST MON TOUR -> DEKLENCHER LE BOT
+        if(isMyTurn && botEnabled && !localModalOpen) {
+            triggerBot();
+        }
     }
 
     function renderButtons(me, isMyTurn) {
         const costT = me.upgrades[5] >= 2 ? (me.upgrades[5] === 3 ? 0 : 1) : 2;
-        const dis = !isMyTurn;
+        const dis = !isMyTurn || botEnabled; // Désactive les clics humains si le bot joue
         document.getElementById('action-buttons-container').innerHTML = `
             <button class="btn-action" style="background:#4caf50" onclick="actT('POTAGER')" ${dis||me.time<3||me.money<costT?'disabled':''}>🏗️ Potager (-${costT}💰)</button>
             <button class="btn-action" style="background:#fbc02d;color:#333" onclick="actT('VERGER')" ${dis||me.time<3||me.money<costT?'disabled':''}>🏗️ Verger (-${costT}💰)</button>
@@ -357,6 +342,100 @@
         });
     }
 
+    // --- LE CERVEAU DU BOT (IA D'UTILITÉ) ---
+    function botThinkAndAct() {
+        if(!botEnabled || !state || state.turn !== myId) return;
+        const me = state['p'+myId];
+        let bestAction = { type: 'FIN_TOUR', score: 10 }; // Action par défaut
+        
+        const costT = me.upgrades[5] >= 2 ? (me.upgrades[5] === 3 ? 0 : 1) : 2;
+        let curS = ALL_SEASONS[state.saisonIdx];
+
+        // 1. Parcourir les Zones
+        me.zones.forEach(z => {
+            if(z.culture) {
+                // Récolter
+                if(z.culture.eCur <= 0 && z.culture.sCur <= 0 && me.time >= 2) {
+                    if(1000 > bestAction.score) bestAction = { type: 'RECOLTER', zoneId: z.id, score: 1000 };
+                }
+                // Arroser (si en détresse)
+                else if(z.culture.eCur >= 2 && me.time >= 1) {
+                    if(800 > bestAction.score) bestAction = { type: 'ARROSER', zoneId: z.id, score: 800 + z.culture.eCur };
+                }
+            } 
+            else if (z.type && z.id !== 0) {
+                // Planter une graine
+                (me.hand || []).forEach((c, idx) => {
+                    const costH = Math.max(0, (c.t||1)-(me.upgrades[2]-1));
+                    let smValid = z.batiment === 'SERRE' ? (c.sm||[]).map(s => ALL_SEASONS[(ALL_SEASONS.indexOf(s)+3)%4]).concat(c.sm||[]) : (c.sm||[]);
+                    
+                    if(c.cat === 'L' && z.type === 'POTAGER' && smValid.includes(curS) && me.time >= costH) {
+                        let scorePlanter = 600 + c.g; 
+                        if(scorePlanter > bestAction.score) bestAction = { type: 'PLANTER', handIdx: idx, zoneId: z.id, score: scorePlanter };
+                    }
+                });
+            }
+            else if (!z.type && z.id !== 0 && z.id <= (me.upgrades[0] === 1 ? 3 : (me.upgrades[0] === 2 ? 4 : 5))) {
+                // Aménager
+                if(me.time >= 3 && me.money >= costT) {
+                    if(500 > bestAction.score) bestAction = { type: 'AMENAGER', zoneId: z.id, terrain: 'POTAGER', score: 500 };
+                }
+            }
+        });
+
+        // 2. Aller au Marché
+        if((!me.hand || me.hand.length === 0) && me.time >= 3 && me.money >= 1) {
+            // Vérifie s'il y a quelque chose d'achetable dans les Cultures
+            let cartesAchetables = (state.market['C'] || []).filter(c => c.p <= me.money);
+            if(cartesAchetables.length > 0) {
+                if(400 > bestAction.score) bestAction = { type: 'JARDINERIE', score: 400 };
+            }
+        }
+
+        // --- EXECUTION BOT ---
+        if(bestAction.type === 'RECOLTER') {
+            localSelectedId = bestAction.zoneId;
+            actionRecolter(bestAction.zoneId); // La fonction appelle sync()
+        }
+        else if(bestAction.type === 'ARROSER') {
+            localSelectedId = bestAction.zoneId; 
+            actArr();
+        }
+        else if(bestAction.type === 'AMENAGER') {
+            localSelectedId = bestAction.zoneId; 
+            actT(bestAction.terrain);
+        }
+        else if(bestAction.type === 'PLANTER') {
+            localSelectedId = bestAction.zoneId; 
+            playC(bestAction.handIdx);
+        }
+        else if(bestAction.type === 'JARDINERIE') {
+            // Le Bot simule un achat rapide sans ouvrir la fenêtre
+            let cat = 'C';
+            if(!state.market[cat]) state.market[cat] = [];
+            let c = state.market[cat].find(c => c.p <= me.money);
+            if(c) {
+                me.time -= 3; // Coût expédition
+                me.money -= c.p;
+                if(!me.hand) me.hand = [];
+                me.hand.push(c);
+                state.market[cat] = state.market[cat].filter(mc => mc.nom !== c.nom);
+                addLog(`🤖 Achat Marché : ${c.nom}`);
+                
+                // Repiocher pour garder le marché plein
+                while(state.market[cat].length < 2) { let nv = draw(cat); if(nc) state.market[cat].push(nc); else break; }
+                sync();
+            } else {
+                actFin(); // Secours
+            }
+        }
+        else if(bestAction.type === 'FIN_TOUR') {
+            addLog("🤖 Fin des actions optimales. Fin de tour.");
+            actFin();
+        }
+    }
+
+    // --- ACTIONS MANUELLES ---
     function openJard(h, p) { const me = state['p'+myId]; me.time -= h; localPicksLeft = p; localModalOpen = true; addLog(`📦 Visite la Jardinerie.`); sync(); }
     
     function renderJardModal(me) {
@@ -372,23 +451,7 @@
                 const d = document.createElement('div'); d.className = "jard-card"; d.style.opacity = can?"1":"0.4";
                 let details = c.cat==='S' ? c.desc : (c.cat==='X' ? c.prot : `💧${c.e} ☀️${c.s}<br>🌱 ${(c.sm||[]).join(',')} | 🧺 ${(c.rc||[]).join(',')}`);
                 d.innerHTML = `<div class="price-tag">${c.p}💰</div><b>${c.nom}</b><br><small>${details}</small>`;
-                
-                // --- LA CORRECTION ANTI-BUG FIREBASE EST ICI ---
-                d.onclick = () => { 
-                    if(can) { 
-                        me.money -= c.p; 
-                        if(!me.hand) me.hand = []; 
-                        me.hand.push(c); 
-                        state.market[cat].splice(idx, 1); 
-                        if(!state.market[cat]) state.market[cat] = []; // Sécurité Firebase
-                        if(me.upgrades[6] >= 3) { 
-                            let nc = draw(cat); 
-                            if(nc) state.market[cat].push(nc); 
-                        } 
-                        addLog(`🛒 Achat : ${c.nom}`); 
-                        consm(); 
-                    } 
-                };
+                d.onclick = () => { if(can) { me.money-=c.p; if(!me.hand) me.hand=[]; me.hand.push(c); state.market[cat].splice(idx,1); if(!state.market[cat]) state.market[cat] = []; if(me.upgrades[6]>=3) { let nc = draw(cat); if(nc) state.market[cat].push(nc); } addLog(`🛒 Achat : ${c.nom}`); consm(); } };
                 r.appendChild(d);
             });
             inner.querySelector('.rayon-grid').appendChild(r);
@@ -397,55 +460,39 @@
 
     function jardP(cat) { const me=state['p'+myId], c=draw(cat); if(c) { if(c.p<=me.money) { if(confirm(`Tiré : ${c.nom} (${c.p}💰). L'acheter ?`)) { me.money-=c.p; if(!me.hand) me.hand=[]; me.hand.push(c); addLog(`🛒 Pioche : ${c.nom}`); consm(); } else { consm(); } } else { alert(`Tiré : ${c.nom}. Fonds insuffisants.`); consm(); } } else alert("Pioche vide !"); }
     function jardR(cat) { state.market[cat] = []; for(let i=0; i<2; i++) { let d = draw(cat); if(d) state.market[cat].push(d); } addLog(`🔄 Rayon renouvelé.`); consm(); }
-    
-    // --- CORRECTION DU BUG PUSH ICI ---
-    function consm() { 
-        localPicksLeft--; 
-        if(localPicksLeft <= 0) { 
-            localModalOpen = false; 
-            ['C','S','A'].forEach(cat => { 
-                if(!state.market[cat]) state.market[cat] = []; // Sécurité Firebase
-                while(state.market[cat].length < 2) { 
-                    let c = draw(cat); 
-                    if(c) state.market[cat].push(c); 
-                    else break; 
-                } 
-            }); 
-        } 
-        sync(); 
-    }
+    function consm() { localPicksLeft--; if(localPicksLeft<=0) { localModalOpen=false; ['C','S','A'].forEach(cat => { if(!state.market[cat]) state.market[cat] = []; while(state.market[cat].length < 2) { let c = draw(cat); if(c) state.market[cat].push(c); else break; } }); } sync(); }
 
-    function actT(t) { const me=state['p'+myId]; if(!localSelectedId || localSelectedId===0) return alert("Sélectionnez une zone !"); const cost = me.upgrades[5]>=2 ? (me.upgrades[5]===3?0:1) : 2; me.money -= (t==='AMÉNAGEMENT'?3:cost); me.time -= 3; me.zones[localSelectedId].type = t; addLog(`🏗️ Aménagement : ${t}.`); sync(); }
+    function actT(t) { const me=state['p'+myId]; if(!localSelectedId || localSelectedId===0) return; const cost = me.upgrades[5]>=2 ? (me.upgrades[5]===3?0:1) : 2; me.money -= (t==='AMÉNAGEMENT'?3:cost); me.time -= 3; me.zones[localSelectedId].type = t; addLog(`🏗️ Aménagement : ${t}.`); sync(); }
     function actB() { 
-        const me=state['p'+myId], z=me.zones[localSelectedId]; if(!z || z.batiment) return alert("Zone invalide.");
-        const ch = prompt("1: Serre (3💰) sur Potager\n2: Composteur (4💰)\n3: Local Outils (5💰)");
-        if(ch==="1" && z.type==="POTAGER") { if(me.money<3) return; me.money-=3; me.time-=4; z.batiment="SERRE"; addLog("🏠 Construit : Serre."); }
-        else if(ch==="2" && (z.type==="POTAGER"||z.type==="AMÉNAGEMENT")) { if(me.money<4) return; me.money-=4; me.time-=4; z.batiment="COMPOSTEUR"; addLog("🏠 Construit : Composteur."); }
-        else if(ch==="3" && (z.type==="POTAGER"||z.type==="AMÉNAGEMENT")) { if(me.money<5) return; me.money-=5; me.time-=4; z.batiment="LOCAL OUTILS"; addLog("🏠 Construit : Local Outils."); }
+        const me=state['p'+myId], z=me.zones[localSelectedId]; if(!z || z.batiment) return;
+        const ch = prompt("1: Serre (3💰)\n2: Composteur (4💰)\n3: Local Outils (5💰)");
+        if(ch==="1" && z.type==="POTAGER") { if(me.money<3) return; me.money-=3; me.time-=4; z.batiment="SERRE"; addLog("🏠 Serre."); }
+        else if(ch==="2" && (z.type==="POTAGER"||z.type==="AMÉNAGEMENT")) { if(me.money<4) return; me.money-=4; me.time-=4; z.batiment="COMPOSTEUR"; addLog("🏠 Composteur."); }
+        else if(ch==="3" && (z.type==="POTAGER"||z.type==="AMÉNAGEMENT")) { if(me.money<5) return; me.money-=5; me.time-=4; z.batiment="LOCAL OUTILS"; addLog("🏠 Local Outils."); }
         sync(); 
     }
-    function actArr() { const me=state['p'+myId], z=me.zones[localSelectedId]; if(z && z.culture) { me.time--; z.culture.eCur = Math.max(0, z.culture.eCur-2); addLog(`💧 Arrosage manuel.`); sync(); } }
-    function actAmd() { const me=state['p'+myId], z=me.zones[localSelectedId]; if(z && z.culture && me.compost>0) { me.time--; me.compost--; z.culture.sCur = Math.max(0, z.culture.sCur-1); addLog(`☀️ Amendement au Compost.`); sync(); } }
+    function actArr() { const me=state['p'+myId], z=me.zones[localSelectedId]; if(z && z.culture) { me.time--; z.culture.eCur = Math.max(0, z.culture.eCur-2); addLog(`💧 Arrosage.`); sync(); } }
+    function actAmd() { const me=state['p'+myId], z=me.zones[localSelectedId]; if(z && z.culture && me.compost>0) { me.time--; me.compost--; z.culture.sCur = Math.max(0, z.culture.sCur-1); addLog(`☀️ Amendement.`); sync(); } }
     function upgr(i) { const me=state['p'+myId]; me.time -= (me.upgrades[i]===1?3:5); me.upgrades[i]++; if(i===1) me.timeMax += 4; addLog(`⚙️ Upgrade : ${UP_NAMES[i]}`); sync(); }
     function actionRecolter(id) { const me=state['p'+myId], z=me.zones[id]; me.time-=2; me.money += (z.culture.g + (me.upgrades[3]-1) + (z.culture.amd||0)); addLog(`🧺 Récolte : ${z.culture.nom} !`); z.culture = null; sync(); }
 
     function playC(idx) { 
         const me = state['p'+myId], c = me.hand[idx], z = me.zones[localSelectedId], cost = Math.max(0, (c.t||1)-(me.upgrades[2]-1));
-        if(c.cat === 'X') { me.time-=cost; if(!me.auxActifs) me.auxActifs=[]; me.auxActifs.push(c.prot); me.hand.splice(idx,1); addLog(`🦊 Bouclier Anti-${c.prot} activé.`); } 
+        if(c.cat === 'X') { me.time-=cost; if(!me.auxActifs) me.auxActifs=[]; me.auxActifs.push(c.prot); me.hand.splice(idx,1); addLog(`🦊 Anti-${c.prot} activé.`); } 
         else if(c.cat === 'S') { 
             me.time-=cost; 
             if(c.nom.includes("Fumier")) { me.compost=(me.compost||0)+2; addLog("✨ +2 Compost"); }
-            if(c.nom.includes("Ortie") && z && z.culture) { z.culture.eCur = Math.max(0, z.culture.eCur-4); addLog("✨ Arrosage Express !"); }
-            if(c.nom.includes("Paillage") && z && z.culture) { z.culture.eCur = Math.max(0, z.culture.eCur-2); z.culture.sCur = Math.max(0, z.culture.sCur-1); addLog("✨ Paillage posé."); }
-            if(c.nom.includes("Corne") && z && z.culture) { z.culture.amd = (z.culture.amd||0)+2; addLog("✨ Corne Broyée appliquée."); }
+            if(c.nom.includes("Ortie") && z && z.culture) { z.culture.eCur = Math.max(0, z.culture.eCur-4); addLog("✨ Arrosage Express"); }
+            if(c.nom.includes("Paillage") && z && z.culture) { z.culture.eCur = Math.max(0, z.culture.eCur-2); z.culture.sCur = Math.max(0, z.culture.sCur-1); addLog("✨ Paillage posé"); }
+            if(c.nom.includes("Corne") && z && z.culture) { z.culture.amd = (z.culture.amd||0)+2; addLog("✨ Corne Broyée"); }
             me.hand.splice(idx,1); 
         } else { 
-            if(!z || !z.type) return alert("Zone vierge !"); if(z.culture) return alert("Zone occupée !");
-            if(c.cat==='L' && z.type!=='POTAGER') return alert("Légumes (L) = Potager !");
-            if(c.cat==='A' && z.type!=='VERGER') return alert("Arbres (A) = Verger !");
+            if(!z || !z.type || z.culture) return;
+            if(c.cat==='L' && z.type!=='POTAGER') return;
+            if(c.cat==='A' && z.type!=='VERGER') return;
             let curS = ALL_SEASONS[state.saisonIdx];
             let smValid = z.batiment === 'SERRE' ? (c.sm||[]).map(s => ALL_SEASONS[(ALL_SEASONS.indexOf(s)+3)%4]).concat(c.sm||[]) : (c.sm||[]);
-            if(!smValid.includes(curS)) return alert(`Saison incorrecte !`);
+            if(!smValid.includes(curS)) return;
             me.time-=cost; z.culture={...c, eCur:c.e, sCur:c.s, amd:0}; me.hand.splice(idx,1); addLog(`🌱 Semis : ${c.nom}`);
         }
         sync(); 
@@ -500,133 +547,8 @@
     }
     
     async function confirmReset(force = false) { 
-        if(confirm("⚠️ Êtes-vous sûr de vouloir réinitialiser la partie pour LES DEUX joueurs ?")) {
-            await initNewGame(myId || "Serveur");
-        } 
+        if(confirm("⚠️ Réinitialiser pour LES DEUX joueurs ?")) await initNewGame(myId || "Serveur");
     }
-
-// ==========================================
-// 🤖 MOTEUR D'INTELLIGENCE ARTIFICIELLE (BOT)
-// ==========================================
-
-// 1. Ajouter le bouton Bot dans le HUD
-setTimeout(() => {
-    const hud = document.getElementById('my-hud');
-    if(hud) {
-        const botBtn = document.createElement('button');
-        botBtn.innerHTML = "🤖 Activer le Bot";
-        botBtn.style = "background:#9c27b0; color:white; border:none; padding:4px 8px; border-radius:4px; font-weight:bold; cursor:pointer; margin-left:10px;";
-        botBtn.onclick = runBotLoop;
-        hud.appendChild(botBtn);
-    }
-}, 1000);
-
-let botRunning = false;
-
-function runBotLoop() {
-    if(botRunning) return; // Évite les lancements multiples
-    if(state.turn !== myId) return alert("Attendez votre tour pour lancer le bot !");
-    
-    botRunning = true;
-    addLog("🤖 Le Bot prend le contrôle...");
-    botThinkAndAct();
-}
-
-function botThinkAndAct() {
-    if(state.turn !== myId || !botRunning) { botRunning = false; return; }
-
-    const me = state['p'+myId];
-    let bestAction = { type: 'FIN_TOUR', score: 10 }; // Action par défaut
-    
-    // --- EVALUATION DES ACTIONS POSSIBLES ---
-    
-    const costT = me.upgrades[5] >= 2 ? (me.upgrades[5] === 3 ? 0 : 1) : 2;
-
-    // A. Parcourir les Zones (Récolte, Arrosage, Semis, Aménagement)
-    me.zones.forEach(z => {
-        if(z.culture) {
-            // Stratégie 1 : Récolter (Urgence max)
-            if(z.culture.eCur <= 0 && z.culture.sCur <= 0 && me.time >= 2) {
-                if(1000 > bestAction.score) bestAction = { type: 'RECOLTER', zoneId: z.id, score: 1000 };
-            }
-            // Stratégie 2 : Sauver une plante de la soif
-            else if(z.culture.eCur >= 2 && me.time >= 1) {
-                if(800 > bestAction.score) bestAction = { type: 'ARROSER', zoneId: z.id, score: 800 + z.culture.eCur };
-            }
-        } 
-        else if (z.type && z.id !== 0) {
-            // Stratégie 3 : Planter depuis la main
-            (me.hand || []).forEach((c, idx) => {
-                const costH = Math.max(0, (c.t||1)-(me.upgrades[2]-1));
-                let curS = ALL_SEASONS[state.saisonIdx];
-                let smValid = z.batiment === 'SERRE' ? (c.sm||[]).map(s => ALL_SEASONS[(ALL_SEASONS.indexOf(s)+3)%4]).concat(c.sm||[]) : (c.sm||[]);
-                
-                if(c.cat === 'L' && z.type === 'POTAGER' && smValid.includes(curS) && me.time >= costH) {
-                    let scorePlanter = 600 + c.g; // Privilégie les plantes qui rapportent gros
-                    if(scorePlanter > bestAction.score) bestAction = { type: 'PLANTER', handIdx: idx, zoneId: z.id, score: scorePlanter };
-                }
-            });
-        }
-        else if (!z.type && z.id !== 0 && z.id <= (me.upgrades[0] === 1 ? 3 : (me.upgrades[0] === 2 ? 4 : 5))) {
-            // Stratégie 4 : Aménager un Potager si zone vide
-            if(me.time >= 3 && me.money >= costT) {
-                if(500 > bestAction.score) bestAction = { type: 'AMENAGER', zoneId: z.id, terrain: 'POTAGER', score: 500 };
-            }
-        }
-    });
-
-    // B. Aller à la Jardinerie (Si main vide et riche)
-    if((!me.hand || me.hand.length === 0) && me.time >= 3 && me.money >= 2) {
-        if(400 > bestAction.score) bestAction = { type: 'JARDINERIE', score: 400 };
-    }
-
-    // --- EXECUTION DE L'ACTION ---
-    
-    setTimeout(() => {
-        if(bestAction.type === 'RECOLTER') {
-            actionRecolter(bestAction.zoneId);
-            render(); botThinkAndAct();
-        }
-        else if(bestAction.type === 'ARROSER') {
-            localSelectedId = bestAction.zoneId; actArr();
-            render(); botThinkAndAct();
-        }
-        else if(bestAction.type === 'AMENAGER') {
-            localSelectedId = bestAction.zoneId; actT(bestAction.terrain);
-            render(); botThinkAndAct();
-        }
-        else if(bestAction.type === 'PLANTER') {
-            localSelectedId = bestAction.zoneId; playC(bestAction.handIdx);
-            render(); botThinkAndAct();
-        }
-        else if(bestAction.type === 'JARDINERIE') {
-            // Le Bot achète automatiquement la culture la plus chère qu'il peut s'offrir
-            let cat = 'C';
-            if(!state.market[cat]) state.market[cat] = [];
-            while(state.market[cat].length < 2) { let c = draw(cat); if(c) state.market[cat].push(c); else break; }
-            
-            let carteAAcheter = state.market[cat].find(c => c.p <= me.money);
-            if(carteAAcheter) {
-                me.time -= 3; // Coût du voyage expédition 1
-                me.money -= carteAAcheter.p;
-                if(!me.hand) me.hand = [];
-                me.hand.push(carteAAcheter);
-                state.market[cat] = state.market[cat].filter(c => c.nom !== carteAAcheter.nom); // Retire du marché
-                addLog(`🤖 Le Bot a acheté ${carteAAcheter.nom}`);
-                sync(); render(); botThinkAndAct();
-            } else {
-                // S'il ne peut rien acheter, il passe son tour pour ne pas boucler à l'infini
-                actFin(); botRunning = false;
-            }
-        }
-        else if(bestAction.type === 'FIN_TOUR') {
-            addLog("🤖 Le Bot a terminé son tour.");
-            actFin();
-            botRunning = false; // S'arrête jusqu'au prochain tour
-        }
-    }, 800); // Délai de 0.8s pour que tu aies le temps de voir ce qu'il fait
-}
-    
 </script>
 </body>
 </html>
