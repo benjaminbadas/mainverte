@@ -11,6 +11,7 @@
         h1 { margin: 0; color: #2e7d32; }
         .btn-danger { background: #d32f2f; color: white; border: none; padding: 10px 15px; border-radius: 5px; cursor: pointer; font-weight: bold; }
         .btn-primary { background: #1976d2; color: white; border: none; padding: 10px 15px; border-radius: 5px; cursor: pointer; font-weight: bold; }
+        .btn-secondary { background: #78909c; color: white; border: none; padding: 10px 15px; border-radius: 5px; cursor: pointer; font-weight: bold; }
         
         .dashboard { display: grid; grid-template-columns: 1fr 2fr; gap: 20px; }
         
@@ -22,9 +23,12 @@
         .checkbox-group { display: flex; gap: 10px; margin-top: 5px; }
         .checkbox-group label { font-weight: normal; display: flex; align-items: center; gap: 4px; }
         
-        .list-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(200px, 1fr)); gap: 10px; margin-top: 15px; }
+        .list-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(220px, 1fr)); gap: 10px; margin-top: 15px; }
         .card-item { background: #f8f9fa; border: 1px solid #cfd8dc; padding: 10px; border-radius: 6px; position: relative; font-size: 0.85em; }
-        .btn-del { position: absolute; top: 5px; right: 5px; background: #ff5252; color: white; border: none; border-radius: 3px; cursor: pointer; font-size: 0.8em; padding: 2px 6px; }
+        .action-btns { position: absolute; top: 5px; right: 5px; display: flex; gap: 4px; }
+        .btn-icon { color: white; border: none; border-radius: 3px; cursor: pointer; font-size: 0.8em; padding: 4px 6px; }
+        .btn-edit { background: #ffb300; }
+        .btn-del { background: #ff5252; }
         
         .tabs { display: flex; gap: 10px; margin-bottom: 15px; border-bottom: 2px solid #ddd; padding-bottom: 10px; }
         .tab { background: #e0e0e0; border: none; padding: 8px 15px; border-radius: 5px; cursor: pointer; font-weight: bold; }
@@ -41,8 +45,8 @@
 </div>
 
 <div class="dashboard">
-    <div class="panel">
-        <h2 style="margin-top:0;">➕ Ajouter une carte</h2>
+    <div class="panel" id="form-panel">
+        <h2 style="margin-top:0;" id="form-title">➕ Ajouter une carte</h2>
         <div class="form-group">
             <label>Type de carte</label>
             <select id="card-type" onchange="toggleFormFields()">
@@ -54,6 +58,7 @@
         </div>
         
         <div class="form-group"><label>Nom de la carte</label><input type="text" id="f-nom" placeholder="Ex: Radis, Fumier..."></div>
+        <div class="form-group" id="wrap-qte"><label>Quantité dans la pioche (x)</label><input type="number" id="f-qte" value="2" min="1"></div>
         <div class="form-group" id="wrap-prix"><label>Prix d'achat (💰)</label><input type="number" id="f-p" value="1"></div>
         <div class="form-group" id="wrap-temps"><label>Temps d'action (⏳)</label><input type="number" id="f-t" value="1"></div>
         
@@ -98,7 +103,10 @@
             <div class="form-group"><label>Dégâts (💰)</label><input type="number" id="f-d" value="3"></div>
         </div>
 
-        <button class="btn-primary" style="width:100%; margin-top:10px;" onclick="addCard()">Enregistrer la carte</button>
+        <div style="display:flex; gap:10px; margin-top:15px;">
+            <button class="btn-primary" id="btn-submit" style="flex:1;" onclick="saveCard()">Enregistrer</button>
+            <button class="btn-secondary" id="btn-cancel" style="display:none;" onclick="cancelEdit()">Annuler</button>
+        </div>
     </div>
 
     <div class="panel">
@@ -113,7 +121,6 @@
 </div>
 
 <script>
-    // Configuration Firebase identique au jeu
     const firebaseConfig = {
         apiKey: "AIzaSyA_OHv6TDiVsn4PwM9s25gij8lBwQH8xrg",
         authDomain: "main-verte-72483.firebaseapp.com",
@@ -124,14 +131,13 @@
         appId: "1:633454274346:web:7261efcfe1b9cecdd6e053"
     };
     firebase.initializeApp(firebaseConfig);
-    
-    // Nouveau dossier dans Firebase : game-config
     const dbConfig = firebase.database().ref("game-config");
 
     let currentData = { decks: { C: [], S: [], A: [] }, ravageurs: [] };
     let currentTab = 'C';
+    let editingIndex = null; // Stocke l'index si on est en mode édition
+    let editingType = null; // Stocke le type de la carte éditée
 
-    // Écoute de la base de données
     dbConfig.on("value", snap => {
         const val = snap.val();
         if(val) {
@@ -142,19 +148,16 @@
         renderList();
     });
 
-    // Gérer l'affichage du formulaire selon le type
     function toggleFormFields() {
         const type = document.getElementById('card-type').value;
         document.getElementById('fields-culture').style.display = type === 'C' ? 'block' : 'none';
         document.getElementById('fields-soutien').style.display = type === 'S' ? 'block' : 'none';
         document.getElementById('fields-aux').style.display = type === 'A' ? 'block' : 'none';
         document.getElementById('fields-rav').style.display = type === 'RAV' ? 'block' : 'none';
-        
         document.getElementById('wrap-prix').style.display = type === 'RAV' ? 'none' : 'block';
         document.getElementById('wrap-temps').style.display = type === 'RAV' ? 'none' : 'block';
     }
 
-    // Naviguer dans les onglets de visualisation
     function showTab(tab, btnElement) {
         currentTab = tab;
         document.querySelectorAll('.tab').forEach(b => b.classList.remove('active'));
@@ -162,34 +165,32 @@
         renderList();
     }
 
-    // Afficher les cartes existantes
     function renderList() {
         const container = document.getElementById('data-container');
         container.innerHTML = "";
-        
         let items = currentTab === 'RAV' ? (currentData.ravageurs || []) : (currentData.decks[currentTab] || []);
         
-        if(items.length === 0) {
-            container.innerHTML = "<i>Aucune donnée dans cette catégorie.</i>";
-            return;
-        }
+        if(items.length === 0) { container.innerHTML = "<i>Aucune donnée.</i>"; return; }
 
         items.forEach((item, index) => {
             const div = document.createElement('div');
             div.className = "card-item";
             
-            let content = `<b>${item.nom || item.n}</b><br>`;
+            let content = `<b style="font-size:1.1em; color:var(--p1);">${item.nom || item.n} (x${item.qte || 2})</b><br>`;
             if(currentTab === 'C') content += `Prix:${item.p}💰 | Gain:${item.g}💰<br>💧${item.e} ☀️${item.s}<br>Cat: ${item.cat}`;
             if(currentTab === 'S') content += `Prix:${item.p}💰<br>Effet: ${item.desc}`;
             if(currentTab === 'A') content += `Prix:${item.p}💰<br>Protège: ${item.prot}`;
             if(currentTab === 'RAV') content += `Dégâts: -${item.d}💰`;
 
-            div.innerHTML = content + `<button class="btn-del" onclick="deleteItem('${currentTab}', ${index})">X</button>`;
+            div.innerHTML = content + `
+                <div class="action-btns">
+                    <button class="btn-icon btn-edit" title="Modifier" onclick="editItem('${currentTab}', ${index})">✏️</button>
+                    <button class="btn-icon btn-del" title="Supprimer" onclick="deleteItem('${currentTab}', ${index})">❌</button>
+                </div>`;
             container.appendChild(div);
         });
     }
 
-    // Supprimer une carte
     function deleteItem(tab, index) {
         if(confirm("Supprimer cette carte de la base de données ?")) {
             if(tab === 'RAV') currentData.ravageurs.splice(index, 1);
@@ -198,62 +199,117 @@
         }
     }
 
-    // Ajouter une carte depuis le formulaire
-    function addCard() {
+    function editItem(tab, index) {
+        editingIndex = index;
+        editingType = tab;
+        
+        const item = tab === 'RAV' ? currentData.ravageurs[index] : currentData.decks[tab][index];
+        
+        document.getElementById('card-type').value = tab;
+        toggleFormFields();
+        document.getElementById('card-type').disabled = true; // Empêche de changer le type pendant l'édition
+
+        document.getElementById('form-title').innerHTML = "✏️ Modifier la carte";
+        document.getElementById('btn-submit').innerText = "💾 Sauvegarder";
+        document.getElementById('btn-submit').style.background = "#ffb300";
+        document.getElementById('btn-cancel').style.display = "block";
+
+        document.getElementById('f-nom').value = item.nom || item.n;
+        document.getElementById('f-qte').value = item.qte || 2;
+        
+        if(tab !== 'RAV') {
+            document.getElementById('f-p').value = item.p;
+            document.getElementById('f-t').value = item.t || 1;
+        }
+        
+        if(tab === 'C') {
+            document.getElementById('f-cat').value = item.cat;
+            document.getElementById('f-e').value = item.e;
+            document.getElementById('f-s').value = item.s;
+            document.getElementById('f-g').value = item.g;
+            document.querySelectorAll('.cb-sm').forEach(cb => cb.checked = (item.sm || []).includes(cb.value));
+            document.querySelectorAll('.cb-rc').forEach(cb => cb.checked = (item.rc || []).includes(cb.value));
+        } else if(tab === 'S') {
+            document.getElementById('f-desc').value = item.desc;
+        } else if(tab === 'A') {
+            document.getElementById('f-prot').value = item.prot;
+        } else if(tab === 'RAV') {
+            document.getElementById('f-d').value = item.d;
+        }
+        
+        window.scrollTo(0, 0); // Remonte la page
+    }
+
+    function cancelEdit() {
+        editingIndex = null;
+        editingType = null;
+        document.getElementById('card-type').disabled = false;
+        document.getElementById('form-title').innerHTML = "➕ Ajouter une carte";
+        document.getElementById('btn-submit').innerText = "Enregistrer";
+        document.getElementById('btn-submit').style.background = "#1976d2";
+        document.getElementById('btn-cancel').style.display = "none";
+        document.getElementById('f-nom').value = "";
+    }
+
+    function saveCard() {
         const type = document.getElementById('card-type').value;
         const nom = document.getElementById('f-nom').value;
+        const qte = parseInt(document.getElementById('f-qte').value) || 2;
         if(!nom) return alert("Le nom est obligatoire !");
 
         let newItem = {};
 
         if(type === 'RAV') {
-            newItem = { n: nom, d: parseInt(document.getElementById('f-d').value) };
-            currentData.ravageurs.push(newItem);
+            newItem = { n: nom, qte: qte, d: parseInt(document.getElementById('f-d').value) };
         } else {
-            newItem = { nom: nom, p: parseInt(document.getElementById('f-p').value), t: parseInt(document.getElementById('f-t').value) };
-            
+            newItem = { nom: nom, qte: qte, p: parseInt(document.getElementById('f-p').value), t: parseInt(document.getElementById('f-t').value) };
             if(type === 'C') {
                 newItem.cat = document.getElementById('f-cat').value;
                 newItem.e = parseInt(document.getElementById('f-e').value);
                 newItem.s = parseInt(document.getElementById('f-s').value);
                 newItem.g = parseInt(document.getElementById('f-g').value);
-                
                 newItem.sm = Array.from(document.querySelectorAll('.cb-sm:checked')).map(cb => cb.value);
                 newItem.rc = Array.from(document.querySelectorAll('.cb-rc:checked')).map(cb => cb.value);
-                if(newItem.sm.length === 0 || newItem.rc.length === 0) return alert("Cochez au moins une saison de semis et de récolte !");
+                if(newItem.sm.length===0 || newItem.rc.length===0) return alert("Cochez au moins une saison de semis et récolte !");
             }
             if(type === 'S') newItem.desc = document.getElementById('f-desc').value;
             if(type === 'A') { newItem.cat = 'X'; newItem.prot = document.getElementById('f-prot').value; }
+        }
 
-            currentData.decks[type].push(newItem);
+        if(editingIndex !== null) {
+            // Modification
+            if(type === 'RAV') currentData.ravageurs[editingIndex] = newItem;
+            else currentData.decks[type][editingIndex] = newItem;
+        } else {
+            // Ajout
+            if(type === 'RAV') currentData.ravageurs.push(newItem);
+            else currentData.decks[type].push(newItem);
         }
 
         dbConfig.set(currentData);
-        document.getElementById('f-nom').value = ""; // Reset du nom
-        alert("Carte ajoutée avec succès !");
+        cancelEdit();
     }
 
-    // LE BOUTON MAGIQUE : Injecte tout ton deck master initial
     function injectDefaultData() {
-        if(!confirm("⚠️ Attention : Cela va effacer toutes vos modifications actuelles et restaurer les 40 cartes par défaut. Continuer ?")) return;
+        if(!confirm("⚠️ Attention : Cela va effacer toutes vos modifications actuelles et restaurer les cartes par défaut avec Quantité=2. Continuer ?")) return;
 
         const defaultData = {
             decks: {
                 C: [
-                    {nom:"Radis",p:0,e:1,s:1,t:1,g:3,cat:'L',sm:['P','E','A','H'],rc:['P','E','A','H']}, {nom:"Laitue",p:0,e:2,s:1,t:1,g:4,cat:'L',sm:['P','A'],rc:['P','E','A']}, 
-                    {nom:"Carotte",p:1,e:4,s:2,t:1,g:6,cat:'L',sm:['P','E'],rc:['A','H']}, {nom:"Tomate",p:1,e:6,s:5,t:1,g:9,cat:'L',sm:['P'],rc:['E','A']}, 
-                    {nom:"Courgette",p:1,e:5,s:4,t:1,g:8,cat:'L',sm:['P'],rc:['E','A']}, {nom:"Aubergine",p:2,e:7,s:6,t:1,g:11,cat:'L',sm:['P'],rc:['E','A']},
-                    {nom:"Poireau",p:1,e:4,s:2,t:1,g:6,cat:'L',sm:['P','A'],rc:['E','H']}, {nom:"Patate",p:1,e:3,s:4,t:1,g:8,cat:'L',sm:['P','E'],rc:['A','H']},
-                    {nom:"Pommier",p:3,e:12,s:6,t:3,g:18,cat:'A',sm:['A','H'],rc:['E','A']}, {nom:"Cerisier",p:3,e:10,s:6,t:3,g:18,cat:'A',sm:['A','H'],rc:['E']},
-                    {nom:"Fraise",p:2,e:3,s:4,t:1,g:8,cat:'A',sm:['P','A'],rc:['E']}, {nom:"Noisetier",p:2,e:8,s:4,t:3,g:12,cat:'A',sm:['A','H'],rc:['A']},
-                    {nom:"Épinard",p:0,e:2,s:1,t:1,g:4,cat:'L',sm:['P','A'],rc:['P','A','H']}, {nom:"Navet",p:1,e:3,s:2,t:1,g:5,cat:'L',sm:['P','A'],rc:['A','H']},
-                    {nom:"Oignon",p:1,e:2,s:3,t:1,g:6,cat:'L',sm:['P','A'],rc:['E','A']}, {nom:"Haricot",p:1,e:3,s:3,t:1,g:6,cat:'L',sm:['P','E'],rc:['E','A']},
-                    {nom:"Tournesol",p:1,e:3,s:6,t:1,g:7,cat:'F',sm:['P'],rc:['E','A']}, {nom:"Pleurote",p:2,e:6,s:0,t:1,g:8,cat:'M',sm:['A'],rc:['H']}
+                    {nom:"Radis",qte:2,p:0,e:1,s:1,t:1,g:3,cat:'L',sm:['P','E','A','H'],rc:['P','E','A','H']}, {nom:"Laitue",qte:2,p:0,e:2,s:1,t:1,g:4,cat:'L',sm:['P','A'],rc:['P','E','A']}, 
+                    {nom:"Carotte",qte:2,p:1,e:4,s:2,t:1,g:6,cat:'L',sm:['P','E'],rc:['A','H']}, {nom:"Tomate",qte:2,p:1,e:6,s:5,t:1,g:9,cat:'L',sm:['P'],rc:['E','A']}, 
+                    {nom:"Courgette",qte:2,p:1,e:5,s:4,t:1,g:8,cat:'L',sm:['P'],rc:['E','A']}, {nom:"Aubergine",qte:2,p:2,e:7,s:6,t:1,g:11,cat:'L',sm:['P'],rc:['E','A']},
+                    {nom:"Poireau",qte:2,p:1,e:4,s:2,t:1,g:6,cat:'L',sm:['P','A'],rc:['E','H']}, {nom:"Patate",qte:2,p:1,e:3,s:4,t:1,g:8,cat:'L',sm:['P','E'],rc:['A','H']},
+                    {nom:"Pommier",qte:2,p:3,e:12,s:6,t:3,g:18,cat:'A',sm:['A','H'],rc:['E','A']}, {nom:"Cerisier",qte:2,p:3,e:10,s:6,t:3,g:18,cat:'A',sm:['A','H'],rc:['E']},
+                    {nom:"Fraise",qte:2,p:2,e:3,s:4,t:1,g:8,cat:'A',sm:['P','A'],rc:['E']}, {nom:"Noisetier",qte:2,p:2,e:8,s:4,t:3,g:12,cat:'A',sm:['A','H'],rc:['A']},
+                    {nom:"Épinard",qte:2,p:0,e:2,s:1,t:1,g:4,cat:'L',sm:['P','A'],rc:['P','A','H']}, {nom:"Navet",qte:2,p:1,e:3,s:2,t:1,g:5,cat:'L',sm:['P','A'],rc:['A','H']},
+                    {nom:"Oignon",qte:2,p:1,e:2,s:3,t:1,g:6,cat:'L',sm:['P','A'],rc:['E','A']}, {nom:"Haricot",qte:2,p:1,e:3,s:3,t:1,g:6,cat:'L',sm:['P','E'],rc:['E','A']},
+                    {nom:"Tournesol",qte:2,p:1,e:3,s:6,t:1,g:7,cat:'F',sm:['P'],rc:['E','A']}, {nom:"Pleurote",qte:2,p:2,e:6,s:0,t:1,g:8,cat:'M',sm:['A'],rc:['H']}
                 ],
-                S: [{nom:"Fumier",p:2,t:1,cat:'S',desc:'+2💩 Compost'}, {nom:"Purin d'Ortie",p:1,t:1,cat:'S',desc:'-4💧 (Zone)'}, {nom:"Corne Broyée",p:2,t:1,cat:'S',desc:'+2💰 récolte (Zone)'}, {nom:"Paillage",p:1,t:1,cat:'S',desc:'-2💧 -1☀️ (Zone)'}],
-                A: [{nom:"Hérisson",p:2,t:1,cat:'X',prot:'Limaces'}, {nom:"Coccinelle",p:1,t:1,cat:'X',prot:'Pucerons'}, {nom:"Mésange",p:2,t:1,cat:'X',prot:'Carpocapses'}, {nom:"Crapaud",p:1,t:1,cat:'X',prot:'Campagnols'}]
+                S: [{nom:"Fumier",qte:2,p:2,t:1,cat:'S',desc:'+2💩 Compost'}, {nom:"Purin d'Ortie",qte:2,p:1,t:1,cat:'S',desc:'-4💧 (Zone)'}, {nom:"Corne Broyée",qte:2,p:2,t:1,cat:'S',desc:'+2💰 récolte (Zone)'}, {nom:"Paillage",qte:2,p:1,t:1,cat:'S',desc:'-2💧 -1☀️ (Zone)'}],
+                A: [{nom:"Hérisson",qte:2,p:2,t:1,cat:'X',prot:'Limaces'}, {nom:"Coccinelle",qte:2,p:1,t:1,cat:'X',prot:'Pucerons'}, {nom:"Mésange",qte:2,p:2,t:1,cat:'X',prot:'Carpocapses'}, {nom:"Crapaud",qte:2,p:1,t:1,cat:'X',prot:'Campagnols'}]
             },
-            ravageurs: [{n:"Limaces",d:3}, {n:"Pucerons",d:2}, {n:"Carpocapses",d:4}, {n:"Campagnols",d:4}]
+            ravageurs: [{n:"Limaces",qte:2,d:3}, {n:"Pucerons",qte:2,d:2}, {n:"Carpocapses",qte:2,d:4}, {n:"Campagnols",qte:2,d:4}]
         };
 
         dbConfig.set(defaultData).then(() => {
