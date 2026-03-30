@@ -97,11 +97,13 @@
 <div class="main-game">
     <div id="turn-banner" class="turn-banner">Veuillez patienter, c'est le tour de l'adversaire...</div>
     
-    <div class="hud" id="my-hud">
+<div class="hud" id="my-hud">
         <div id="season-display">📅 Saison...</div>
         <div>💰 <span id="res-money">0</span> | ⏳ <span id="res-time">0</span>/<span id="res-timemax">10</span>h</div>
         <div title="Points de Compost accumulés">💩 <span id="res-compost" class="res-pill">0</span></div>
         <div id="meteo-display" style="background:#e3f2fd; padding:3px 10px; border-radius:10px;">🎲 --</div>
+        
+        <button id="champion-btn" onclick="playChampion()" style="background:#fbc02d; color:#333; border:none; border-radius:4px; padding:4px 8px; cursor:pointer; font-weight:bold; transition:0.3s;" title="Regarder le meilleur Bot actuel jouer à vitesse normale sans muter">🏆 Jouer Champion</button>
         
         <button id="auto-train-btn" onclick="toggleAutoTrain()" style="background:#009688; color:white; border:none; border-radius:4px; padding:4px 8px; cursor:pointer; font-weight:bold; transition:0.3s;" title="Relance les parties en boucle jusqu'à battre le record">🧬 Auto-Train: OFF</button>
         <button id="bot-btn" onclick="toggleBot()" style="background:#9c27b0; color:white; border:none; border-radius:4px; padding:4px 8px; cursor:pointer; font-weight:bold; transition:0.3s;" title="Laisser l'ordinateur jouer à votre place">🤖 Bot: OFF</button>
