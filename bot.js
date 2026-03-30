@@ -1,5 +1,5 @@
 // ==========================================
-// 🤖 MOTEUR D'INTELLIGENCE ARTIFICIELLE (V15 - Corrigé)
+// 🤖 MOTEUR D'INTELLIGENCE ARTIFICIELLE (V16)
 // ==========================================
 
 let botEnabled = false;
@@ -21,18 +21,10 @@ function toggleBot() {
 
 function triggerBot(botId) {
     if(botTimeout) clearTimeout(botTimeout);
-    
-    // Changez la valeur ci-dessous pour ajuster la vitesse :
-    // 1000 = Normal (1 seconde)
-    // 300  = Rapide
-    // 50   = Turbo (Instantané)
-    const vitesseBot = 150; 
-    
-    botTimeout = setTimeout(() => { botThinkAndAct(botId); }, vitesseBot);
+    botTimeout = setTimeout(() => { botThinkAndAct(botId); }, 200); // Vitesse rapide (200ms)
 }
 
 function botThinkAndAct(botId) {
-    // Le bloc TRY/CATCH empêche le bot de crasher en silence
     try {
         if(!state || state.turn !== botId || state.gameOver) return;
         
@@ -63,7 +55,7 @@ function botThinkAndAct(botId) {
             } else if (z.type && z.id !== 0) {
                 if(z.type === 'POTAGER') hasEmptyPotager = true;
                 if(z.type === 'VERGER') hasEmptyVerger = true;
-                if(z.type === 'AMÉNAGEMENT' && !z.batiment) hasEmptyNature = true; // Détecte la zone Nature
+                if(z.type === 'AMÉNAGEMENT' && !z.batiment) hasEmptyNature = true;
 
                 (me.hand || []).forEach((c, idx) => {
                     const costH = Math.max(0, (c.t||1)-(me.upgrades[2]-1));
@@ -77,7 +69,6 @@ function botThinkAndAct(botId) {
                     }
                 });
 
-                // Construit un Composteur si une zone Nature existe
                 if(!z.batiment && z.type === 'AMÉNAGEMENT' && !hasComposteur && me.money >= 4 && me.time >= 4) {
                     if(550 > bestAction.score) bestAction = { type: 'BATIMENT', zoneId: z.id, batiment: 'COMPOSTEUR', score: 550 };
                 }
@@ -92,8 +83,7 @@ function botThinkAndAct(botId) {
             let needsPotager = (me.hand||[]).some(c => c.cat === 'L' && (c.sm||[]).includes(curS));
             let needsVerger = (me.hand||[]).some(c => c.cat === 'A' && (c.sm||[]).includes(curS));
             
-            // Il prépare une zone Nature s'il veut un Composteur et a l'argent global (3 pour le terrain + 4 pour le composteur)
-            if(!hasComposteur && !hasEmptyNature && me.money >= 7 && 550 > bestAction.score) {
+            if(!hasComposteur && !hasEmptyNature && me.money >= (costT + 4) && 550 > bestAction.score) {
                 bestAction = { type: 'AMENAGER', zoneId: emptyZoneId, terrain: 'AMÉNAGEMENT', score: 550 };
             } else if(needsPotager && !hasEmptyPotager && 500 > bestAction.score) {
                 bestAction = { type: 'AMENAGER', zoneId: emptyZoneId, terrain: 'POTAGER', score: 500 };
@@ -102,13 +92,15 @@ function botThinkAndAct(botId) {
             }
         }
 
-        // 3. ACHAT D'AMÉLIORATIONS
+        // 3. ACHAT D'AMÉLIORATIONS (Désormais elles coûtent de l'Or !)
         let redJ = me.upgrades[6] >= 2 ? 1 : 0;
         let costJard = Math.max(0, 3 - redJ); 
 
         UP_NAMES.forEach((n, i) => {
-            const costUp = me.upgrades[i] === 1 ? 3 : 5;
-            if(me.upgrades[i] < 3 && me.time >= costUp && me.time > costJard) {
+            const costUpH = me.upgrades[i] === 1 ? 3 : 5;
+            const costUpM = me.upgrades[i] === 1 ? 2 : 4; // L'IA vérifie le coût en Or
+            
+            if(me.upgrades[i] < 3 && me.time >= costUpH && me.money >= costUpM && me.time > costJard) {
                 let prio = 300 + (10 - i*10); 
                 if(i===0) prio += 50; 
                 if(prio > bestAction.score) bestAction = { type: 'UPGRADE', upIdx: i, score: prio };
@@ -157,7 +149,7 @@ function botThinkAndAct(botId) {
     } catch (erreur) {
         console.error(erreur);
         addLog("❌ ERREUR IA : " + erreur.message, botId);
-        botEnabled = false; // Désactive le bot pour éviter de boucler sur l'erreur
+        botEnabled = false; 
         const btn = document.getElementById('bot-btn');
         if(btn) { btn.innerText = "🤖 Bot: ERREUR"; btn.style.background = "#d32f2f"; }
     }
