@@ -2,7 +2,7 @@
 <html lang="fr">
 <head>
     <meta charset="UTF-8">
-    <title>La Main Verte - V7.2 Logs Partagés</title>
+    <title>La Main Verte - V7.3 Ultime</title>
     <script src="https://www.gstatic.com/firebasejs/9.17.1/firebase-app-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/9.17.1/firebase-database-compat.js"></script>
     <style>
@@ -17,7 +17,6 @@
         .tuile-potager { background: var(--potager) !important; border: 2px solid #2e7d32 !important; }
         .tuile-verger { background: var(--verger) !important; border: 2px solid #fbc02d !important; }
         .tuile-amenag { background: var(--amenag) !important; border: 2px solid #ff5722 !important; }
-        .tuile-batiment { background: var(--batiment) !important; border: 2px solid #263238 !important; color: white; }
         .has-serre { box-shadow: inset 0 0 15px rgba(3, 169, 244, 0.6); border: 3px solid #03a9f4 !important; background: var(--serre) !important; }
         .card { border: 1px solid #ddd; border-radius: 6px; padding: 6px; margin-bottom: 4px; background: white; font-size: 0.75em; border-left: 4px solid var(--p1); cursor: help; position: relative;}
         .btn-action { width: 100%; padding: 8px; border: none; border-radius: 4px; font-weight: bold; color: white; cursor: pointer; font-size: 0.75em; margin-bottom: 3px; }
@@ -55,7 +54,7 @@
 
 <div class="sidebar">
     <div style="background:#f0f4f7; padding:8px; border-radius:6px; margin-bottom:10px; font-size:0.8em; text-align:center;">
-        <b>🎴 Cartes restantes :</b> <span id="deck-count">C:0 | S:0 | A:0</span>
+        <b>🎴 Cartes restantes (Défausse) :</b> <span id="deck-count">C:0 | S:0 | A:0</span>
     </div>
     <h3 style="margin:0 0 5px 0;">⚙️ Améliorations</h3>
     <div id="up-grid" style="display:grid; grid-template-columns: 1fr 1fr; gap:4px; margin-bottom:10px;"></div>
@@ -83,7 +82,7 @@
     firebase.initializeApp(firebaseConfig);
     const db = firebase.database().ref("game-session-001");
 
-    // --- LE DECK COMPLET (40+ Cartes) ---
+    // --- LE DECK COMPLET ---
     const DECK_MASTER = {
         C: [
             {nom:"Radis",p:0,e:1,s:1,t:1,g:3,cat:'L',sm:['P','E','A','H'],rc:['P','E','A','H']}, {nom:"Laitue",p:0,e:2,s:1,t:1,g:4,cat:'L',sm:['P','A'],rc:['P','E','A']}, 
@@ -96,7 +95,7 @@
             {nom:"Oignon",p:1,e:2,s:3,t:1,g:6,cat:'L',sm:['P','A'],rc:['E','A']}, {nom:"Haricot",p:1,e:3,s:3,t:1,g:6,cat:'L',sm:['P','E'],rc:['E','A']},
             {nom:"Tournesol",p:1,e:3,s:6,t:1,g:7,cat:'F',sm:['P'],rc:['E','A']}, {nom:"Pleurote",p:2,e:6,s:0,t:1,g:8,cat:'M',sm:['A'],rc:['H']}
         ],
-        S: [{nom:"Fumier",p:2,t:1,cat:'S',desc:'+2💩 Compost'}, {nom:"Purin d'Ortie",p:1,t:1,cat:'S',desc:'-4💧 (Zone)'}, {nom:"Corne Broyée",p:2,t:1,cat:'S',desc:'+2💰 récolte (Zone)'}, {nom:"Paillage",p:1,t:1,cat:'S',desc:'-2💧 -1☀️ (Zone)'}],
+        S: [{nom:"Fumier",p:2,t:1,cat:'S',desc:'+2💩 Compost'}, {nom:"Purin d'Ortie",p:1,t:1,cat:'S',desc:'-4💧 (Sur zone)'}, {nom:"Corne Broyée",p:2,t:1,cat:'S',desc:'+2💰 récolte (Zone)'}, {nom:"Paillage",p:1,t:1,cat:'S',desc:'-2💧 -1☀️ (Zone)'}],
         A: [{nom:"Hérisson",p:2,t:1,cat:'X',prot:'Limaces'}, {nom:"Coccinelle",p:1,t:1,cat:'X',prot:'Pucerons'}, {nom:"Mésange",p:2,t:1,cat:'X',prot:'Carpocapses'}, {nom:"Crapaud",p:1,t:1,cat:'X',prot:'Campagnols'}]
     };
     const RAV_TYPES = [{n:"Limaces",d:3}, {n:"Pucerons",d:2}, {n:"Carpocapses",d:4}, {n:"Campagnols",d:4}];
@@ -112,11 +111,10 @@
 
     function sync() { if(state) db.set(state); }
 
-    // FONCTION DE LOG MULTIJOUEUR
     function addLog(msg) {
         if(!state.gameLogs) state.gameLogs = [];
         state.gameLogs.unshift("> " + msg);
-        if(state.gameLogs.length > 20) state.gameLogs.pop(); // Garde les 20 derniers logs
+        if(state.gameLogs.length > 20) state.gameLogs.pop();
     }
 
     function initNewGame() {
@@ -145,7 +143,6 @@
         setTxt('meteo-display', `🌧️ ${state.currentMeteo.p} | ☀️ ${state.currentMeteo.s}`);
         setTxt('deck-count', `C:${(state.decks.C||[]).length} | S:${(state.decks.S||[]).length} | A:${(state.decks.A||[]).length}`);
 
-        // Rendu Logs
         const logBox = document.getElementById('game-logs');
         if(logBox && state.gameLogs) logBox.innerHTML = state.gameLogs.map(l => `<div>${l}</div>`).join('');
 
@@ -163,21 +160,25 @@
             const acc = z.id <= (state.upgrades[0] === 1 ? 3 : (state.upgrades[0] === 2 ? 4 : 5));
             const isS = z.batiment === 'SERRE';
             const d = document.createElement('div');
-            d.className = `zone ${z.type ? 'tuile-'+z.type.toLowerCase() : ''} ${z.batiment && !isS ? 'tuile-batiment' : ''} ${isS ? 'has-serre' : ''} ${localSelectedId === z.id ? 'selected' : ''}`;
+            d.className = `zone ${z.type ? 'tuile-'+z.type.toLowerCase() : ''} ${isS ? 'has-serre' : ''} ${localSelectedId === z.id ? 'selected' : ''}`;
             d.style.opacity = acc ? "1" : "0.3";
             d.onclick = () => { if(acc) { localSelectedId = z.id; render(); } };
             
             if(z.id === 0) { d.innerHTML = "🏠 MAISON"; d.title = "La maison principale."; }
-            else if(!z.type) { d.innerHTML = `ZONE ${z.id}${acc?'':'<br>🔒'}`; d.title = acc ? "Zone vierge. Aménagez-la." : "Zone verrouillée."; }
+            else if(!z.type) { d.innerHTML = `ZONE ${z.id}${acc?'':'<br>🔒'}`; d.title = acc ? "Zone vierge. Aménagez-la avec les boutons verts/oranges." : "Zone verrouillée (Améliorez le Terrain)."; }
             else {
-                d.innerHTML = `<b>${isS ? "SERRE" : (z.batiment || z.type)}</b>`;
+                // TITRE CLAIR DU BÂTIMENT ET DU SOL
+                let header = z.type;
+                if(z.batiment) header += ` + ${z.batiment}`;
+                d.innerHTML = `<b>${header}</b>`;
+                
                 if(z.culture) {
                     d.innerHTML += `<br>${z.culture.nom}<br>💧${z.culture.eCur} ☀️${z.culture.sCur}`;
-                    d.title = `${z.culture.nom}\nBesoins actuels : ${z.culture.eCur}💧 | ${z.culture.sCur}☀️\nGain espéré : ${z.culture.g + (state.upgrades[3]-1) + (z.culture.amd||0)}💰`;
+                    d.title = `${z.culture.nom}\nBesoins: ${z.culture.eCur}💧 | ${z.culture.sCur}☀️\nGain: ${z.culture.g + (state.upgrades[3]-1) + (z.culture.amd||0)}💰`;
                     if(z.culture.eCur <= 0 && z.culture.sCur <= 0) {
-                        d.innerHTML += `<br><button onclick="actionRecolter(${z.id})" style="background:var(--p1); color:white; border:none; padding:4px 8px; cursor:pointer; border-radius:4px; margin-top:4px;" title="Récolter (-2h)" ${state.time<2?'disabled':''}>🧺 Récolter</button>`;
+                        d.innerHTML += `<br><button onclick="actionRecolter(${z.id})" style="background:var(--p1); color:white; border:none; padding:4px 8px; cursor:pointer; border-radius:4px; margin-top:4px;" ${state.time<2?'disabled':''}>🧺 Récolter</button>`;
                     }
-                } else d.title = `${isS ? "Serre (sur Potager)" : z.type}. Prêt pour un semis.`;
+                } else d.title = `${header}. Prêt pour un semis.`;
             }
             grid.appendChild(d);
         });
@@ -195,8 +196,11 @@
         (state.hand || []).forEach((c, i) => {
             const cost = Math.max(0, (c.t||1) - (state.upgrades[2]-1));
             const card = document.createElement('div'); card.className = "card";
-            card.innerHTML = `<b>${c.nom}</b><br><span style="font-size:0.9em;">${c.cat==='S'?c.desc:(c.cat==='X'?c.prot:'💧'+c.e+' ☀️'+c.s)}</span><br><button onclick="playC(${i})" style="width:100%; margin-top:4px; padding:3px; cursor:pointer;" ${state.time<cost?'disabled':''}>Jouer (-${cost}h)</button>`;
-            card.title = c.cat === 'L' || c.cat === 'A' ? `Semis : ${c.sm.join(',')}\nRécolte : ${c.rc.join(',')}\nGain : ${c.g}💰` : `Effet : ${c.desc || c.prot}`;
+            
+            // AFFICHAGE DES SAISONS POUR LA MAIN
+            let details = c.cat==='S' ? c.desc : (c.cat==='X' ? c.prot : `💧${c.e} ☀️${c.s}<br>🌱 ${c.sm.join(',')} | 🧺 ${c.rc.join(',')}`);
+            
+            card.innerHTML = `<b>${c.nom}</b><br><span style="font-size:0.9em;">${details}</span><br><button onclick="playC(${i})" style="width:100%; margin-top:4px; padding:3px; cursor:pointer; background:#e8eaf6; border:1px solid #ccc; font-weight:bold;" ${state.time<cost?'disabled':''}>Jouer (-${cost}h)</button>`;
             hDiv.appendChild(card);
         });
 
@@ -211,10 +215,10 @@
             <button class="btn-action" style="background:#4caf50" onclick="actT('POTAGER')" title="Aménage un Potager (pour les Légumes L)" ${state.time<3||state.money<costT?'disabled':''}>🏗️ Potager (-${costT}💰)</button>
             <button class="btn-action" style="background:#fbc02d;color:#333" onclick="actT('VERGER')" title="Aménage un Verger (pour les Arbres A)" ${state.time<3||state.money<costT?'disabled':''}>🏗️ Verger (-${costT}💰)</button>
             <button class="btn-action" style="background:#ff5722" onclick="actT('AMÉNAGEMENT')" title="Aménage la Nature (Champignons/Bâtiments)" ${state.time<3||state.money<3?'disabled':''}>🌳 Nature (-3💰)</button>
-            <button class="btn-action" style="background:#607d8b" onclick="actB()" title="Construit Serre, Composteur ou Local" ${state.time<4?'disabled':''}>🏠 Bâtiment</button>
+            <button class="btn-action" style="background:#607d8b" onclick="actB()" title="Construit Serre, Composteur ou Local Outils" ${state.time<4?'disabled':''}>🏠 Bâtiment</button>
             <button class="btn-action" style="background:#2196f3" onclick="actArr()" title="Arrose manuellement (-2💧) la culture." ${state.time<1?'disabled':''}>💧 Arroser (-1h)</button>
             <button class="btn-action" style="background:#795548" onclick="actAmd()" title="Amende (-1☀️) la culture avec du Compost." ${state.time<1||(state.compost||0)<1?'disabled':''}>☀️ Amender (-1h)</button>
-            <button class="btn-action" style="background:#e53935; grid-column:span 2;" onclick="actFin()" title="Termine la saison.">💤 Fin de Saison</button>
+            <button class="btn-action" style="background:#e53935; grid-column:span 2;" onclick="actFin()" title="Termine la saison (Avance la météo et le temps).">💤 Fin de Saison</button>
         `;
 
         const upG = document.getElementById('up-grid'); upG.innerHTML = "";
@@ -245,7 +249,11 @@
             (state.market[cat] || []).forEach((c, idx) => {
                 const can = state.money >= c.p;
                 const d = document.createElement('div'); d.className = "jard-card"; d.style.opacity = can?"1":"0.4";
-                d.innerHTML = `<div class="price-tag">${c.p}💰</div><b>${c.nom}</b><br><small>${c.cat==='S'?c.desc:(c.cat==='X'?c.prot:'💧'+c.e+' ☀️'+c.s)}</small>`;
+                
+                // AFFICHAGE DES SAISONS DANS LE MARCHÉ
+                let details = c.cat==='S' ? c.desc : (c.cat==='X' ? c.prot : `💧${c.e} ☀️${c.s}<br>🌱 ${c.sm.join(',')} | 🧺 ${c.rc.join(',')}`);
+                d.innerHTML = `<div class="price-tag">${c.p}💰</div><b>${c.nom}</b><br><small>${details}</small>`;
+                
                 d.onclick = () => { if(can) { state.money-=c.p; if(!state.hand) state.hand=[]; state.hand.push(c); state.market[cat].splice(idx,1); addLog(`🛒 Achat : ${c.nom}`); consm(); } };
                 r.appendChild(d);
             });
@@ -257,10 +265,10 @@
     function jardR(cat) { state.market[cat] = []; for(let i=0; i<2; i++) { let d = draw(cat); if(d) state.market[cat].push(d); } addLog(`🔄 Rayon renouvelé.`); consm(); }
     function consm() { state.picksLeft--; if(state.picksLeft<=0) { state.modalOpen=false; ['C','S','A'].forEach(cat => { while((state.market[cat]||[]).length<2) { let c = draw(cat); if(c) state.market[cat].push(c); else break; } }); } sync(); }
 
-    // --- ACTIONS JEU (AVEC LOGS) ---
+    // --- ACTIONS JEU ---
     function actT(t) { if(!localSelectedId || localSelectedId===0) return alert("Sélectionnez une zone !"); const cost = state.upgrades[5]>=2 ? (state.upgrades[5]===3?0:1) : 2; state.money -= (t==='AMÉNAGEMENT'?3:cost); state.time -= 3; state.zones[localSelectedId].type = t; addLog(`🏗️ Zone ${localSelectedId} aménagée en ${t}.`); sync(); }
     function actB() { 
-        const z = state.zones[localSelectedId]; if(!z || z.batiment) return alert("Zone invalide.");
+        const z = state.zones[localSelectedId]; if(!z || z.batiment) return alert("Zone invalide ou déjà occupée par un bâtiment.");
         const ch = prompt("1: Serre (3💰) sur Potager\n2: Composteur (4💰)\n3: Local Outils (5💰)");
         if(ch==="1" && z.type==="POTAGER") { if(state.money<3) return; state.money-=3; state.time-=4; z.batiment="SERRE"; addLog("🏠 Serre construite."); }
         else if(ch==="2" && (z.type==="POTAGER"||z.type==="AMÉNAGEMENT")) { if(state.money<4) return; state.money-=4; state.time-=4; z.batiment="COMPOSTEUR"; addLog("🏠 Composteur construit."); }
@@ -290,10 +298,11 @@
         else { 
             if(!z || !z.type) return alert("Aménagez la zone d'abord !");
             if(z.culture) return alert("Zone occupée !");
-            if(c.cat==='L' && z.type!=='POTAGER') return alert("Les Légumes (L) vont dans un Potager !");
+            // ALERTES PRÉCISES (SERRE EST UN POTAGER)
+            if(c.cat==='L' && z.type!=='POTAGER') return alert("Les Légumes (L) vont dans un Potager (ou Potager + Serre) !");
             if(c.cat==='A' && z.type!=='VERGER') return alert("Les Arbres (A) vont dans un Verger !");
-            if(c.cat==='F' && z.type==='AMÉNAGEMENT') return alert("Les Fleurs vont dans un Potager/Verger !");
-            if(c.cat==='M' && z.type!=='AMÉNAGEMENT') return alert("Les Champignons (M) vont dans la Nature !");
+            if(c.cat==='F' && (z.type!=='POTAGER' && z.type!=='VERGER')) return alert("Les Fleurs vont dans un Potager ou Verger !");
+            if(c.cat==='M' && z.type!=='AMÉNAGEMENT') return alert("Les Champignons (M) vont dans la Nature (Aménagement) !");
             
             let curS = ALL_SEASONS[state.saisonIdx];
             let smValid = z.batiment === 'SERRE' ? c.sm.map(s => ALL_SEASONS[(ALL_SEASONS.indexOf(s)+3)%4]).concat(c.sm) : c.sm;
@@ -304,7 +313,6 @@
         sync(); 
     }
 
-    // --- LE MOTEUR DE SAISON CORRIGÉ (REFERENCE ERROR) ---
     function actFin() {
         state.saisonIdx++; if(state.saisonIdx > 3) { state.saisonIdx = 0; state.annee++; }
         let curS = ALL_SEASONS[state.saisonIdx];
@@ -320,7 +328,7 @@
                 z.culture.sCur = Math.max(0, z.culture.sCur - s); 
                 
                 let isS = z.batiment === 'SERRE';
-                let c = z.culture; // LA CORRECTION EST ICI
+                let c = z.culture; 
                 let survie = isS ? c.rc.map(s => ALL_SEASONS[(ALL_SEASONS.indexOf(s)+3)%4]).concat(c.rc).concat(c.sm) : c.rc.concat(c.sm);
                 if(!survie.includes(curS)) { addLog(`🥀 ${c.nom} est mort (hors-saison).`); z.culture = null; }
             } 
