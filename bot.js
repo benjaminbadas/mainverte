@@ -21,7 +21,14 @@ function toggleBot() {
 
 function triggerBot(botId) {
     if(botTimeout) clearTimeout(botTimeout);
-    botTimeout = setTimeout(() => { botThinkAndAct(botId); }, 1000); // 1s de réflexion
+    
+    // Changez la valeur ci-dessous pour ajuster la vitesse :
+    // 1000 = Normal (1 seconde)
+    // 300  = Rapide
+    // 50   = Turbo (Instantané)
+    const vitesseBot = 150; 
+    
+    botTimeout = setTimeout(() => { botThinkAndAct(botId); }, vitesseBot);
 }
 
 function botThinkAndAct(botId) {
