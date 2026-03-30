@@ -504,6 +504,129 @@
             await initNewGame(myId || "Serveur");
         } 
     }
+
+// ==========================================
+// 🤖 MOTEUR D'INTELLIGENCE ARTIFICIELLE (BOT)
+// ==========================================
+
+// 1. Ajouter le bouton Bot dans le HUD
+setTimeout(() => {
+    const hud = document.getElementById('my-hud');
+    if(hud) {
+        const botBtn = document.createElement('button');
+        botBtn.innerHTML = "🤖 Activer le Bot";
+        botBtn.style = "background:#9c27b0; color:white; border:none; padding:4px 8px; border-radius:4px; font-weight:bold; cursor:pointer; margin-left:10px;";
+        botBtn.onclick = runBotLoop;
+        hud.appendChild(botBtn);
+    }
+}, 1000);
+
+let botRunning = false;
+
+function runBotLoop() {
+    if(botRunning) return; // Évite les lancements multiples
+    if(state.turn !== myId) return alert("Attendez votre tour pour lancer le bot !");
+    
+    botRunning = true;
+    addLog("🤖 Le Bot prend le contrôle...");
+    botThinkAndAct();
+}
+
+function botThinkAndAct() {
+    if(state.turn !== myId || !botRunning) { botRunning = false; return; }
+
+    const me = state['p'+myId];
+    let bestAction = { type: 'FIN_TOUR', score: 10 }; // Action par défaut
+    
+    // --- EVALUATION DES ACTIONS POSSIBLES ---
+    
+    const costT = me.upgrades[5] >= 2 ? (me.upgrades[5] === 3 ? 0 : 1) : 2;
+
+    // A. Parcourir les Zones (Récolte, Arrosage, Semis, Aménagement)
+    me.zones.forEach(z => {
+        if(z.culture) {
+            // Stratégie 1 : Récolter (Urgence max)
+            if(z.culture.eCur <= 0 && z.culture.sCur <= 0 && me.time >= 2) {
+                if(1000 > bestAction.score) bestAction = { type: 'RECOLTER', zoneId: z.id, score: 1000 };
+            }
+            // Stratégie 2 : Sauver une plante de la soif
+            else if(z.culture.eCur >= 2 && me.time >= 1) {
+                if(800 > bestAction.score) bestAction = { type: 'ARROSER', zoneId: z.id, score: 800 + z.culture.eCur };
+            }
+        } 
+        else if (z.type && z.id !== 0) {
+            // Stratégie 3 : Planter depuis la main
+            (me.hand || []).forEach((c, idx) => {
+                const costH = Math.max(0, (c.t||1)-(me.upgrades[2]-1));
+                let curS = ALL_SEASONS[state.saisonIdx];
+                let smValid = z.batiment === 'SERRE' ? (c.sm||[]).map(s => ALL_SEASONS[(ALL_SEASONS.indexOf(s)+3)%4]).concat(c.sm||[]) : (c.sm||[]);
+                
+                if(c.cat === 'L' && z.type === 'POTAGER' && smValid.includes(curS) && me.time >= costH) {
+                    let scorePlanter = 600 + c.g; // Privilégie les plantes qui rapportent gros
+                    if(scorePlanter > bestAction.score) bestAction = { type: 'PLANTER', handIdx: idx, zoneId: z.id, score: scorePlanter };
+                }
+            });
+        }
+        else if (!z.type && z.id !== 0 && z.id <= (me.upgrades[0] === 1 ? 3 : (me.upgrades[0] === 2 ? 4 : 5))) {
+            // Stratégie 4 : Aménager un Potager si zone vide
+            if(me.time >= 3 && me.money >= costT) {
+                if(500 > bestAction.score) bestAction = { type: 'AMENAGER', zoneId: z.id, terrain: 'POTAGER', score: 500 };
+            }
+        }
+    });
+
+    // B. Aller à la Jardinerie (Si main vide et riche)
+    if((!me.hand || me.hand.length === 0) && me.time >= 3 && me.money >= 2) {
+        if(400 > bestAction.score) bestAction = { type: 'JARDINERIE', score: 400 };
+    }
+
+    // --- EXECUTION DE L'ACTION ---
+    
+    setTimeout(() => {
+        if(bestAction.type === 'RECOLTER') {
+            actionRecolter(bestAction.zoneId);
+            render(); botThinkAndAct();
+        }
+        else if(bestAction.type === 'ARROSER') {
+            localSelectedId = bestAction.zoneId; actArr();
+            render(); botThinkAndAct();
+        }
+        else if(bestAction.type === 'AMENAGER') {
+            localSelectedId = bestAction.zoneId; actT(bestAction.terrain);
+            render(); botThinkAndAct();
+        }
+        else if(bestAction.type === 'PLANTER') {
+            localSelectedId = bestAction.zoneId; playC(bestAction.handIdx);
+            render(); botThinkAndAct();
+        }
+        else if(bestAction.type === 'JARDINERIE') {
+            // Le Bot achète automatiquement la culture la plus chère qu'il peut s'offrir
+            let cat = 'C';
+            if(!state.market[cat]) state.market[cat] = [];
+            while(state.market[cat].length < 2) { let c = draw(cat); if(c) state.market[cat].push(c); else break; }
+            
+            let carteAAcheter = state.market[cat].find(c => c.p <= me.money);
+            if(carteAAcheter) {
+                me.time -= 3; // Coût du voyage expédition 1
+                me.money -= carteAAcheter.p;
+                if(!me.hand) me.hand = [];
+                me.hand.push(carteAAcheter);
+                state.market[cat] = state.market[cat].filter(c => c.nom !== carteAAcheter.nom); // Retire du marché
+                addLog(`🤖 Le Bot a acheté ${carteAAcheter.nom}`);
+                sync(); render(); botThinkAndAct();
+            } else {
+                // S'il ne peut rien acheter, il passe son tour pour ne pas boucler à l'infini
+                actFin(); botRunning = false;
+            }
+        }
+        else if(bestAction.type === 'FIN_TOUR') {
+            addLog("🤖 Le Bot a terminé son tour.");
+            actFin();
+            botRunning = false; // S'arrête jusqu'au prochain tour
+        }
+    }, 800); // Délai de 0.8s pour que tu aies le temps de voir ce qu'il fait
+}
+    
 </script>
 </body>
 </html>
