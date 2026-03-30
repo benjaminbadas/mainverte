@@ -1,5 +1,5 @@
 // ==========================================
-// 🤖 MOTEUR D'INTELLIGENCE ARTIFICIELLE (V17 - Anti-Softlock)
+// 🤖 MOTEUR D'INTELLIGENCE ARTIFICIELLE (V18 - Stratégie d'Améliorations)
 // ==========================================
 
 let botEnabled = false;
@@ -21,7 +21,7 @@ function toggleBot() {
 
 function triggerBot(botId) {
     if(botTimeout) clearTimeout(botTimeout);
-    botTimeout = setTimeout(() => { botThinkAndAct(botId); }, 200); // Mode rapide
+    botTimeout = setTimeout(() => { botThinkAndAct(botId); }, 200); // Mode Rapide (200ms)
 }
 
 function botThinkAndAct(botId) {
@@ -32,7 +32,7 @@ function botThinkAndAct(botId) {
         let bestAction = { type: 'FIN_TOUR', score: 10 };
         
         let curS = ALL_SEASONS[state.saisonIdx];
-        const costT = me.upgrades[5] >= 2 ? (me.upgrades[5] === 3 ? 0 : 1) : 2; // Coût d'un champ
+        const costT = me.upgrades[5] >= 2 ? (me.upgrades[5] === 3 ? 0 : 1) : 2;
 
         let hasEmptyPotager = false;
         let hasEmptyVerger = false;
@@ -53,12 +53,10 @@ function botThinkAndAct(botId) {
                     if(450 > bestAction.score) bestAction = { type: 'AMENDER', zoneId: z.id, score: 450 };
                 }
             } else if (z.type && z.id !== 0) {
-                // Détecte les zones VRAIMENT vides (sans culture)
                 if(z.type === 'POTAGER' && !z.culture) hasEmptyPotager = true;
                 if(z.type === 'VERGER' && !z.culture) hasEmptyVerger = true;
                 if(z.type === 'AMÉNAGEMENT' && !z.batiment) hasEmptyNature = true;
 
-                // Tente de planter
                 (me.hand || []).forEach((c, idx) => {
                     const costH = Math.max(0, (c.t||1)-(me.upgrades[2]-1));
                     let smValid = z.batiment === 'SERRE' ? (c.sm||[]).map(s => ALL_SEASONS[(ALL_SEASONS.indexOf(s)+3)%4]).concat(c.sm||[]) : (c.sm||[]);
@@ -71,8 +69,7 @@ function botThinkAndAct(botId) {
                     }
                 });
 
-                // Composteur : Seulement s'il a gardé un budget de sécurité pour ses champs ! (Besoin de 6💰 au lieu de 4💰)
-                if(!z.batiment && z.type === 'AMÉNAGEMENT' && !hasComposteur && me.money >= 6 && me.time >= 4) {
+                if(!z.batiment && z.type === 'AMÉNAGEMENT' && !hasComposteur && me.money >= 4 && me.time >= 4) {
                     if(400 > bestAction.score) bestAction = { type: 'BATIMENT', zoneId: z.id, batiment: 'COMPOSTEUR', score: 400 };
                 }
 
@@ -81,50 +78,57 @@ function botThinkAndAct(botId) {
             }
         });
 
-        // 2. PRÉPARATION DU TERRAIN (Priorité vitale !)
+        // 2. PRÉPARATION DU TERRAIN
         if(emptyZoneId && me.time >= 3 && me.money >= costT) {
             let needsPotager = (me.hand||[]).some(c => c.cat === 'L' && (c.sm||[]).includes(curS));
             let needsVerger = (me.hand||[]).some(c => c.cat === 'A' && (c.sm||[]).includes(curS));
             
-            // PRIORITY 1 : Si j'ai une graine mais pas de champ, j'en crée un de toute urgence (Score 700)
             if(needsPotager && !hasEmptyPotager && 700 > bestAction.score) {
                 bestAction = { type: 'AMENAGER', zoneId: emptyZoneId, terrain: 'POTAGER', score: 700 };
             } else if(needsVerger && !hasEmptyVerger && 700 > bestAction.score) {
                 bestAction = { type: 'AMENAGER', zoneId: emptyZoneId, terrain: 'VERGER', score: 700 };
-            } 
-            // PRIORITY 2 : Préparer la Nature pour un composteur, SEULEMENT si je suis riche (Score 350)
-            else if(!hasComposteur && !hasEmptyNature && me.money >= (costT * 2 + 4) && 350 > bestAction.score) {
+            } else if(!hasComposteur && !hasEmptyNature && me.money >= (costT * 2 + 4) && 350 > bestAction.score) {
                 bestAction = { type: 'AMENAGER', zoneId: emptyZoneId, terrain: 'AMÉNAGEMENT', score: 350 };
             }
         }
 
-        // 3. ACHAT D'AMÉLIORATIONS
-        let redJ = me.upgrades[6] >= 2 ? 1 : 0;
-        let costJard = Math.max(0, 3 - redJ); 
-
+        // 3. ACHAT D'AMÉLIORATIONS (L'IA investit intelligemment)
         UP_NAMES.forEach((n, i) => {
             const costUpH = me.upgrades[i] === 1 ? 3 : 5;
             const costUpM = me.upgrades[i] === 1 ? 2 : 4; 
             
-            // Il garde 2 pièces de côté s'il n'a pas encore de champs pour ne pas se bloquer
-            let safeBudget = (!hasEmptyPotager && !hasEmptyVerger) ? costT : 0;
+            // Budget sécurité : garde 2💰 (+ le coût d'un terrain si besoin)
+            let safeBudget = 2 + (!hasEmptyPotager && !hasEmptyVerger ? costT : 0);
 
-            if(me.upgrades[i] < 3 && me.time >= costUpH && (me.money - safeBudget) >= costUpM && me.time > costJard) {
-                let prio = 300 + (10 - i*10); 
-                if(i===0) prio += 50; 
+            if(me.upgrades[i] < 3 && me.time >= costUpH && (me.money - safeBudget) >= costUpM) {
+                
+                let prio = 380; // Score de base pour une amélioration
+                
+                // Ajustement des priorités :
+                if(n === "Sol") prio = 490;      // Priorité Max ! Augmente le prix de chaque récolte
+                if(n === "Terrain") prio = 480;  // Plus d'espace = plus de récoltes
+                if(n === "Énergie") prio = 470;  // Plus de temps
+                if(n === "Savoir") prio = 460;   // Graines plus rapides à planter
+                if(n === "Outils") prio = 450;   // Champs moins chers
+
+                // Si l'IA est riche (ex: > 12💰), elle veut absolument s'améliorer et double le marché !
+                if(me.money >= 12) prio += 100;
+                
+                // Si on est en Année 3, l'IA sait qu'elle n'aura pas le temps de rentabiliser. Elle arrête d'acheter !
+                if(state.annee === 3) prio -= 200;
+
                 if(prio > bestAction.score) bestAction = { type: 'UPGRADE', upIdx: i, score: prio };
             }
         });
 
         // 4. ACHETER DES CARTES
+        let redJ = me.upgrades[6] >= 2 ? 1 : 0;
+        let costJard = Math.max(0, 3 - redJ); 
         let plantableCards = (me.hand||[]).filter(c => (c.cat === 'L' || c.cat === 'A') && (c.sm||[]).includes(curS)).length;
+        
         if(plantableCards === 0 && me.time >= costJard && me.money >= 1) {
-            
-            // LA RÈGLE D'OR DU BOT : Je garde mon argent pour acheter de la terre !
             let maxPrice = me.money;
-            if (!hasEmptyPotager && !hasEmptyVerger) {
-                maxPrice = me.money - costT; // Garde la réserve pour le champ
-            }
+            if (!hasEmptyPotager && !hasEmptyVerger) maxPrice = me.money - costT; // Garde la réserve pour le champ
 
             let cartesAchetables = (state.market['C'] || []).filter(c => c.p <= maxPrice);
             if(cartesAchetables.length > 0) {
