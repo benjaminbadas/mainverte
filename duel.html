@@ -2,7 +2,7 @@
 <html lang="fr">
 <head>
     <meta charset="UTF-8">
-    <title>La Main Verte - V14 (IA Solo & Logs Pro)</title>
+    <title>La Main Verte - V15 (Règles Officielles)</title>
     <script src="https://www.gstatic.com/firebasejs/9.17.1/firebase-app-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/9.17.1/firebase-database-compat.js"></script>
     <style>
@@ -100,7 +100,7 @@
     <div class="hud" id="my-hud">
         <div id="season-display">📅 Saison...</div>
         <div>💰 <span id="res-money">0</span> | ⏳ <span id="res-time">0</span>/<span id="res-timemax">10</span>h</div>
-        <div title="Déchets verts accumulés dans le Composteur">💩 <span id="res-compost" class="res-pill">0</span></div>
+        <div title="Points de Compost accumulés">💩 <span id="res-compost" class="res-pill">0</span></div>
         <div id="meteo-display" style="background:#e3f2fd; padding:3px 10px; border-radius:10px;">🎲 --</div>
         <button id="bot-btn" onclick="toggleBot()" style="background:#9c27b0; color:white; border:none; border-radius:4px; padding:4px 8px; cursor:pointer; font-weight:bold; transition:0.3s;">🤖 Bot: OFF</button>
         <button onclick="confirmReset()" style="background:#ff5252; color:white; border:none; border-radius:4px; padding:4px 8px; cursor:pointer; font-weight:bold;">🧹 Reset</button>
@@ -201,7 +201,7 @@
     function addLog(msg, pid = myId) {
         if(!state.gameLogs) state.gameLogs = [];
         state.gameLogs.unshift(`[J${pid}] ` + msg);
-        if(state.gameLogs.length > 200) state.gameLogs.pop(); // Extension de l'historique
+        if(state.gameLogs.length > 200) state.gameLogs.pop(); 
     }
 
     function generatePlayer() {
@@ -375,7 +375,8 @@
             <button class="btn-action" style="background:#607d8b" onclick="actB()" ${dis||me.time<4?'disabled':''}>🏠 Bâtiment</button>
             <button class="btn-action" style="background:#2196f3" onclick="actArr()" ${dis||me.time<1?'disabled':''}>💧 Arroser (-1h)</button>
             <button class="btn-action" style="background:#795548" onclick="actAmd()" ${dis||me.time<1||me.compost<1||!hasComposteur?'disabled':''}>💩 Amender (-1h)</button>
-            <button class="btn-action" style="background:#e53935; grid-column:span 2; font-size:1em;" onclick="actFin()" ${dis?'disabled':''}>${finTexte}</button>
+            <button class="btn-action" style="background:#5d4037" onclick="actComposter()" title="Sacrifier la plante pour regagner du compost (+2💩) ou réinitialiser un arbre" ${dis||!hasComposteur||!me.zones[localSelectedId]?.culture||me.time<1?'disabled':''}>♻️ Composter (-1h)</button>
+            <button class="btn-action" style="background:#e53935; font-size:1em;" onclick="actFin()" ${dis?'disabled':''}>${finTexte}</button>
         `;
 
         const upG = document.getElementById('up-grid'); upG.innerHTML = "";
@@ -428,6 +429,7 @@
         else if(ch==="3" && (z.type==="POTAGER"||z.type==="AMÉNAGEMENT")) { if(me.money<5) return; me.money-=5; me.time-=4; z.batiment="LOCAL OUTILS"; addLog(`🏠 Bâtiment LOCAL OUTILS construit sur Zone ${zId} (-5💰, -4h).`, pId); }
         sync(); 
     }
+    
     function actArr(zId = localSelectedId) { const pId = state.turn; const me=state['p'+pId], z=me.zones[zId]; if(z && z.culture) { me.time--; z.culture.eCur = Math.max(0, z.culture.eCur-2); addLog(`💧 Arrosage manuel de ${z.culture.nom} sur Zone ${zId} (-2💧, -1h).`, pId); sync(); } }
     
     function actAmd(zId = localSelectedId) { 
@@ -441,22 +443,48 @@
             sync(); 
         } 
     }
+
+    // NOUVELLE ACTION COMPOSTAGE VOLONTAIRE
+    function actComposter(zId = localSelectedId) {
+        const pId = state.turn; const me = state['p'+pId], z = me.zones[zId]; 
+        const hasComp = me.zones.some(x => x.batiment === 'COMPOSTEUR');
+        if(!hasComp) return alert("Il vous faut un Composteur !");
+        if(!z || !z.culture) return;
+
+        me.time--; // Coûte 1h
+        if(z.culture.cat === 'A') {
+            z.culture.eCur = z.culture.e;
+            z.culture.sCur = z.culture.s;
+            z.culture.amd = 0;
+            addLog(`♻️ Entretien de l'arbre sur Zone ${zId} (Besoins réinitialisés, -1h).`, pId);
+        } else {
+            me.compost = (me.compost || 0) + 2;
+            addLog(`♻️ Compostage volontaire de ${z.culture.nom} sur Zone ${zId} (+2💩, -1h).`, pId);
+            z.culture = null;
+        }
+        sync();
+    }
     
     function upgr(i) { const pId = state.turn; const me=state['p'+pId]; const cost = me.upgrades[i]===1?3:5; me.time -= cost; me.upgrades[i]++; if(i===1) me.timeMax += 4; addLog(`⚙️ Amélioration ${UP_NAMES[i]} au niveau ${me.upgrades[i]} (-${cost}h).`, pId); sync(); }
     
+    // NOUVELLE LOGIQUE DE RECOLTE (Les Arbres survivent)
     function actionRecolter(id) { 
-        const pId = state.turn; const me=state['p'+pId], z=me.zones[id]; 
-        me.time-=2; 
+        const pId = state.turn; const me = state['p'+pId], z = me.zones[id]; 
+        me.time -= 2; 
         const moneyGained = z.culture.g + (me.upgrades[3]-1) + (z.culture.amd||0);
         me.money += moneyGained; 
-        const hasComp = me.zones.some(x => x.batiment === 'COMPOSTEUR');
-        let msg = `🧺 Récolte de ${z.culture.nom} sur Zone ${id} ! Gain : +${moneyGained}💰`;
-        if(hasComp) {
-            me.compost = (me.compost||0) + 1;
-            msg += " (+1💩)";
+        
+        let msg = `🧺 Récolte de ${z.culture.nom} sur Zone ${id} ! Gain : +${moneyGained}💰 (-2h).`;
+
+        if(z.culture.cat === 'A') {
+            z.culture.eCur = z.culture.e;
+            z.culture.sCur = z.culture.s;
+            z.culture.amd = 0;
+            msg += " L'arbre reste en place pour un nouveau cycle.";
+        } else {
+            z.culture = null; 
         }
-        msg += " (-2h).";
-        z.culture = null; 
+        
         addLog(msg, pId); 
         sync(); 
     }
@@ -533,6 +561,7 @@
             return;
         }
 
+        // NOUVELLE LOGIQUE DE PEREMPTION (Fin de Saison)
         let newSeason = ALL_SEASONS[state.saisonIdx];
         [1, 2].forEach(pid => {
             let pData = state['p'+pid];
@@ -542,10 +571,19 @@
                     let survie = z.batiment === 'SERRE' ? rc.map(s => ALL_SEASONS[(ALL_SEASONS.indexOf(s)+3)%4]).concat(rc).concat(sm) : rc.concat(sm);
                     
                     if(!survie.includes(newSeason)) {
-                        addLog(`🥀 Mort de ${z.culture.nom} sur Zone ${z.id} à cause du changement de saison.`, pid);
-                        z.culture = null;
-                        if(pData.zones.some(x => x.batiment === 'COMPOSTEUR')) {
-                            pData.compost = (pData.compost||0) + 1;
+                        if(z.culture.cat === 'A') {
+                            z.culture.eCur = z.culture.e;
+                            z.culture.sCur = z.culture.s;
+                            z.culture.amd = 0;
+                            addLog(`🍂 L'arbre sur Zone ${z.id} se repose et réinitialise ses besoins.`, pid);
+                        } else {
+                            let msg = `🥀 Mort de ${z.culture.nom} sur Zone ${z.id} (Périmé).`;
+                            z.culture = null;
+                            if(pData.zones.some(x => x.batiment === 'COMPOSTEUR')) {
+                                pData.compost = (pData.compost||0) + 2;
+                                msg += " Recyclé en compost (+2💩).";
+                            }
+                            addLog(msg, pid);
                         }
                     }
                 }
