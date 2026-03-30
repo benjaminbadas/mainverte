@@ -1,24 +1,23 @@
 // ==========================================
-// 🤖 MOTEUR D'IA ÉVOLUTIVE HYBRIDE (V19 - Anti-0💰)
+// 🤖 MOTEUR D'IA ÉVOLUTIVE HYBRIDE (V19.1 - Anti-Crash Firebase)
 // ==========================================
 
 let botEnabled = false;
 let botTimeout = null;
 
-// L'ADN du Bot ne gère désormais QUE la stratégie (pas la survie basique)
 let botDNA = {
-    prioExtraPotager: 300,  // Envie de faire des potagers supplémentaires
-    prioExtraVerger: 300,   // Envie de faire des vergers supplémentaires
-    prioNature: 350,        // Envie de préparer le terrain pour un bâtiment
-    prioComposteur: 400,    // Envie de construire un composteur
-    prioUpgradeBase: 380,   // Attrait général pour les améliorations
-    prioSol: 110,           // Bonus spécifique pour l'amélioration Sol
-    prioTerrain: 100,       // Bonus spécifique pour l'amélioration Terrain
-    prioEnergie: 90,        // Bonus spécifique pour l'amélioration Energie
-    prioStockGraines: 300   // Envie d'acheter des graines d'avance
+    prioExtraPotager: 300,  
+    prioExtraVerger: 300,   
+    prioNature: 350,        
+    prioComposteur: 400,    
+    prioUpgradeBase: 380,   
+    prioSol: 110,           
+    prioTerrain: 100,       
+    prioEnergie: 90,        
+    prioStockGraines: 300   
 };
 
-const dbBrain = firebase.database().ref("bot-brain-v2"); // Nouvelle base pour ce nouveau cerveau
+const dbBrain = firebase.database().ref("bot-brain-v2");
 
 dbBrain.once("value").then(snap => {
     if(snap.exists()) {
@@ -31,7 +30,7 @@ dbBrain.once("value").then(snap => {
 function mutateDNA(parentDNA) {
     let newDNA = {};
     for (let gene in parentDNA) {
-        let mutation = 1 + ((Math.random() * 0.2) - 0.1); // +/- 10%
+        let mutation = 1 + ((Math.random() * 0.2) - 0.1); 
         newDNA[gene] = Math.round(parentDNA[gene] * mutation);
     }
     return newDNA;
@@ -49,7 +48,7 @@ function toggleBot() {
 
 function triggerBot(botId) {
     if(botTimeout) clearTimeout(botTimeout);
-    botTimeout = setTimeout(() => { botThinkAndAct(botId); }, 50); // HYPER TURBO
+    botTimeout = setTimeout(() => { botThinkAndAct(botId); }, 50); 
 }
 
 function botThinkAndAct(botId) {
@@ -87,9 +86,9 @@ function botThinkAndAct(botId) {
             if(z.culture) {
                 nbPlantesEnCroissance++;
                 if(z.culture.eCur <= 0 && z.culture.sCur <= 0 && me.time >= 2) {
-                    if(1000 > bestAction.score) bestAction = { type: 'RECOLTER', zoneId: z.id, score: 1000 }; // INSTINCT
+                    if(1000 > bestAction.score) bestAction = { type: 'RECOLTER', zoneId: z.id, score: 1000 };
                 } else if(z.culture.eCur >= 2 && me.time >= 1) {
-                    if(800 > bestAction.score) bestAction = { type: 'ARROSER', zoneId: z.id, score: 800 + z.culture.eCur }; // INSTINCT
+                    if(800 > bestAction.score) bestAction = { type: 'ARROSER', zoneId: z.id, score: 800 + z.culture.eCur };
                 } else if(hasComposteur && me.compost > 0 && me.time >= 1) {
                     if(450 > bestAction.score) bestAction = { type: 'AMENDER', zoneId: z.id, score: 450 };
                 }
@@ -103,7 +102,7 @@ function botThinkAndAct(botId) {
                     let smValid = z.batiment === 'SERRE' ? (c.sm||[]).map(s => ALL_SEASONS[(ALL_SEASONS.indexOf(s)+3)%4]).concat(c.sm||[]) : (c.sm||[]);
                     if((c.cat === 'L' && z.type === 'POTAGER') || (c.cat === 'A' && z.type === 'VERGER')) {
                         if(smValid.includes(curS) && me.time >= costH && !z.culture) {
-                            if(700 > bestAction.score) bestAction = { type: 'PLANTER', handIdx: idx, zoneId: z.id, score: 700 }; // INSTINCT
+                            if(700 > bestAction.score) bestAction = { type: 'PLANTER', handIdx: idx, zoneId: z.id, score: 700 };
                         }
                     }
                 });
@@ -116,37 +115,30 @@ function botThinkAndAct(botId) {
             }
         });
 
-        // 2. GESTION DU TERRAIN (Instinct + Stratégie)
+        // 2. GESTION DU TERRAIN
         if(emptyZoneId && me.time >= 3 && me.money >= costT) {
             let needsPotager = (me.hand||[]).some(c => c.cat === 'L' && (c.sm||[]).includes(curS));
             let needsVerger = (me.hand||[]).some(c => c.cat === 'A' && (c.sm||[]).includes(curS));
             
-            // INSTINCT DE SURVIE : Si je n'ai AUCUN champ mais que j'ai une graine, URGENCE !
             if(needsPotager && nbPotagers === 0 && 750 > bestAction.score) {
                 bestAction = { type: 'AMENAGER', zoneId: emptyZoneId, terrain: 'POTAGER', score: 750 };
             } else if(needsVerger && nbVergers === 0 && 750 > bestAction.score) {
                 bestAction = { type: 'AMENAGER', zoneId: emptyZoneId, terrain: 'VERGER', score: 750 };
-            } 
-            // STRATEGIE ADN : Est-ce que je fais des champs supplémentaires ?
-            else if(needsPotager && !hasEmptyPotager && botDNA.prioExtraPotager > bestAction.score) {
+            } else if(needsPotager && !hasEmptyPotager && botDNA.prioExtraPotager > bestAction.score) {
                 bestAction = { type: 'AMENAGER', zoneId: emptyZoneId, terrain: 'POTAGER', score: botDNA.prioExtraPotager };
             } else if(needsVerger && !hasEmptyVerger && botDNA.prioExtraVerger > bestAction.score) {
                 bestAction = { type: 'AMENAGER', zoneId: emptyZoneId, terrain: 'VERGER', score: botDNA.prioExtraVerger };
-            } 
-            // STRATEGIE ADN : Faire un composteur
-            else if(!hasComposteur && !hasEmptyNature && me.money >= (costT + 4) && botDNA.prioNature > bestAction.score) {
+            } else if(!hasComposteur && !hasEmptyNature && me.money >= (costT + 4) && botDNA.prioNature > bestAction.score) {
                 bestAction = { type: 'AMENAGER', zoneId: emptyZoneId, terrain: 'AMÉNAGEMENT', score: botDNA.prioNature };
             }
         }
 
-        // 3. UPGRADES (Stratégie ADN pure)
+        // 3. UPGRADES
         let redJ = me.upgrades[6] >= 2 ? 1 : 0;
         let costJard = Math.max(0, 3 - redJ); 
         UP_NAMES.forEach((n, i) => {
             const costUpH = me.upgrades[i] === 1 ? 3 : 5;
             const costUpM = me.upgrades[i] === 1 ? 2 : 4; 
-            
-            // Budget sécurisé : Garder de quoi faire un champ si on n'en a pas
             let safeBudget = 2 + (nbPotagers === 0 && nbVergers === 0 ? costT : 0);
 
             if(me.upgrades[i] < 3 && me.time >= costUpH && (me.money - safeBudget) >= costUpM && state.annee < 3) {
@@ -159,7 +151,7 @@ function botThinkAndAct(botId) {
             }
         });
 
-        // 4. JARDINERIE (Instinct + Stratégie)
+        // 4. JARDINERIE (Sécurisée avec || [])
         let plantableCards = (me.hand||[]).filter(c => (c.cat === 'L' || c.cat === 'A') && (c.sm||[]).includes(curS)).length;
         if(me.time >= costJard && me.money >= 1) {
             let maxPrice = me.money;
@@ -169,11 +161,10 @@ function botThinkAndAct(botId) {
             if(cartesAchetables.length > 0) {
                 let bestCard = cartesAchetables.sort((a,b) => (b.g - b.p) - (a.g - a.p))[0];
                 
-                // INSTINCT DE SURVIE : Si je n'ai rien en main et rien qui pousse, il faut acheter à tout prix !
-                if(me.hand.length === 0 && nbPlantesEnCroissance === 0 && 650 > bestAction.score) {
+                // Correction ici: Sécurisation de me.hand
+                if((me.hand || []).length === 0 && nbPlantesEnCroissance === 0 && 650 > bestAction.score) {
                     bestAction = { type: 'JARDINERIE', cardTarget: bestCard, score: 650 };
                 } 
-                // STRATEGIE ADN : Stocker des graines pour plus tard
                 else if (plantableCards === 0 && botDNA.prioStockGraines > bestAction.score) {
                     bestAction = { type: 'JARDINERIE', cardTarget: bestCard, score: botDNA.prioStockGraines };
                 }
@@ -191,17 +182,29 @@ function botThinkAndAct(botId) {
             me.money -= 4; me.time -= 4; me.zones[bestAction.zoneId].batiment = 'COMPOSTEUR'; sync();
         }
         else if(bestAction.type === 'JARDINERIE') {
-            me.time -= costJard; let c = state.market['C'].find(mc => mc.nom === bestAction.cardTarget.nom);
+            me.time -= costJard; 
+            let c = (state.market['C'] || []).find(mc => mc.nom === bestAction.cardTarget.nom);
             if(c) {
-                me.money -= c.p; if(!me.hand) me.hand = []; me.hand.push(c);
-                state.market['C'] = state.market['C'].filter(mc => mc.nom !== c.nom);
-                while(state.market['C'].length < 2) { let nv = draw('C'); if(nv) state.market['C'].push(nv); else break; }
+                me.money -= c.p; 
+                if(!me.hand) me.hand = []; 
+                me.hand.push(c);
+                state.market['C'] = (state.market['C'] || []).filter(mc => mc.nom !== c.nom);
+                
+                // Sécurisation Firebase: Si le marché est vide, Firebase le supprime. On recrée le tableau !
+                if(!state.market['C']) state.market['C'] = [];
+                
+                while(state.market['C'].length < 2) { 
+                    let nv = draw('C'); 
+                    if(nv) state.market['C'].push(nv); 
+                    else break; 
+                }
                 sync();
             } else { actFin(); }
         }
         else { actFin(); }
 
     } catch (e) {
-        console.error(e); botEnabled = false; 
+        console.error("Détail de l'erreur IA:", e); 
+        botEnabled = false; 
     }
 }
