@@ -2,7 +2,7 @@
 <html lang="fr">
 <head>
     <meta charset="UTF-8">
-    <title>La Main Verte - V8.1 Édition Finale</title>
+    <title>La Main Verte - V9.0 LiveOps Edition</title>
     <script src="https://www.gstatic.com/firebasejs/9.17.1/firebase-app-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/9.17.1/firebase-database-compat.js"></script>
     <style>
@@ -138,23 +138,8 @@
     };
     firebase.initializeApp(firebaseConfig);
     const db = firebase.database().ref("game-session-001");
+    const dbConfig = firebase.database().ref("game-config");
 
-    const DECK_MASTER = {
-        C: [
-            {nom:"Radis",p:0,e:1,s:1,t:1,g:3,cat:'L',sm:['P','E','A','H'],rc:['P','E','A','H']}, {nom:"Laitue",p:0,e:2,s:1,t:1,g:4,cat:'L',sm:['P','A'],rc:['P','E','A']}, 
-            {nom:"Carotte",p:1,e:4,s:2,t:1,g:6,cat:'L',sm:['P','E'],rc:['A','H']}, {nom:"Tomate",p:1,e:6,s:5,t:1,g:9,cat:'L',sm:['P'],rc:['E','A']}, 
-            {nom:"Courgette",p:1,e:5,s:4,t:1,g:8,cat:'L',sm:['P'],rc:['E','A']}, {nom:"Aubergine",p:2,e:7,s:6,t:1,g:11,cat:'L',sm:['P'],rc:['E','A']},
-            {nom:"Poireau",p:1,e:4,s:2,t:1,g:6,cat:'L',sm:['P','A'],rc:['E','H']}, {nom:"Patate",p:1,e:3,s:4,t:1,g:8,cat:'L',sm:['P','E'],rc:['A','H']},
-            {nom:"Pommier",p:3,e:12,s:6,t:3,g:18,cat:'A',sm:['A','H'],rc:['E','A']}, {nom:"Cerisier",p:3,e:10,s:6,t:3,g:18,cat:'A',sm:['A','H'],rc:['E']},
-            {nom:"Fraise",p:2,e:3,s:4,t:1,g:8,cat:'A',sm:['P','A'],rc:['E']}, {nom:"Noisetier",p:2,e:8,s:4,t:3,g:12,cat:'A',sm:['A','H'],rc:['A']},
-            {nom:"Épinard",p:0,e:2,s:1,t:1,g:4,cat:'L',sm:['P','A'],rc:['P','A','H']}, {nom:"Navet",p:1,e:3,s:2,t:1,g:5,cat:'L',sm:['P','A'],rc:['A','H']},
-            {nom:"Oignon",p:1,e:2,s:3,t:1,g:6,cat:'L',sm:['P','A'],rc:['E','A']}, {nom:"Haricot",p:1,e:3,s:3,t:1,g:6,cat:'L',sm:['P','E'],rc:['E','A']},
-            {nom:"Tournesol",p:1,e:3,s:6,t:1,g:7,cat:'F',sm:['P'],rc:['E','A']}, {nom:"Pleurote",p:2,e:6,s:0,t:1,g:8,cat:'M',sm:['A'],rc:['H']}
-        ],
-        S: [{nom:"Fumier",p:2,t:1,cat:'S',desc:'+2💩 Compost'}, {nom:"Purin d'Ortie",p:1,t:1,cat:'S',desc:'-4💧 (Zone)'}, {nom:"Corne Broyée",p:2,t:1,cat:'S',desc:'+2💰 récolte (Zone)'}, {nom:"Paillage",p:1,t:1,cat:'S',desc:'-2💧 -1☀️ (Zone)'}],
-        A: [{nom:"Hérisson",p:2,t:1,cat:'X',prot:'Limaces'}, {nom:"Coccinelle",p:1,t:1,cat:'X',prot:'Pucerons'}, {nom:"Mésange",p:2,t:1,cat:'X',prot:'Carpocapses'}, {nom:"Crapaud",p:1,t:1,cat:'X',prot:'Campagnols'}]
-    };
-    const RAV_TYPES = [{n:"Limaces",d:3}, {n:"Pucerons",d:2}, {n:"Carpocapses",d:4}, {n:"Campagnols",d:4}];
     const UP_NAMES = ["Terrain", "Énergie", "Savoir", "Sol", "Climat", "Outils", "Vente", "VIP"];
     const SAISON_NOMS = ["🌷 Printemps", "☀️ Été", "🍂 Automne", "❄️ Hiver"];
     const ALL_SEASONS = ["P","E","A","H"];
@@ -164,20 +149,21 @@
     let localSelectedId = null;
     let localModalOpen = false;
     let localPicksLeft = 0;
+    let isInitializing = false;
 
     function joinGame(id) {
         myId = id;
         document.getElementById('lobby').style.display = 'none';
         document.getElementById('my-hud').style.borderTopColor = id === 1 ? 'var(--p1)' : 'var(--p2)';
-        render();
+        if(!state) initNewGame(myId);
+        else render();
     }
 
     db.on("value", snap => {
         const val = snap.val();
         if(!val || !val.p1) {
-            if(myId !== null) initNewGame(myId);
+            if(myId !== null && !isInitializing) initNewGame(myId);
         } else {
-            // DETECTEUR DE CHANGEMENT DE SAISON POUR L'ANIMATION
             if (state && (state.saisonIdx !== val.saisonIdx || state.annee !== val.annee)) {
                 playSeasonAnimation(val.saisonIdx, val.annee);
             }
@@ -201,17 +187,61 @@
         };
     }
 
-    function initNewGame(creatorId = null) {
+    // --- LE NOUVEAU MOTEUR D'INITIALISATION (LIVEOPS) ---
+    async function initNewGame(creatorId = null) {
+        if(isInitializing) return;
+        isInitializing = true;
         let msg = creatorId ? `> 🧹 La partie a été réinitialisée par le Joueur ${creatorId}.` : "> Nouvelle partie initialisée.";
-        state = {
-            turn: 1, annee: 1, saisonIdx: 0,
-            decks: JSON.parse(JSON.stringify(DECK_MASTER)), market: { C: [], S: [], A: [] },
-            currentMeteo: {p:0, s:0}, currentRav: null,
-            p1: generatePlayer(), p2: generatePlayer(),
-            gameLogs: [msg]
-        };
-        ['C','S','A'].forEach(cat => { for(let i=0;i<2;i++) { let d = draw(cat); if(d) state.market[cat].push(d); } });
-        sync();
+
+        try {
+            // Téléchargement des cartes depuis la page Admin !
+            const snapConf = await dbConfig.once("value");
+            let config = snapConf.val();
+
+            if(!config || !config.decks) {
+                alert("ERREUR CRITIQUE : La base de données de cartes est vide ! Allez sur la page admin.html et cliquez sur 'Injecter le Deck de base'.");
+                isInitializing = false;
+                return;
+            }
+
+            // Génération des Decks selon les quantités (qte)
+            let builtDecks = { C: [], S: [], A: [] };
+            ['C','S','A'].forEach(cat => {
+                (config.decks[cat] || []).forEach(c => {
+                    let q = c.qte || 1;
+                    for(let i=0; i<q; i++) builtDecks[cat].push({...c}); // Copie propre
+                });
+            });
+
+            // Génération de la réserve de Ravageurs
+            let builtRavs = [];
+            (config.ravageurs || []).forEach(r => {
+                let q = r.qte || 1;
+                for(let i=0; i<q; i++) builtRavs.push({...r});
+            });
+
+            state = {
+                turn: 1, annee: 1, saisonIdx: 0,
+                decks: builtDecks, 
+                ravPool: builtRavs,
+                market: { C: [], S: [], A: [] },
+                currentMeteo: {p:0, s:0}, currentRav: null,
+                p1: generatePlayer(), p2: generatePlayer(),
+                gameLogs: [msg]
+            };
+
+            // Remplissage du premier marché
+            ['C','S','A'].forEach(cat => { 
+                for(let i=0; i<2; i++) { let d = draw(cat); if(d) state.market[cat].push(d); } 
+            });
+
+            await db.set(state);
+        } catch(e) {
+            console.error(e);
+            alert("Erreur de connexion à Firebase lors du chargement des cartes.");
+        }
+        
+        isInitializing = false;
     }
 
     function draw(cat) {
@@ -219,7 +249,6 @@
         return state.decks[cat].splice(Math.floor(Math.random()*state.decks[cat].length), 1)[0];
     }
 
-    // --- ANIMATION ---
     function playSeasonAnimation(sIdx, annee) {
         const overlay = document.getElementById('season-anim-overlay');
         const box = document.getElementById('anim-box');
@@ -227,17 +256,8 @@
         document.getElementById('anim-subtitle').innerText = "Année " + annee;
         
         overlay.style.display = 'flex';
-        // Petit délai pour laisser le display s'appliquer avant l'opacité
-        setTimeout(() => { 
-            overlay.style.opacity = '1'; 
-            box.style.transform = 'scale(1)';
-        }, 50);
-        
-        setTimeout(() => {
-            overlay.style.opacity = '0';
-            box.style.transform = 'scale(0.8)';
-            setTimeout(() => { overlay.style.display = 'none'; }, 500);
-        }, 2500);
+        setTimeout(() => { overlay.style.opacity = '1'; box.style.transform = 'scale(1)'; }, 50);
+        setTimeout(() => { overlay.style.opacity = '0'; box.style.transform = 'scale(0.8)'; setTimeout(() => { overlay.style.display = 'none'; }, 500); }, 2500);
     }
 
     function render() {
@@ -280,31 +300,32 @@
             d.style.opacity = acc ? "1" : "0.3";
             d.onclick = () => { if(acc && isMyTurn) { localSelectedId = z.id; render(); } };
             
-            if(z.id === 0) d.innerHTML = "🏠 MAISON";
-            else if(!z.type) { d.innerHTML = `ZONE ${z.id}${acc?'':'<br>🔒'}`; d.title = "Aménagez la zone."; }
+            if(z.id === 0) { d.innerHTML = "🏠 MAISON"; d.title = "La maison principale."; }
+            else if(!z.type) { d.innerHTML = `ZONE ${z.id}${acc?'':'<br>🔒'}`; d.title = acc ? "Zone vierge. Aménagez-la avec les boutons verts/oranges." : "Zone verrouillée."; }
             else {
                 let header = z.type; if(z.batiment) header += ` + ${z.batiment}`;
                 d.innerHTML = `<b>${header}</b>`;
                 if(z.culture) {
                     d.innerHTML += `<br>${z.culture.nom}<br>💧${z.culture.eCur} ☀️${z.culture.sCur}`;
+                    d.title = `${z.culture.nom}\nBesoins: ${z.culture.eCur}💧 | ${z.culture.sCur}☀️\nGain: ${z.culture.g + (me.upgrades[3]-1) + (z.culture.amd||0)}💰`;
                     if(z.culture.eCur <= 0 && z.culture.sCur <= 0) {
                         d.innerHTML += `<br><button onclick="actionRecolter(${z.id})" style="background:var(--p1); color:white; border:none; padding:4px 8px; cursor:pointer; border-radius:4px; margin-top:4px;" ${!isMyTurn || me.time<2 ? 'disabled':''}>🧺 Récolter</button>`;
                     }
-                }
+                } else d.title = `${header}. Prêt pour un semis.`;
             }
             grid.appendChild(d);
         });
 
         const prev = document.getElementById('market-preview');
         if(prev && state.market) {
-            prev.innerHTML = `🌾 ${(state.market.C||[]).map(c=>c.nom).join(', ')||'-'}<br>🛠️ ${(state.market.S||[]).map(c=>c.nom).join(', ')||'-'}<br>🦊 ${(state.market.A||[]).map(c=>c.nom).join(', ')||'-'}`;
+            prev.innerHTML = `🌾 ${(state.market.C||[]).map(c=>c.nom).join(', ')||'Vidé'}<br>🛠️ ${(state.market.S||[]).map(c=>c.nom).join(', ')||'Vidé'}<br>🦊 ${(state.market.A||[]).map(c=>c.nom).join(', ')||'Vidé'}`;
         }
 
         const hDiv = document.getElementById('player-hand'); hDiv.innerHTML = "";
         (me.hand || []).forEach((c, i) => {
             const cost = Math.max(0, (c.t||1) - (me.upgrades[2]-1));
             const card = document.createElement('div'); card.className = "card";
-            let details = c.cat==='S' ? c.desc : (c.cat==='X' ? c.prot : `💧${c.e} ☀️${c.s}<br>🌱 ${c.sm.join(',')} | 🧺 ${c.rc.join(',')}`);
+            let details = c.cat==='S' ? c.desc : (c.cat==='X' ? c.prot : `💧${c.e} ☀️${c.s}<br>🌱 ${(c.sm||[]).join(',')} | 🧺 ${(c.rc||[]).join(',')}`);
             card.innerHTML = `<b>${c.nom}</b><br><span style="font-size:0.9em;">${details}</span><br><button onclick="playC(${i})" style="width:100%; margin-top:4px; padding:4px; cursor:pointer; background:#e8eaf6; border:1px solid #ccc; font-weight:bold;" ${!isMyTurn || me.time<cost ? 'disabled':''}>Jouer (-${cost}h)</button>`;
             hDiv.appendChild(card);
         });
@@ -345,7 +366,7 @@
     
     function renderJardModal(me) {
         const inner = document.getElementById('modal-content-inner');
-        inner.innerHTML = `<div style="display:flex;justify-content:space-between; align-items:center;"><h2>🛒 Marché</h2><div style="font-size:1.2em; color:#d32f2f;"><b>Actions (Pioche/Achat): ${localPicksLeft}</b> | 💰 ${me.money}</div></div><div class="rayon-grid"></div>`;
+        inner.innerHTML = `<div style="display:flex;justify-content:space-between; align-items:center;"><h2>🛒 Marché</h2><div style="font-size:1.2em; color:#d32f2f;"><b>Actions : ${localPicksLeft}</b> | 💰 ${me.money}</div></div><div class="rayon-grid"></div>`;
         ['C','S','A'].forEach(cat => {
             const r = document.createElement('div'); r.className = "rayon";
             r.innerHTML = `<h3>${cat==='C'?'🌾 Cultures':(cat==='S'?'🛠️ Soutiens':'🦊 Auxiliaires')}</h3>
@@ -354,16 +375,16 @@
             (state.market[cat] || []).forEach((c, idx) => {
                 const can = me.money >= c.p;
                 const d = document.createElement('div'); d.className = "jard-card"; d.style.opacity = can?"1":"0.4";
-                let details = c.cat==='S' ? c.desc : (c.cat==='X' ? c.prot : `💧${c.e} ☀️${c.s}<br>🌱 ${c.sm.join(',')} | 🧺 ${c.rc.join(',')}`);
+                let details = c.cat==='S' ? c.desc : (c.cat==='X' ? c.prot : `💧${c.e} ☀️${c.s}<br>🌱 ${(c.sm||[]).join(',')} | 🧺 ${(c.rc||[]).join(',')}`);
                 d.innerHTML = `<div class="price-tag">${c.p}💰</div><b>${c.nom}</b><br><small>${details}</small>`;
-                d.onclick = () => { if(can) { me.money-=c.p; if(!me.hand) me.hand=[]; me.hand.push(c); state.market[cat].splice(idx,1); if(me.upgrades[6]>=3) state.market[cat].push(draw(cat)); addLog(`🛒 Achat : ${c.nom}`); consm(); } };
+                d.onclick = () => { if(can) { me.money-=c.p; if(!me.hand) me.hand=[]; me.hand.push(c); state.market[cat].splice(idx,1); if(me.upgrades[6]>=3) { let nc = draw(cat); if(nc) state.market[cat].push(nc); } addLog(`🛒 Achat : ${c.nom}`); consm(); } };
                 r.appendChild(d);
             });
             inner.querySelector('.rayon-grid').appendChild(r);
         });
     }
 
-    function jardP(cat) { const me=state['p'+myId], c=draw(cat); if(c) { if(c.p<=me.money) { if(confirm(`Tiré : ${c.nom} (${c.p}💰). L'acheter ?`)) { me.money-=c.p; if(!me.hand) me.hand=[]; me.hand.push(c); addLog(`🛒 Pioche : ${c.nom}`); consm(); } else { consm(); } } else { alert(`Tiré : ${c.nom}. Fonds insuffisants.`); consm(); } } }
+    function jardP(cat) { const me=state['p'+myId], c=draw(cat); if(c) { if(c.p<=me.money) { if(confirm(`Tiré : ${c.nom} (${c.p}💰). L'acheter ?`)) { me.money-=c.p; if(!me.hand) me.hand=[]; me.hand.push(c); addLog(`🛒 Pioche : ${c.nom}`); consm(); } else { consm(); } } else { alert(`Tiré : ${c.nom}. Fonds insuffisants.`); consm(); } } else alert("Pioche vide !"); }
     function jardR(cat) { state.market[cat] = []; for(let i=0; i<2; i++) { let d = draw(cat); if(d) state.market[cat].push(d); } addLog(`🔄 Rayon renouvelé.`); consm(); }
     function consm() { localPicksLeft--; if(localPicksLeft<=0) { localModalOpen=false; ['C','S','A'].forEach(cat => { while((state.market[cat]||[]).length<2) { let c = draw(cat); if(c) state.market[cat].push(c); else break; } }); } sync(); }
 
@@ -396,7 +417,7 @@
             if(c.cat==='L' && z.type!=='POTAGER') return alert("Légumes (L) = Potager !");
             if(c.cat==='A' && z.type!=='VERGER') return alert("Arbres (A) = Verger !");
             let curS = ALL_SEASONS[state.saisonIdx];
-            let smValid = z.batiment === 'SERRE' ? c.sm.map(s => ALL_SEASONS[(ALL_SEASONS.indexOf(s)+3)%4]).concat(c.sm) : c.sm;
+            let smValid = z.batiment === 'SERRE' ? (c.sm||[]).map(s => ALL_SEASONS[(ALL_SEASONS.indexOf(s)+3)%4]).concat(c.sm||[]) : (c.sm||[]);
             if(!smValid.includes(curS)) return alert(`Saison incorrecte !`);
             me.time-=cost; z.culture={...c, eCur:c.e, sCur:c.s, amd:0}; me.hand.splice(idx,1); addLog(`🌱 Semis : ${c.nom}`);
         }
@@ -416,8 +437,11 @@
             let sBase = Math.floor(Math.random()*2)+1;
             state.currentMeteo = {p: pBase, s: sBase};
 
-            if(Math.random() < 0.3) { state.currentRav = RAV_TYPES[Math.floor(Math.random()*RAV_TYPES.length)]; }
-            else { state.currentRav = null; }
+            // RAVAGEUR DEPUIS LA CONFIG LIVE
+            let ravPool = state.ravPool || [];
+            if(ravPool.length > 0 && Math.random() < 0.3) { 
+                state.currentRav = ravPool[Math.floor(Math.random()*ravPool.length)]; 
+            } else { state.currentRav = null; }
 
             [1, 2].forEach(pid => {
                 let pData = state['p'+pid];
@@ -427,7 +451,10 @@
                     if(z && z.culture) { 
                         z.culture.eCur = Math.max(0, z.culture.eCur - (pBase + bClimat)); 
                         z.culture.sCur = Math.max(0, z.culture.sCur - (sBase + bClimat)); 
-                        let survie = z.batiment === 'SERRE' ? z.culture.rc.map(s => ALL_SEASONS[(ALL_SEASONS.indexOf(s)+3)%4]).concat(z.culture.rc).concat(z.culture.sm) : z.culture.rc.concat(z.culture.sm);
+                        
+                        let rc = z.culture.rc || [];
+                        let sm = z.culture.sm || [];
+                        let survie = z.batiment === 'SERRE' ? rc.map(s => ALL_SEASONS[(ALL_SEASONS.indexOf(s)+3)%4]).concat(rc).concat(sm) : rc.concat(sm);
                         if(!survie.includes(curS)) z.culture = null;
                     } 
                 });
@@ -446,9 +473,9 @@
         }
     }
     
-    function confirmReset(force = false) { 
+    async function confirmReset(force = false) { 
         if(confirm("⚠️ Êtes-vous sûr de vouloir réinitialiser la partie pour LES DEUX joueurs ?")) {
-            initNewGame(myId || "Serveur");
+            await initNewGame(myId || "Serveur");
         } 
     }
 </script>
