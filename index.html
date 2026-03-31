@@ -2,7 +2,7 @@
 <html lang="fr">
 <head>
     <meta charset="UTF-8">
-    <title>La Main Verte - V34 (Aménagement Corrigé)</title>
+    <title>La Main Verte - V34 (Aménagements Corrigés)</title>
     <script src="https://www.gstatic.com/firebasejs/9.17.1/firebase-app-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/9.17.1/firebase-database-compat.js"></script>
     <style>
@@ -508,11 +508,16 @@
         
         const zoneCible = me.zones[zId];
         if(zoneCible.type !== null) return alert("Cet emplacement est déjà aménagé !");
-        if(!isAdjacent(me, zId)) return alert("La tuile doit être adjacente à la Maison (Zone 0) ou à une tuile déjà construite !");
-
-        let num = zoneCible.num !== null ? Number(zoneCible.num) : null;
         
-        if (t === 'POTAGER' && num !== 1 && num !== 2 && zId !== 14) return alert("Un Potager ne peut être aménagé QUE sur les zones 1 ou 2 !");
+        let num = parseInt(zoneCible.num);
+
+        // NOUVEAU : On force l'adjacence pour les Zones 1 et 2 qui sont "proches de la maison"
+        let isAdj = isAdjacent(me, zId);
+        if (num === 1 || num === 2) isAdj = true; 
+
+        if(!isAdj) return alert("La tuile doit être adjacente à la Maison (Zone 0) ou à une tuile déjà construite !");
+
+        if (t === 'POTAGER' && num !== 1 && num !== 2) return alert("Un Potager ne peut être aménagé QUE sur les zones 1 ou 2 !");
         if (t === 'VERGER' && (num < 2 || num > 5)) return alert("Un Verger ne peut être aménagé QUE sur les zones 2, 3, 4 ou 5 !");
         if ((t === 'HAIE' || t === 'FORÊT') && (num < 3 || num > 5)) return alert(t + " = Uniquement sur Zones 3, 4 ou 5 !");
         if (t === 'PRAIRIE' && (num !== 4 && num !== 5)) return alert("Prairie = Uniquement sur Zones 4 ou 5 !");
@@ -541,7 +546,7 @@
         if(me.time < 4) return alert("Construire un bâtiment coûte 4 unités de temps !");
         
         const ch = prompt(`Bâtiments (Coût action: -4h) :\n1: Serre (${s.costSerreOr}💰 - Sur Potager existant)\n2: Composteur (${s.costComposteurOr}💰 - Sur Zone 1 ou 2 VIDE)\n3: Local (${s.costLocalOr}💰 - Sur zone VIDE)`);
-        let zNum = Number(z.num);
+        let zNum = parseInt(z.num);
 
         if(ch==="1") { 
             if(z.type!=="POTAGER") return alert("La Serre se place par-dessus un Potager !");
@@ -550,14 +555,16 @@
             me.time-=4; me.money-=s.costSerreOr; z.batiment="SERRE"; addLog(`🏠 SERRE construite (-${s.costSerreOr}💰, -4h).`, pId); 
         }
         else if(ch==="2") { 
-            if(!isAdjacent(me, zId)) return alert("Doit être adjacent à la ferme ou à une tuile construite !");
+            let isAdj = isAdjacent(me, zId); if (zNum === 1 || zNum === 2) isAdj = true;
+            if(!isAdj) return alert("Doit être adjacent à la ferme ou à une tuile construite !");
             if(z.type!==null) return alert("Le Composteur se place sur une zone vierge !");
             if(zNum !== 1 && zNum !== 2) return alert("Le Composteur se place en Zone 1 ou 2 !");
             if(me.money<s.costComposteurOr) return alert("Fonds insuffisants."); 
             me.time-=4; me.money-=s.costComposteurOr; z.type="COMPOSTEUR"; z.batiment="COMPOSTEUR"; addLog(`🏠 COMPOSTEUR construit (-${s.costComposteurOr}💰, -4h).`, pId); 
         }
         else if(ch==="3") { 
-            if(!isAdjacent(me, zId)) return alert("Doit être adjacent à la ferme ou à une tuile construite !");
+            let isAdj = isAdjacent(me, zId); if (zNum === 1 || zNum === 2) isAdj = true;
+            if(!isAdj) return alert("Doit être adjacent à la ferme ou à une tuile construite !");
             if(z.type!==null) return alert("Le Local Outils se place sur une zone vierge !");
             if(me.money<s.costLocalOr) return alert("Fonds insuffisants."); 
             me.time-=4; me.money-=s.costLocalOr; z.type="LOCAL OUTILS"; z.batiment="LOCAL OUTILS"; addLog(`🏠 LOCAL construit (-${s.costLocalOr}💰, -4h).`, pId); 
