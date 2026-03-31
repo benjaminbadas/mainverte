@@ -2,7 +2,7 @@
 <html lang="fr">
 <head>
     <meta charset="UTF-8">
-    <title>La Main Verte - V35 (Sélection et Adjacence Corrigées)</title>
+    <title>La Main Verte - V36 (Récolte Sécurisée)</title>
     <script src="https://www.gstatic.com/firebasejs/9.17.1/firebase-app-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/9.17.1/firebase-database-compat.js"></script>
     <style>
@@ -85,7 +85,7 @@
 <body>
 
 <div id="lobby">
-    <h1 style="font-size: 3em; margin-bottom: 10px;">🌱 La Main Verte <span style="font-size:0.4em; color:#a5d6a7; vertical-align: middle;">V35</span></h1>
+    <h1 style="font-size: 3em; margin-bottom: 10px;">🌱 La Main Verte <span style="font-size:0.4em; color:#a5d6a7; vertical-align: middle;">V36</span></h1>
     <p style="font-size: 1.2em; margin-bottom: 30px;">Choisissez un mode de jeu :</p>
     <button class="btn-lobby" onclick="startNewGame('SOLO')">👤 Jouer en Solo</button>
     <button class="btn-lobby" style="background:#8e24aa" onclick="startNewGame('IA_SOLO')">🤖 Mode Spectateur (IA Solo)</button>
@@ -268,7 +268,7 @@
             };
             ['C','S','A'].forEach(cat => { for(let i=0; i<2; i++) { let d = draw(cat); if(d) state.market[cat].push(d); } });
             document.getElementById('game-over-screen').style.display = 'none'; await db.set(state);
-            localSelectedId = null; // Reset selection on new game
+            localSelectedId = null;
         } catch(e) { console.error(e); } finally { isInitializing = false; } 
     }
 
@@ -409,7 +409,6 @@
 
         const btnCont = document.getElementById('action-buttons-container');
         
-        // INDICATEUR VISUEL DE LA CIBLE
         let selectionText = "Aucune zone sélectionnée";
         if (localSelectedId !== null) {
             let z = me.zones[localSelectedId];
@@ -510,7 +509,6 @@
         addLog(`🎪 Objectif récupéré (-${cost}h).`, state.turn); localFoireOpen=false; sync();
     }
 
-    // --- ACTIONS D'AMÉNAGEMENT CORRIGÉES ---
     function isAdjacent(me, zId) {
         if(zId === 0 || zId === 14) return true;
         for(let n of adjacencyMap[zId]) {
@@ -532,7 +530,6 @@
 
         let num = parseInt(zoneCible.num);
 
-        // NOUVEAU : On force l'adjacence pour les Zones 1 et 2 qui sont "proches de la maison"
         let isAdj = isAdjacent(me, zId);
         if (num === 1 || num === 2) isAdj = true; 
 
@@ -558,7 +555,7 @@
         
         me.money -= costO; me.time -= costH; zoneCible.type = t; 
         addLog(`🏗️ ${t} sur Z${zId===14 ? 'PO' : num} (-${costO}💰${costH>0?`, -${costH}h`:''}).`, pId); 
-        localSelectedId = null; // Désélectionne pour éviter un double clic accidentel
+        localSelectedId = null; 
         sync(); 
     }
 
@@ -568,6 +565,7 @@
         if(me.time < 4) return alert("Construire un bâtiment coûte 4 unités de temps !");
         
         const ch = prompt(`Bâtiments (Coût action: -4h) :\n1: Serre (${s.costSerreOr}💰 - Sur Potager existant)\n2: Composteur (${s.costComposteurOr}💰 - Sur Zone 1 ou 2 VIDE)\n3: Local (${s.costLocalOr}💰 - Sur zone VIDE)`);
+        if(!ch) return;
         let zNum = parseInt(z.num);
 
         if(ch==="1") { 
@@ -630,10 +628,13 @@
     }
     
     function actionRecolter(id, slotIdx) { 
-        const pId = state.turn; const me = state['p'+pId], z = me.zones[id], s=state.settings; 
-        if(me.time < s.costRecolterTemps) return;
+        const pId = state.turn; const me = state['p'+pId], z = me.zones[id], s=state.settings;
+        const c = z.slots[slotIdx]; 
+
+        if (c.eCur > 0 || c.sCur > 0) return alert(`Cette plante n'est pas encore prête ! Besoins restants : 💧${c.eCur} / ☀️${c.sCur}`);
+        if(me.time < s.costRecolterTemps) return alert("Pas assez de temps pour récolter !");
         
-        const c = z.slots[slotIdx]; me.time -= s.costRecolterTemps; 
+        me.time -= s.costRecolterTemps; 
         let moneyGained = c.g + (me.upgrades[3]-1) + (c.amd||0); 
         
         let currentLvl = state.coop.level; let maxAffordable = 0; let tempGain = moneyGained; let tempLvl = currentLvl;
