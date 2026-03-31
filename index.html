@@ -2,7 +2,7 @@
 <html lang="fr">
 <head>
     <meta charset="UTF-8">
-    <title>La Main Verte - V36 (Aménagement Corrigé 100%)</title>
+    <title>La Main Verte - V37 (Objectifs et Foire)</title>
     <script src="https://www.gstatic.com/firebasejs/9.17.1/firebase-app-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/9.17.1/firebase-database-compat.js"></script>
     <style>
@@ -85,7 +85,7 @@
 <body>
 
 <div id="lobby">
-    <h1 style="font-size: 3em; margin-bottom: 10px;">🌱 La Main Verte <span style="font-size:0.4em; color:#a5d6a7; vertical-align: middle;">V36</span></h1>
+    <h1 style="font-size: 3em; margin-bottom: 10px;">🌱 La Main Verte <span style="font-size:0.4em; color:#a5d6a7; vertical-align: middle;">V37</span></h1>
     <p style="font-size: 1.2em; margin-bottom: 30px;">Choisissez un mode de jeu :</p>
     <button class="btn-lobby" onclick="startNewGame('SOLO')">👤 Jouer en Solo</button>
     <button class="btn-lobby" style="background:#8e24aa" onclick="startNewGame('IA_SOLO')">🤖 Mode Spectateur (IA Solo)</button>
@@ -156,6 +156,9 @@
     <h3 style="margin:0 0 5px 0;">🛒 Jardinerie</h3>
     <div id="jard-buttons-container" style="display:grid; grid-template-columns: 1fr 1fr; gap:4px;"></div>
     
+    <h3 style="margin:10px 0 5px 0;">🎯 Mes Objectifs</h3>
+    <div id="player-objectives" style="margin-bottom:10px;"></div>
+
     <h3 style="margin:10px 0 5px 0;">🎒 Ma Main</h3>
     <div id="player-hand" style="flex:1; overflow-y:auto; padding-right:5px;"></div>
 </div>
@@ -253,8 +256,19 @@
     async function initNewGame(creatorId = null, mode = 'MULTI') {
         if(isInitializing) return; isInitializing = true;
         try {
-            const snapConf = await dbConfig.once("value"); let config = snapConf.val();
+            const snapConf = await dbConfig.once("value"); let config = snapConf.val() || {};
             let decks = { C: [], S: [], A: [], O: [] };
+            
+            // Si la base d'objectifs est vide, on injecte des objectifs par défaut pour éviter un plantage
+            let fallbackObjectives = [
+                {nom: "Diversité", desc: "Avoir 4 types de légumes différents. (5 PV)", qte: 2, cat: 'O'},
+                {nom: "Monoculture", desc: "Avoir 4 légumes identiques. (5 PV)", qte: 1, cat: 'O'},
+                {nom: "Le grand verger", desc: "Avoir 3 arbres fruitiers. (6 PV)", qte: 2, cat: 'O'},
+                {nom: "Ferme autonome", desc: "Posséder Serre, Composteur et Local. (7 PV)", qte: 1, cat: 'O'}
+            ];
+            if(!config.decks) config.decks = {};
+            if(!config.decks.O || config.decks.O.length === 0) config.decks.O = fallbackObjectives;
+
             ['C','S','A','O'].forEach(cat => { (config.decks[cat] || []).forEach(c => { let q = c.qte || 1; for(let i=0; i<q; i++) decks[cat].push({...c}); }); });
             
             let defaultSet = { costAmenagerPotagerOr:2, costAmenagerPotagerTemps:3, costAmenagerNatureOr:3, costAmenagerNatureTemps:3, costSerreOr:3, costSerreTemps:4, costComposteurOr:4, costComposteurTemps:4, costLocalOr:5, costLocalTemps:4, costArroserTemps:1, costAmenderTemps:1, costComposterTemps:1, costRecolterTemps:2, costUp2Or:2, costUp2Temps:3, costUp3Or:4, costUp3Temps:5, jardSlot1Temps:3, jardSlot1Pioches:5, jardSlot2Temps:2, jardSlot2Pioches:3, jardSlot3Temps:2, jardSlot3Pioches:2, jardSlot4Temps:1, jardSlot4Pioches:1 };
@@ -367,6 +381,12 @@
                 }
             }
             grid.appendChild(d);
+        });
+
+        // AFFICHAGE DES OBJECTIFS DU JOUEUR
+        const oDiv = document.getElementById('player-objectives'); oDiv.innerHTML = "";
+        (me.objectives || []).forEach((o) => {
+            oDiv.innerHTML += `<div class="card" style="border-left-color: #2196f3; background:#e3f2fd;"><b>🎯 ${o.nom}</b><br><span style="font-size:0.85em; color:#1565c0;">${o.desc || ''}</span></div>`;
         });
 
         const hDiv = document.getElementById('player-hand'); hDiv.innerHTML = "";
@@ -500,16 +520,32 @@
 
     function actFoireStand(idx) { const me = state['p'+state.turn]; if(me.time<1) return; me.time--; me.money++; me.hand.splice(idx,1); addLog(`🎪 Vente au stand (+1💰, -1h).`, state.turn); sync(); }
     function actFoireCamelot() { const me = state['p'+state.turn]; const cost = 2 + (state.foire.camelot||0); if(me.time<cost || me.money<3) return; me.time-=cost; me.money-=3; me.fences=(me.fences||0)+1; state.foire.camelot=(state.foire.camelot||0)+1; addLog(`🎪 Achat Clôture (-3💰, -${cost}h).`, state.turn); sync(); }
+    
+    // GESTION DES OBJECTIFS CORRIGÉE
     function actFoireConseiller() {
         const me = state['p'+state.turn]; const cost = 2 + (state.foire.conseiller||0); if(me.time<cost) return;
-        let obj1 = draw('O'); let obj2 = draw('O'); if(!obj1 && !obj2) return alert("Pioche d'objectifs vide !");
-        let choice = 1; if(obj1 && obj2) choice = parseInt(prompt(`Choisissez un objectif (1 ou 2):\n1) ${obj1.nom}\n2) ${obj2.nom}`)) === 2 ? 2 : 1;
-        me.time-=cost; state.foire.conseiller=(state.foire.conseiller||0)+1; if(!me.objectives) me.objectives=[];
-        if(choice === 1 && obj1) { me.objectives.push(obj1); if(obj2) state.decks.O.push(obj2); } else if(obj2) { me.objectives.push(obj2); if(obj1) state.decks.O.push(obj1); }
+        
+        if(!state.decks.O || state.decks.O.length === 0) return alert("La pioche d'objectifs est vide !");
+        
+        let obj1 = draw('O'); let obj2 = draw('O'); 
+        if(!obj1 && !obj2) return alert("Pioche d'objectifs vide !");
+        
+        let choice = 1; 
+        if(obj1 && obj2) {
+            let info1 = obj1.desc || obj1.effet || "Objectif inconnu";
+            let info2 = obj2.desc || obj2.effet || "Objectif inconnu";
+            choice = parseInt(prompt(`Choisissez un objectif (tapez 1 ou 2):\n\n1) ${obj1.nom} : ${info1}\n\n2) ${obj2.nom} : ${info2}`)) === 2 ? 2 : 1;
+        }
+        
+        me.time-=cost; state.foire.conseiller=(state.foire.conseiller||0)+1; 
+        if(!me.objectives) me.objectives=[];
+        
+        if(choice === 1 && obj1) { me.objectives.push(obj1); if(obj2) state.decks.O.push(obj2); } 
+        else if(obj2) { me.objectives.push(obj2); if(obj1) state.decks.O.push(obj1); }
+        
         addLog(`🎪 Objectif récupéré (-${cost}h).`, state.turn); localFoireOpen=false; sync();
     }
 
-    // --- ACTIONS D'AMÉNAGEMENT CORRIGÉES ---
     function isAdjacent(me, zId) {
         if(zId === 0 || zId === 14) return true;
         for(let n of adjacencyMap[zId]) {
@@ -629,11 +665,11 @@
     }
     
     function actionRecolter(id, slotIdx) { 
-        const pId = state.turn; const me = state['p'+pId], z = me.zones[id], s=state.settings;
+        const pId = state.turn; const me = state['p'+pId], z = me.zones[id], s=state.settings; 
+        if(me.time < s.costRecolterTemps) return;
+        
         const c = z.slots[slotIdx]; 
-
         if (c.eCur > 0 || c.sCur > 0) return alert(`Cette plante n'est pas encore prête ! Besoins restants : 💧${c.eCur} / ☀️${c.sCur}`);
-        if(me.time < s.costRecolterTemps) return alert("Pas assez de temps pour récolter !");
         
         me.time -= s.costRecolterTemps; 
         let moneyGained = c.g + (me.upgrades[3]-1) + (c.amd||0); 
