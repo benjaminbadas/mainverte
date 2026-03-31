@@ -1,263 +1,224 @@
-// ==========================================
-// 🤖 MOTEUR D'IA ÉVOLUTIVE (V23 - Logs ADN Détaillés)
-// ==========================================
-
 let botEnabled = false;
-let autoTrainEnabled = false;
-let isChampionMode = false; 
-let botTimeout = null;
-
-let botDNA = {
-    prioPotagerUrgence: 750, prioVergerUrgence: 750, prioExtraPotager: 300, prioExtraVerger: 300, prioNature: 350,         
-    prioComposteur: 400, prioSerre: 350, prioLocalOutils: 320,    
-    prioPlanter: 700, prioAmender: 450,        
-    prioJardinerieUrgence: 650, prioStockGraines: 300,      
-    prioUpgradeBase: 380, prioUpTerrain: 100, prioUpEnergie: 90, prioUpSavoir: 80, prioUpSol: 110, prioUpClimat: 50, prioUpOutils: 70, prioUpVente: 60, prioUpVIP: 50            
-};
-
-const dbBrain = firebase.database().ref("bot-brain-v3");
-
-dbBrain.once("value").then(snap => {
-    if(snap.exists()) {
-        botDNA = mutateDNA(snap.val().dna);
-        console.log("=========================================");
-        console.log("🧠 CERVEAU CHARGÉ | Record actuel : " + snap.val().score + "💰");
-        console.log("🧬 Nouvelle mutation générée pour le test :", JSON.parse(JSON.stringify(botDNA)));
-        console.log("=========================================");
-    }
-});
-
-function mutateDNA(parentDNA) {
-    let newDNA = {};
-    for (let gene in parentDNA) {
-        let mutation = 1 + ((Math.random() * 0.2) - 0.1); // Mutation entre -10% et +10%
-        newDNA[gene] = Math.round(parentDNA[gene] * mutation);
-    }
-    return newDNA;
-}
+let autoTrain = false;
+let isBotThinking = false;
+let botDelay = 800; // Vitesse de jeu du bot (800ms par défaut)
 
 function toggleBot() {
     botEnabled = !botEnabled;
-    isChampionMode = false; 
-    const btn = document.getElementById('bot-btn');
+    let btn = document.getElementById('bot-btn');
     if(btn) {
         btn.innerText = botEnabled ? "🤖 Bot: ON" : "🤖 Bot: OFF";
         btn.style.background = botEnabled ? "#4caf50" : "#9c27b0";
     }
-    if(botEnabled && state && state.turn === myId && !state.gameOver) triggerBot(myId);
+    if(botEnabled && state && state.turn === myId && !state.gameOver) triggerBot(state.turn);
 }
 
 function toggleAutoTrain() {
-    autoTrainEnabled = !autoTrainEnabled;
-    isChampionMode = false; 
-    const btnTrain = document.getElementById('auto-train-btn');
-    
-    if(autoTrainEnabled) {
-        if(btnTrain) { btnTrain.innerText = "🧬 Auto-Train: ON"; btnTrain.style.background = "#ff9800"; }
-        if(!botEnabled) toggleBot(); 
-    } else {
-        if(btnTrain) { btnTrain.innerText = "🧬 Auto-Train: OFF"; btnTrain.style.background = "#009688"; }
+    autoTrain = !autoTrain;
+    botDelay = autoTrain ? 100 : 800; // Mode turbo pour l'entrainement
+    let btn = document.getElementById('auto-train-btn');
+    if(btn) {
+        btn.innerText = autoTrain ? "🧬 Auto-Train: ON" : "🧬 Auto-Train: OFF";
+        btn.style.background = autoTrain ? "#4caf50" : "#009688";
     }
+    if(autoTrain && !botEnabled) toggleBot();
 }
 
 function playChampion() {
-    autoTrainEnabled = false; 
-    isChampionMode = true;
-    botEnabled = true;
-    
-    let btnTrain = document.getElementById('auto-train-btn');
-    if(btnTrain) { btnTrain.innerText = "🧬 Auto-Train: OFF"; btnTrain.style.background = "#009688"; }
-    
-    let btnChamp = document.getElementById('champion-btn');
-    if(btnChamp) { btnChamp.innerText = "🏆 Champion: ON"; btnChamp.style.background = "#f57f17"; }
+    if(!state || state.gameOver) return;
+    triggerBot(state.turn, true);
+}
 
-    dbBrain.once("value").then(snap => {
-        if(snap.exists()) {
-            botDNA = snap.val().dna; 
-            console.log("=========================================");
-            console.log(`🏆 MODE CHAMPION ! ADN exact du record (${snap.val().score}💰) chargé :`);
-            console.log(JSON.parse(JSON.stringify(botDNA)));
-            console.log("=========================================");
-        } else {
-            console.log("⚠️ Aucun champion. ADN de base utilisé.");
+function triggerBot(pId, force = false) {
+    if (isBotThinking || state.gameOver) {
+        // En mode auto-train, on relance automatiquement une nouvelle partie quand c'est fini !
+        if(state.gameOver && autoTrain) {
+            setTimeout(() => confirmReset(true), 2500);
         }
-        
-        if(state && state.turn === myId && !state.gameOver) triggerBot(myId);
-    });
+        return;
+    }
+    
+    // Le bot ne joue que si c'est une IA, sauf si on force (Mode Champion)
+    let isIA = false;
+    if (state.mode === 'IA_SOLO' || state.mode === 'IA_VS_IA') isIA = true;
+    if (state.mode === 'VS_IA' && pId === 2) isIA = true;
+
+    if (!force && !isIA) return;
+
+    isBotThinking = true;
+    setTimeout(() => {
+        executeBestAction(pId);
+        isBotThinking = false;
+    }, botDelay);
 }
 
-function triggerBot(botId) {
-    if(botTimeout) clearTimeout(botTimeout);
-    let speed = 50; 
-    if(autoTrainEnabled) speed = 20; 
-    else if(isChampionMode) speed = 50; 
-    botTimeout = setTimeout(() => { botThinkAndAct(botId); }, speed); 
-}
+function executeBestAction(pId) {
+    const me = state['p' + pId];
+    const s = state.settings;
 
-function botThinkAndAct(botId) {
-    try {
-        if(!state || state.turn !== botId) return;
-        
-        if(state.gameOver) {
-            if(isChampionMode) {
-                console.log(`🏁 Démonstration terminée. Score : ${state['p'+botId].money}💰.`);
-                isChampionMode = false;
-                botEnabled = false;
-                let btnChamp = document.getElementById('champion-btn');
-                if(btnChamp) { btnChamp.innerText = "🏆 Jouer Champion"; btnChamp.style.background = "#fbc02d"; }
-                let btnBot = document.getElementById('bot-btn');
-                if(btnBot) { btnBot.innerText = "🤖 Bot: OFF"; btnBot.style.background = "#9c27b0"; }
-                return;
-            }
-
-            const finalScore = state['p'+botId].money;
-            dbBrain.once("value").then(snap => {
-                let currentBest = snap.exists() ? snap.val().score : -1;
-                
-                if(finalScore > currentBest) {
-                    dbBrain.set({ score: finalScore, dna: botDNA });
-                    console.log(`\n🎉 NOUVEAU RECORD IA ! Score: ${finalScore}💰 (Ancien record: ${currentBest}💰)`);
-                    console.log(`🧬 ADN Sauvegardé :`, JSON.parse(JSON.stringify(botDNA)));
-                    
-                    autoTrainEnabled = false;
-                    botEnabled = false;
-                    
-                    let btnTrain = document.getElementById('auto-train-btn');
-                    if(btnTrain) { btnTrain.innerText = "🧬 Auto-Train: OFF"; btnTrain.style.background = "#009688"; }
-                    let btnBot = document.getElementById('bot-btn');
-                    if(btnBot) { btnBot.innerText = "🤖 Bot: OFF"; btnBot.style.background = "#9c27b0"; }
-                } else {
-                    console.log(`\n❌ Échec de la mutation. Score: ${finalScore}💰 (Record à battre: ${currentBest}💰)`);
-                    console.log(`🗑️ ADN Jeté :`, JSON.parse(JSON.stringify(botDNA)));
-
-                    if(autoTrainEnabled) {
-                        if(snap.exists()) {
-                            botDNA = mutateDNA(snap.val().dna);
-                            console.log(`\n🔄 Relance... Nouvelle mutation générée :`, JSON.parse(JSON.stringify(botDNA)));
-                        }
-                        if (typeof initNewGame === "function") initNewGame(botId, state.mode);
-                    } else {
-                        botEnabled = false; 
-                        let btnBot = document.getElementById('bot-btn');
-                        if(btnBot) { btnBot.innerText = "🤖 Bot: OFF"; btnBot.style.background = "#9c27b0"; }
-                    }
+    // --- PRIORITÉ 1 : RÉCOLTER ---
+    // Le bot vérifie tous ses slots de culture pour voir si l'un d'eux est prêt (Eau = 0, Soleil = 0)
+    for (let i = 0; i < me.zones.length; i++) {
+        let z = me.zones[i];
+        if (z && z.slots) {
+            for (let j = 0; j < z.slots.length; j++) {
+                let c = z.slots[j];
+                if (c.eCur <= 0 && c.sCur <= 0 && me.time >= s.costRecolterTemps) {
+                    localSelectedId = z.id; // Le bot "clique" virtuellement sur la zone
+                    actionRecolter(z.id, j);
+                    return;
                 }
-            });
+            }
+        }
+    }
+
+    // --- PRIORITÉ 2 : JOUER UN OUTIL / AUXILIAIRE ---
+    // Les cartes "X" ne nécessitent pas de zone ciblée
+    for (let i = 0; i < me.hand.length; i++) {
+        let c = me.hand[i];
+        let cost = Math.max(0, (c.t || 1) - (me.upgrades[2] - 1));
+        if (me.time >= cost && c.cat === 'X') {
+            playC(i, null);
             return;
         }
-        
-        const me = state['p'+botId];
-        let bestAction = { type: 'FIN_TOUR', score: 10 };
-        let curS = ALL_SEASONS[state.saisonIdx];
-        const costT = me.upgrades[5] >= 2 ? (me.upgrades[5] === 3 ? 0 : 1) : 2;
+    }
 
-        let hasEmptyPotager = false; let hasEmptyVerger = false; let hasEmptyNature = false;
-        let nbPotagers = 0; let nbVergers = 0;
-        let emptyZoneId = null; let hasComposteur = me.zones.some(z => z.batiment === 'COMPOSTEUR');
-        let nbPlantesEnCroissance = 0;
+    // --- PRIORITÉ 3 : ARROSER ---
+    // Si le bot a du temps et qu'une plante a soif
+    if (me.time >= s.costArroserTemps) {
+        for (let i = 0; i < me.zones.length; i++) {
+            let z = me.zones[i];
+            if (z && z.slots && z.slots.some(c => c.eCur > 0)) {
+                localSelectedId = z.id;
+                actArr(z.id);
+                return;
+            }
+        }
+    }
 
-        me.zones.forEach(z => {
-            if(z.culture) {
-                nbPlantesEnCroissance++;
-                if(z.culture.eCur <= 0 && z.culture.sCur <= 0 && me.time >= 2) {
-                    if(1000 > bestAction.score) bestAction = { type: 'RECOLTER', zoneId: z.id, score: 1000 };
-                } else if(z.culture.eCur >= 2 && me.time >= 1) {
-                    if(800 > bestAction.score) bestAction = { type: 'ARROSER', zoneId: z.id, score: 800 + z.culture.eCur };
-                } else if(hasComposteur && me.compost > 0 && me.time >= 1) {
-                    if(botDNA.prioAmender > bestAction.score) bestAction = { type: 'AMENDER', zoneId: z.id, score: botDNA.prioAmender };
-                }
-            } else if (z.type && z.id !== 0) {
-                if(z.type === 'POTAGER') { nbPotagers++; if(!z.culture) hasEmptyPotager = true; }
-                if(z.type === 'VERGER') { nbVergers++; if(!z.culture) hasEmptyVerger = true; }
-                if(z.type === 'AMÉNAGEMENT' && !z.batiment) hasEmptyNature = true;
+    // --- PRIORITÉ 4 : PLANTER UN LÉGUME / ARBRE ---
+    for (let i = 0; i < me.hand.length; i++) {
+        let c = me.hand[i];
+        let cost = Math.max(0, (c.t || 1) - (me.upgrades[2] - 1));
+        if (me.time < cost) continue;
 
-                (me.hand || []).forEach((c, idx) => {
-                    const costH = Math.max(0, (c.t||1)-(me.upgrades[2]-1));
-                    let smValid = z.batiment === 'SERRE' ? (c.sm||[]).map(s => ALL_SEASONS[(ALL_SEASONS.indexOf(s)+3)%4]).concat(c.sm||[]) : (c.sm||[]);
-                    if((c.cat === 'L' && z.type === 'POTAGER') || (c.cat === 'A' && z.type === 'VERGER')) {
-                        if(smValid.includes(curS) && me.time >= costH && !z.culture) {
-                            if(botDNA.prioPlanter > bestAction.score) bestAction = { type: 'PLANTER', handIdx: idx, zoneId: z.id, score: botDNA.prioPlanter };
-                        }
-                    }
+        if (c.cat === 'L' || c.cat === 'A') {
+            let isPetitFruit = ["Fraise", "Melon", "Pastèque"].some(pf => c.nom.includes(pf));
+            let isGrimpante = ["Haricot", "Pois", "Concombre", "Cornichon", "Chayotte", "Vigne"].some(g => c.nom.includes(g));
+            let hasTuteur = (me.auxActifs || []).some(a => a.includes("Tuteur") || a.includes("Treillage"));
+            let curS = ["P","E","A","H"][state.saisonIdx];
+
+            // Le bot cherche une zone valide pour planter
+            for (let j = 0; j < me.zones.length; j++) {
+                let z = me.zones[j];
+                if (!z.type) continue; // Si la zone est vide, on passe
+                
+                let smValid = z.batiment === 'SERRE' ? (c.sm||[]).map(se => ["P","E","A","H"][(["P","E","A","H"].indexOf(se)+3)%4]).concat(c.sm||[]) : (c.sm||[]);
+                if(!smValid.includes(curS)) continue; // Mauvaise saison
+
+                if (c.cat === 'L' && z.type !== 'POTAGER' && !(z.type === 'VERGER' && isPetitFruit)) continue; // Légume hors potager
+                if (c.cat === 'A' && z.type !== 'VERGER') continue; // Arbre hors verger
+
+                let maxSlots = z.type === 'POTAGER' ? 2 : 1;
+                let occupied = 0;
+                (z.slots || []).forEach(pl => {
+                    if (!(["Haricot", "Pois", "Concombre", "Cornichon", "Chayotte", "Vigne"].some(g => pl.nom.includes(g)) && hasTuteur)) occupied++;
                 });
 
-                if(!z.batiment && z.type === 'AMÉNAGEMENT' && !hasComposteur && me.money >= 4 && me.time >= 4) {
-                    if(botDNA.prioComposteur > bestAction.score) bestAction = { type: 'BATIMENT', zoneId: z.id, batiment: 'COMPOSTEUR', score: botDNA.prioComposteur };
-                }
-                if(!z.batiment && z.type === 'AMÉNAGEMENT' && me.money >= 5 && me.time >= 4) {
-                    if(botDNA.prioLocalOutils > bestAction.score) bestAction = { type: 'BATIMENT', zoneId: z.id, batiment: 'LOCAL OUTILS', score: botDNA.prioLocalOutils };
-                }
-                if(!z.batiment && z.type === 'POTAGER' && me.money >= 3 && me.time >= 4) {
-                    if(botDNA.prioSerre > bestAction.score) bestAction = { type: 'BATIMENT', zoneId: z.id, batiment: 'SERRE', score: botDNA.prioSerre };
-                }
-            } else if (!z.type && z.id !== 0 && z.id <= (me.upgrades[0] === 1 ? 3 : (me.upgrades[0] === 2 ? 4 : 5))) { emptyZoneId = z.id; }
-        });
+                if (!(isGrimpante && hasTuteur) && occupied >= maxSlots) continue; // Zone pleine
 
-        if(emptyZoneId && me.time >= 3 && me.money >= costT) {
-            let needsPotager = (me.hand||[]).some(c => c.cat === 'L' && (c.sm||[]).includes(curS));
-            let downVerger = (me.hand||[]).some(c => c.cat === 'A' && (c.sm||[]).includes(curS));
-            
-            if(needsPotager && nbPotagers === 0 && botDNA.prioPotagerUrgence > bestAction.score) { bestAction = { type: 'AMENAGER', zoneId: emptyZoneId, terrain: 'POTAGER', score: botDNA.prioPotagerUrgence }; } 
-            else if(downVerger && nbVergers === 0 && botDNA.prioVergerUrgence > bestAction.score) { bestAction = { type: 'AMENAGER', zoneId: emptyZoneId, terrain: 'VERGER', score: botDNA.prioVergerUrgence }; } 
-            else if(needsPotager && !hasEmptyPotager && botDNA.prioExtraPotager > bestAction.score) { bestAction = { type: 'AMENAGER', zoneId: emptyZoneId, terrain: 'POTAGER', score: botDNA.prioExtraPotager }; } 
-            else if(downVerger && !hasEmptyVerger && botDNA.prioExtraVerger > bestAction.score) { bestAction = { type: 'AMENAGER', zoneId: emptyZoneId, terrain: 'VERGER', score: botDNA.prioExtraVerger }; } 
-            else if(!hasComposteur && !hasEmptyNature && me.money >= (costT + 4) && botDNA.prioNature > bestAction.score) { bestAction = { type: 'AMENAGER', zoneId: emptyZoneId, terrain: 'AMÉNAGEMENT', score: botDNA.prioNature }; }
-        }
-
-        let redJ = me.upgrades[6] >= 2 ? 1 : 0;
-        let costJard = Math.max(0, 3 - redJ); 
-        let upDnaScores = [ botDNA.prioUpTerrain, botDNA.prioUpEnergie, botDNA.prioUpSavoir, botDNA.prioUpSol, botDNA.prioUpClimat, botDNA.prioUpOutils, botDNA.prioUpVente, botDNA.prioUpVIP ];
-
-        UP_NAMES.forEach((n, i) => {
-            const costUpH = me.upgrades[i] === 1 ? 3 : 5;
-            const costUpM = me.upgrades[i] === 1 ? 2 : 4; 
-            let safeBudget = 2 + (nbPotagers === 0 && nbVergers === 0 ? costT : 0);
-
-            if(me.upgrades[i] < 3 && me.time >= costUpH && (me.money - safeBudget) >= costUpM && state.annee < 3) {
-                let prio = botDNA.prioUpgradeBase + upDnaScores[i];
-                if(prio > bestAction.score) bestAction = { type: 'UPGRADE', upIdx: i, score: prio };
-            }
-        });
-
-        let plantableCards = (me.hand||[]).filter(c => (c.cat === 'L' || c.cat === 'A') && (c.sm||[]).includes(curS)).length;
-        if(me.time >= costJard && me.money >= 1) {
-            let maxPrice = me.money;
-            if (nbPotagers === 0 && nbVergers === 0) maxPrice = me.money - costT; 
-            let cartesAchetables = (state.market['C'] || []).filter(c => c.p <= maxPrice);
-            
-            if(cartesAchetables.length > 0) {
-                let bestCard = cartesAchetables.sort((a,b) => (b.g - b.p) - (a.g - a.p))[0];
-                if((me.hand || []).length === 0 && nbPlantesEnCroissance === 0 && botDNA.prioJardinerieUrgence > bestAction.score) {
-                    bestAction = { type: 'JARDINERIE', cardTarget: bestCard, score: botDNA.prioJardinerieUrgence };
-                } 
-                else if (plantableCards === 0 && botDNA.prioStockGraines > bestAction.score) {
-                    bestAction = { type: 'JARDINERIE', cardTarget: bestCard, score: botDNA.prioStockGraines };
-                }
+                // Si toutes les conditions sont remplies, le bot plante !
+                localSelectedId = z.id;
+                playC(i, z.id);
+                return;
             }
         }
+    }
 
-        if(bestAction.type === 'RECOLTER') { actionRecolter(bestAction.zoneId); }
-        else if(bestAction.type === 'ARROSER') { actArr(bestAction.zoneId); }
-        else if(bestAction.type === 'AMENDER') { actAmd(bestAction.zoneId); }
-        else if(bestAction.type === 'AMENAGER') { actT(bestAction.terrain, bestAction.zoneId); }
-        else if(bestAction.type === 'PLANTER') { playC(bestAction.handIdx, bestAction.zoneId); }
-        else if(bestAction.type === 'UPGRADE') { upgr(bestAction.upIdx); }
-        else if(bestAction.type === 'BATIMENT') {
-            me.money -= (bestAction.batiment === 'LOCAL OUTILS' ? 5 : (bestAction.batiment === 'COMPOSTEUR' ? 4 : 3)); 
-            me.time -= 4; me.zones[bestAction.zoneId].batiment = bestAction.batiment; 
-            addLog(`🤖 Bâtiment ${bestAction.batiment} construit sur Zone ${bestAction.zoneId}.`, botId); sync();
+    // --- PRIORITÉ 5 : AMÉNAGER UN TERRAIN ---
+    // Si le bot a des plantes dans sa main mais pas de place sur le terrain, il aménage.
+    let hasPlants = me.hand.some(c => c.cat === 'L' || c.cat === 'A');
+    let costP_Or = Math.max(0, s.costAmenagerPotagerOr - (me.upgrades[5] >= 2 ? (me.upgrades[5] === 3 ? 2 : 1) : 0));
+    
+    if (hasPlants && me.time >= s.costAmenagerPotagerTemps && me.money >= costP_Or) {
+        // Il cherche une zone vide adjacente (en utilisant ta fonction globale)
+        let emptyAdj = me.zones.find(z => !z.type && typeof isAdjacent === 'function' && (isAdjacent(me, z.id) || z.num == 1 || z.num == 2));
+        
+        if (emptyAdj) {
+            let num = parseInt(emptyAdj.num);
+            localSelectedId = emptyAdj.id;
+            
+            // Le bot déduit logiquement s'il doit faire un Potager (1,2) ou un Verger
+            if (num === 1 || num === 2) {
+                actT('POTAGER', emptyAdj.id);
+                return;
+            } else if (num >= 3 && num <= 5) {
+                actT('VERGER', emptyAdj.id);
+                return;
+            }
         }
-        else if(bestAction.type === 'JARDINERIE') {
-            me.time -= costJard; let c = (state.market['C'] || []).find(mc => mc.nom === bestAction.cardTarget.nom);
-            if(c) {
-                me.money -= c.p; if(!me.hand) me.hand = []; me.hand.push(c);
-                state.market['C'] = (state.market['C'] || []).filter(mc => mc.nom !== c.nom);
-                if(!state.market['C']) state.market['C'] = [];
-                while(state.market['C'].length < 2) { let nv = draw('C'); if(nv) state.market['C'].push(nv); else break; }
-                addLog(`🤖 Achat au Marché : ${c.nom} (-${c.p}💰).`, botId); sync();
-            } else { actFin(); }
-        }
-        else { actFin(); }
+    }
 
-    } catch (e) { console.error(e); botEnabled = false; }
+    // --- PRIORITÉ 6 : AMÉLIORER SON EXPLOITATION (UPGRADES) ---
+    // Si le bot a de l'argent en trop, il améliore son matériel
+    if (me.money >= 5 && me.time >= 4) {
+        for(let i=0; i<8; i++) {
+            let costH = me.upgrades[i]===1 ? s.costUp2Temps : s.costUp3Temps; 
+            let costM = me.upgrades[i]===1 ? s.costUp2Or : s.costUp3Or;
+            let isUpLocked = (me.upgrades[i] === 2 && (!state.coop || !state.coop.unlocks || !state.coop.unlocks.upgrades3));
+            
+            if (me.upgrades[i] < 3 && me.time >= costH && me.money >= costM && !isUpLocked) {
+                upgr(i);
+                return;
+            }
+        }
+    }
+
+    // --- PRIORITÉ 7 : FOIRE (ALLER CHERCHER DES OBJECTIFS) ---
+    // À partir de l'année 2, le bot essaie d'accumuler des PV bonus.
+    let costCons = 2 + (state.foire.conseiller || 0);
+    if (state.annee >= 2 && me.time >= costCons && state.decks.O && state.decks.O.length > 0) {
+        me.time -= costCons;
+        state.foire.conseiller = (state.foire.conseiller || 0) + 1;
+        
+        // Le bot simule l'action (sans déclencher de popup à l'écran)
+        let obj = state.decks.O.splice(Math.floor(Math.random() * state.decks.O.length), 1)[0];
+        if(!me.objectives) me.objectives=[];
+        me.objectives.push(obj);
+        
+        addLog(`🤖 Le bot a récupéré l'Objectif : ${obj.nom}`, pId);
+        sync();
+        return;
+    }
+
+    // --- PRIORITÉ 8 : JARDINERIE (MARCHÉ) ---
+    // Si le bot n'a rien à faire et qu'il lui manque des cartes, il achète au marché
+    let redJ = me.upgrades[6] >= 2 ? 1 : 0;
+    let costJ = Math.max(0, s.jardSlot3Temps - redJ);
+    
+    if (me.time >= costJ && me.money >= 3 && me.hand.length < 4) {
+        let cat = ['C', 'S', 'A'][Math.floor(Math.random() * 3)];
+        if (state.market[cat] && state.market[cat].length > 0) {
+            let card = state.market[cat][0]; // Prend la 1ère carte disponible
+            if (me.money >= card.p) {
+                me.time -= costJ;
+                me.money -= card.p;
+                me.hand.push(card);
+                state.market[cat].splice(0, 1);
+                addLog(`🤖 Le bot achète ${card.nom} au marché.`, pId);
+                
+                // Remplissage automatique pour le prochain joueur
+                let maxCards = (state.coop && state.coop.unlocks && state.coop.unlocks.market3) ? 3 : 2;
+                while(state.market[cat].length < maxCards && state.decks[cat].length > 0) { 
+                    state.market[cat].push(state.decks[cat].splice(Math.floor(Math.random()*state.decks[cat].length), 1)[0]); 
+                }
+                sync();
+                return;
+            }
+        }
+    }
+
+    // --- PRIORITÉ 9 : FIN DE SAISON ---
+    // Si absolument aucune action ci-dessus n'est faisable, le bot termine son tour.
+    actFin();
 }
