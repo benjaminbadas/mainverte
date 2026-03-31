@@ -2,7 +2,7 @@
 <html lang="fr">
 <head>
     <meta charset="UTF-8">
-    <title>La Main Verte - V30 (Foire Agricole & PV)</title>
+    <title>La Main Verte - Édition Ultime</title>
     <script src="https://www.gstatic.com/firebasejs/9.17.1/firebase-app-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/9.17.1/firebase-database-compat.js"></script>
     <style>
@@ -24,13 +24,16 @@
         .hud { display: flex; justify-content: space-between; align-items: center; background: white; padding: 10px; border-radius: 8px; box-shadow: 0 2px 5px rgba(0,0,0,0.1); margin-bottom: 5px; font-weight: bold; font-size: 0.9em; border-top: 4px solid var(--p1); }
         .hud-opp { background: #e3f2fd; padding: 6px 10px; border-radius: 8px; margin-bottom: 10px; font-size: 0.8em; color: #1565c0; border: 1px solid #bbdefb; display: flex; justify-content: space-between; align-items: center;}
         
+        /* GRILLE HEXAGONALE */
         .farm-grid { position: relative; width: 100%; min-height: 430px; background: #d7ccc8; padding: 10px; border-radius: 12px; margin-top: 5px; margin-bottom: 5px; }
         .zone { position: absolute; width: 100px; height: 115px; background: #efebe9; border: 2px dashed #bcaaa4; border-radius: 8px; display: flex; flex-direction: column; align-items: center; justify-content: center; font-size: 0.70em; cursor: pointer; text-align: center; transition: 0.2s; clip-path: polygon(50% 0%, 100% 25%, 100% 75%, 50% 100%, 0% 75%, 0% 25%); z-index: 1; }
         .zone.selected { border: 3px solid #ff9800 !important; box-shadow: 0 0 10px rgba(255,152,0,0.6); transform: scale(1.05); z-index: 10;}
+        
         .zone-color-0 { background: #f3e5f5; border-color: #ce93d8; color: #7b1fa2; }
         .zone-color-1, .zone-color-2, .zone-color-3 { background: #efebe9; border-color: #bcaaa4; color: #5d4037; }
         .zone-color-4 { background: #c8e6c9; border-color: #2e7d32; color: #1b5e20; }
         .zone-color-5 { background: #1b5e20; border-color: #0a3311; color: white; }
+        
         .tuile-potager { background: var(--potager) !important; border: 2px solid #2e7d32 !important; color: #1b5e20; }
         .tuile-verger { background: var(--verger) !important; border: 2px solid #fbc02d !important; color: #5d4037; }
         .tuile-amenag { background: var(--amenag) !important; border: 2px solid #ff5722 !important; color: #bf360c; }
@@ -58,7 +61,9 @@
         .modal-content { background: #fff; padding: 15px; border-radius: 12px; width: 95%; max-width: 1000px; max-height: 90vh; overflow-y: auto; box-shadow: 0 10px 30px rgba(0,0,0,0.5); }
         .rayon-grid { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 10px; }
         .rayon { background: #f9f9f9; padding: 8px; border-radius: 8px; border: 1px solid #ccc; }
+        .btn-jard-action { width: 100%; margin-bottom: 5px; padding: 4px; font-size: 0.8em; cursor: pointer; background: #eee; border: 1px solid #ccc; border-radius: 4px; }
         .jard-card { border: 2px solid #ddd; padding: 6px; border-radius: 6px; margin-bottom: 6px; cursor: pointer; background: white; position: relative; font-size: 0.85em; transition: 0.2s;}
+        .price-tag { position: absolute; top: -6px; right: -6px; background: var(--gold); padding: 1px 5px; border-radius: 8px; font-size: 0.8em; font-weight: bold; border: 1px solid #b8860b; }
         
         .alert-rav { background: #ffebee; color: #c62828; padding: 4px; border-radius: 4px; font-size: 0.75em; margin-bottom: 5px; border: 1px solid #ef9a9a; text-align: center; font-weight: bold;}
         .logs { height: 150px; background: var(--dark); color: #a5d6a7; padding: 8px; font-family: monospace; font-size: 0.75em; overflow-y: auto; border-radius: 6px; margin-top:5px; border: 2px solid #455a64;}
@@ -105,7 +110,7 @@
     <div id="turn-banner" class="turn-banner">Veuillez patienter...</div>
     <div class="hud" id="my-hud">
         <div id="season-display">📅 Saison...</div>
-        <div>💰 <span id="res-money">0</span> | ⏳ <span id="res-time">0</span>/<span id="res-timemax">10</span>h | <span class="res-pv" title="Points de Victoire (But du jeu)">🏆 <span id="res-pv">0</span></span></div>
+        <div>💰 <span id="res-money">0</span> | ⏳ <span id="res-time">0</span>/<span id="res-timemax">10</span>h | <span class="res-pv" title="Points de Victoire">🏆 <span id="res-pv">0</span></span></div>
         <div title="Compost">💩 <span id="res-compost" class="res-pill">0</span></div>
         <div id="meteo-display" style="background:#e3f2fd; padding:3px 10px; border-radius:10px;">🎲 --</div>
         <button id="champion-btn" onclick="playChampion()" style="background:#fbc02d; color:#333; border:none; border-radius:4px; padding:4px 8px; cursor:pointer;">🏆 Jouer Champion</button>
@@ -148,7 +153,7 @@
 <div class="modal-overlay" id="foire-modal"><div class="modal-content" id="foire-content-inner"></div></div>
 
 <script>
-    // --- FIREBASE ET CONSTANTES ---
+    // --- FIREBASE ET CONSTANTES GLOBAL ---
     const firebaseConfig = {
         apiKey: "AIzaSyA_OHv6TDiVsn4PwM9s25gij8lBwQH8xrg",
         authDomain: "main-verte-72483.firebaseapp.com",
@@ -165,11 +170,12 @@
     const ALL_SEASONS = ["P","E","A","H"];
     const zoneNumbersMap = [0, 1, 1, 4, 4, 2, 3, 3, 5, 2, 3, 4, 5, 5, null];
 
-    let state = null; let myId = null; let localSelectedId = null; let localModalOpen = false; let localFoireOpen = false; let localPicksLeft = 0; let isInitializing = false;
-
+    // Listes de référence
     const listPetitsFruits = ["Fraise", "Melon", "Pastèque"]; 
     const listGrimpantes = ["Haricot", "Pois", "Concombre", "Cornichon", "Chayotte", "Vigne"];
     const listCompagnes = ["Ail", "Aneth", "Agastache", "Basilic", "Bleuet", "Bourrache", "Capucine", "Cébette", "Cerfeuil", "Ciboulette", "Coriandre", "Cosmos", "Echalote", "Épinard", "Estragon", "Lin", "Marguerite", "Mélilot Blanc", "Mélisse", "Menthe", "Moutarde", "Oignon", "Origan", "Oeillet d'Inde", "Persil", "Romarin", "Sarriette", "Sauge", "Serpolet", "Souci", "Tanaisie", "Thym", "Tournesol"];
+
+    let state = null; let myId = null; let localSelectedId = null; let localModalOpen = false; let localFoireOpen = false; let localPicksLeft = 0; let isInitializing = false;
 
     function generatePlayer() {
         return { 
@@ -189,7 +195,7 @@
 <script>
     function startNewGame(mode) {
         myId = 1; document.getElementById('lobby').style.display = 'none'; document.getElementById('my-hud').style.borderTopColor = 'var(--p1)';
-        botEnabled = (mode === 'IA_SOLO' || mode === 'IA_VS_IA' || mode === 'VS_IA');
+        if (mode === 'IA_SOLO' || mode === 'IA_VS_IA' || mode === 'VS_IA') { botEnabled = true; } else { botEnabled = false; }
         initNewGame(1, mode);
     }
 
@@ -201,7 +207,7 @@
     db.on("value", snap => {
         const val = snap.val();
         if(val && val.p1) {
-            if(!val.p1.zones[0].slots) console.warn("⚠️ Ancienne BDD détectée ! Veuillez faire un Reset !");
+            if(!val.p1.zones[0].slots) console.warn("⚠️ Ancienne base détectée. Réinitialisez la partie !");
             if (state && (state.saisonIdx !== val.saisonIdx || state.annee !== val.annee) && !val.gameOver) { playSeasonAnimation(val.saisonIdx, val.annee); }
             state = val; render(); 
         }
@@ -317,12 +323,15 @@
             grid.appendChild(d);
         });
 
+        // 🟢 RESTAURATION : Infos complètes des cartes dans la main
         const hDiv = document.getElementById('player-hand'); hDiv.innerHTML = "";
         (me.hand || []).forEach((c, i) => {
             const cost = Math.max(0, (c.t||1) - (me.upgrades[2]-1));
             const card = document.createElement('div'); card.className = "card";
+            
             let details = "";
-            if (c.cat === 'S') details = `✨ <b>Effet :</b> ${c.desc}`; else if (c.cat === 'X') details = `🛡️ <b>Protège :</b> Anti-${c.prot}`;
+            if (c.cat === 'S') details = `✨ <b>Effet :</b> ${c.desc}`; 
+            else if (c.cat === 'X') details = `🛡️ <b>Protège :</b> Anti-${c.prot}`;
             else details = `📈 <b>Gain : +${c.g}💰</b><br>💧${c.e} ☀️${c.s}<br>🌱 ${(c.sm||[]).join(',')} | 🧺 ${(c.rc||[]).join(',')}`;
             
             card.innerHTML = `<b>${c.nom}</b><br><span style="font-size:0.9em;">${details}</span>
@@ -369,24 +378,39 @@
         });
     }
 
-    // --- JARDINERIE ---
+    // --- JARDINERIE (Avec renouvellement et infos) ---
     function openJard(h, p) { const me = state['p'+state.turn]; me.time -= h; localPicksLeft = p; localModalOpen = true; addLog(`📦 Voyage Jardinerie (-${h}h).`, state.turn); sync(); }
     function renderJardModal(me) {
         const inner = document.getElementById('modal-content-inner');
         inner.innerHTML = `<div style="display:flex;justify-content:space-between; align-items:center; margin-bottom:10px;"><h2>🛒 Marché</h2><div style="font-size:1.2em; color:#d32f2f;"><b>Actions : ${localPicksLeft}</b> | 💰 ${me.money}</div></div><div class="rayon-grid" id="rg"></div>`;
         ['C','S','A'].forEach(cat => {
             const r = document.createElement('div'); r.className = "rayon";
-            r.innerHTML = `<h3>${cat==='C'?'🌾 Cultures':(cat==='S'?'🛠️ Soutiens':'🦊 Auxiliaires')}</h3><hr>`;
+            // 🟢 RESTAURATION : Bouton Renouveler présent
+            r.innerHTML = `<h3>${cat==='C'?'🌾 Cultures':(cat==='S'?'🛠️ Soutiens':'🦊 Auxiliaires')}</h3>
+            <button class="btn-jard-action" onclick="jardP('${cat}')">🎲 Pioche à l'aveugle</button>
+            <button class="btn-jard-action" onclick="jardR('${cat}')">🔄 Renouveler le Rayon</button><hr>`;
+            
             (state.market[cat] || []).forEach((c, idx) => {
                 const can = me.money >= c.p; const d = document.createElement('div'); d.className = "jard-card"; d.style.opacity = can?"1":"0.4";
-                let details = c.cat === 'S' ? `✨ ${c.desc}` : (c.cat === 'X' ? `🛡️ Anti-${c.prot}` : `📈 +${c.g}💰<br>💧${c.e} ☀️${c.s}`);
+                
+                // 🟢 RESTAURATION : Infos complètes des cartes au marché
+                let details = "";
+                if (c.cat === 'S') details = `✨ <b>Effet :</b> ${c.desc}`; 
+                else if (c.cat === 'X') details = `🛡️ <b>Protège :</b> Anti-${c.prot}`;
+                else details = `📈 <b>Gain : +${c.g}💰</b><br>💧${c.e} ☀️${c.s}<br>🌱 ${(c.sm||[]).join(',')} | 🧺 ${(c.rc||[]).join(',')}`;
+                
                 d.innerHTML = `<div class="price-tag">${c.p}💰</div><b>${c.nom}</b><br><small>${details}</small>`;
-                d.onclick = () => { if(can) { me.money-=c.p; if(!me.hand) me.hand=[]; me.hand.push(c); state.market[cat].splice(idx,1); if(!state.market[cat]) state.market[cat] = []; if(me.upgrades[6]>=3) { let nc = draw(cat); if(nc) state.market[cat].push(nc); } addLog(`🛒 Achat : ${c.nom} (-${c.p}💰).`, state.turn); localPicksLeft--; if(localPicksLeft<=0){ localModalOpen=false; ['C','S','A'].forEach(ct => { while((state.market[ct]||[]).length < 2) { let nv = draw(ct); if(nv) state.market[ct].push(nv); else break; } }); } sync(); } };
+                d.onclick = () => { if(can) { me.money-=c.p; if(!me.hand) me.hand=[]; me.hand.push(c); state.market[cat].splice(idx,1); if(!state.market[cat]) state.market[cat] = []; if(me.upgrades[6]>=3) { let nc = draw(cat); if(nc) state.market[cat].push(nc); } addLog(`🛒 Achat : ${c.nom} (-${c.p}💰).`, state.turn); consm(); } };
                 r.appendChild(d);
             });
             inner.querySelector('#rg').appendChild(r);
         });
     }
+
+    function jardP(cat) { const pId=state.turn, me=state['p'+pId], c=draw(cat); if(c) { if(c.p<=me.money) { if(confirm(`Tiré : ${c.nom} (${c.p}💰). L'acheter ?`)) { me.money-=c.p; if(!me.hand) me.hand=[]; me.hand.push(c); addLog(`🎲 Pioche aveugle : ${c.nom} (-${c.p}💰).`, pId); consm(); } else { consm(); } } else { alert(`Fonds insuffisants.`); consm(); } } else alert("Pioche vide !"); }
+    // 🟢 RESTAURATION : Fonction de renouvellement
+    function jardR(cat) { state.market[cat] = []; for(let i=0; i<2; i++) { let d = draw(cat); if(d) state.market[cat].push(d); } addLog(`🔄 Renouvellement rayon ${cat}.`, state.turn); consm(); }
+    function consm() { localPicksLeft--; if(localPicksLeft<=0) { localModalOpen=false; ['C','S','A'].forEach(cat => { if(!state.market[cat]) state.market[cat] = []; while(state.market[cat].length < 2) { let c = draw(cat); if(c) state.market[cat].push(c); else break; } }); } sync(); }
 
     // --- FOIRE AGRICOLE ---
     function openFoire() { localFoireOpen = true; render(); }
@@ -398,7 +422,7 @@
         html += `<div style="display:grid; grid-template-columns: 1fr 1fr 1fr; gap:15px; margin-top:20px;">`;
         
         // Stand
-        html += `<div style="background:#e8eaf6; padding:15px; border-radius:8px; border:2px solid #fbc02d;"><h3>🛍️ Le Stand</h3><p>Vendez des cartes de votre main pour 1💰 chacune. (Coût : 1h/carte).</p><hr>`;
+        html += `<div style="background:#e8eaf6; padding:15px; border-radius:8px; border:2px solid #fbc02d;"><h3>🛍️ Le Stand</h3><p>Vendez des cartes de votre main pour 1💰. (Coût : 1h/carte).</p><hr>`;
         (me.hand||[]).forEach((c, idx) => {
             html += `<button style="width:100%; margin-bottom:5px; cursor:pointer;" onclick="actFoireStand(${idx})" ${me.time<1?'disabled':''}>Vendre ${c.nom} (+1💰, -1h)</button>`;
         });
@@ -412,8 +436,7 @@
         html += `<div style="background:#e3f2fd; padding:15px; border-radius:8px; border:2px solid #2196f3;"><h3>📜 Conseiller en Dév.</h3><p>Piochez 2 Objectifs (PV), gardez-en 1.<br><b>File d'attente :</b> +${state.foire.conseiller||0}h</p>
         <button style="width:100%; padding:10px; background:#2196f3; color:white; font-weight:bold; cursor:pointer;" onclick="actFoireConseiller()" ${me.time<costCons ? 'disabled':''}>Piocher Objectifs (-${costCons}h)</button></div>`;
 
-        html += `</div>`;
-        inner.innerHTML = html;
+        html += `</div>`; inner.innerHTML = html;
     }
 
     function actFoireStand(idx) { const me = state['p'+state.turn]; if(me.time<1) return; me.time--; me.money++; me.hand.splice(idx,1); addLog(`🎪 Vente au stand (+1💰, -1h).`, state.turn); sync(); }
@@ -428,11 +451,9 @@
         
         me.time-=cost; state.foire.conseiller=(state.foire.conseiller||0)+1;
         if(!me.objectives) me.objectives=[];
-        
         if(choice === 1 && obj1) { me.objectives.push(obj1); if(obj2) state.decks.O.push(obj2); }
         else if(obj2) { me.objectives.push(obj2); if(obj1) state.decks.O.push(obj1); }
-        
-        addLog(`🎪 Objectif de développement récupéré (-${cost}h).`, state.turn); localFoireOpen=false; sync();
+        addLog(`🎪 Objectif récupéré (-${cost}h).`, state.turn); localFoireOpen=false; sync();
     }
 
     // --- ACTIONS PLATEAU ---
@@ -440,6 +461,7 @@
         const pId = state.turn; const me = state['p'+pId]; const s = state.settings; if(zId === null || zId === undefined) return; 
         const zoneCible = me.zones[zId];
         
+        // 🟢 RESTAURATION : Règles strictes
         if (t === 'POTAGER' && zoneCible.num !== 1 && zoneCible.num !== 2 && zId !== 14) return alert("Potager = Zone 1 ou 2 !");
         if (t === 'VERGER' && (zoneCible.num < 2 || zoneCible.num > 5)) return alert("Verger = Zones 2, 3, 4 ou 5 !");
 
@@ -469,6 +491,8 @@
     
     function actAmd(zId = localSelectedId) { 
         const pId = state.turn; const me=state['p'+pId], z=me.zones[zId], s=state.settings; 
+        const hasComp = me.zones.some(x => x.batiment === 'COMPOSTEUR');
+        if(!hasComp) return alert("Construisez un Composteur !");
         if(z && z.slots && z.slots.length > 0 && me.compost > 0 && me.time >= s.costAmenderTemps) { 
             me.time-=s.costAmenderTemps; me.compost--; z.slots.forEach(c => { c.amd = (c.amd || 0) + 1; });
             addLog(`💩 Amendement Z${z.id===14?'PO':z.num} (-1💩).`, pId); sync(); 
@@ -477,6 +501,8 @@
 
     function actComposter(zId = localSelectedId) {
         const pId = state.turn; const me = state['p'+pId], z = me.zones[zId], s=state.settings; 
+        const hasComp = me.zones.some(x => x.batiment === 'COMPOSTEUR');
+        if(!hasComp) return alert("Il vous faut un Composteur !");
         if(!z || !z.slots || z.slots.length === 0 || me.time < s.costComposterTemps) return;
         me.time -= s.costComposterTemps; 
         if(z.slots.some(c => c.cat === 'A')) { z.slots.forEach(c => { if(c.cat === 'A') { c.eCur = c.e; c.sCur = c.s; c.amd = 0; }}); addLog(`♻️ Entretien Arbre.`, pId); } 
@@ -498,15 +524,14 @@
         const c = z.slots[slotIdx]; me.time -= s.costRecolterTemps; 
         const moneyGained = c.g + (me.upgrades[3]-1) + (c.amd||0); me.money += moneyGained; 
         
-        // MAJ DES STATS POUR LE CONCOURS
         if(!me.stats) me.stats = { maxHarvest: 0, harvestCount: 0 };
-        me.stats.harvestCount++;
-        if(moneyGained > me.stats.maxHarvest) me.stats.maxHarvest = moneyGained;
+        me.stats.harvestCount++; if(moneyGained > me.stats.maxHarvest) me.stats.maxHarvest = moneyGained;
 
         if(c.cat === 'A') { c.eCur = c.e; c.sCur = c.s; c.amd = 0; } else { z.slots.splice(slotIdx, 1); }
         addLog(`🧺 Récolte ${c.nom} (+${moneyGained}💰).`, pId); sync(); 
     }
 
+    // 🟢 RESTAURATION : Plantation complexe avec Tuteur, Compagnes et Petits fruits
     function playC(idx, zId = localSelectedId) { 
         const pId = state.turn; const me = state['p'+pId], c = me.hand[idx], z = me.zones[zId];
         const cost = Math.max(0, (c.t||1)-(me.upgrades[2]-1));
@@ -526,7 +551,7 @@
         if(me.time < cost) return; if(!z || !z.type) return alert("Sélectionnez une zone !");
         
         let isPetitFruit = listPetitsFruits.some(pf => c.nom.includes(pf));
-        if(c.cat==='L' && z.type!=='POTAGER' && !(z.type==='VERGER' && isPetitFruit)) return alert("Ce légume va au Potager ! (Ou Petit fruit au Verger).");
+        if(c.cat==='L' && z.type!=='POTAGER' && !(z.type==='VERGER' && isPetitFruit)) return alert("Légume = Potager (ou Petit fruit = Verger).");
         if(c.cat==='A' && z.type!=='VERGER') return alert("Arbre = Verger.");
         
         let maxSlots = z.type === 'POTAGER' ? 2 : 1; let isGrimpante = listGrimpantes.some(g => c.nom.includes(g));
@@ -568,21 +593,12 @@
             pData.time = pData.timeMax; 
         });
 
-        // RESOLUTION HIVER -> CONCOURS
+        // CONCOURS D'HIVER
         if(state.saisonIdx === 3) {
             let s1 = state.p1.stats || {maxHarvest:0, harvestCount:0}; let s2 = state.p2.stats || {maxHarvest:0, harvestCount:0};
-            
-            // PV Grosse Récolte
-            if(s1.maxHarvest > s2.maxHarvest) { state.p1.pv += 5; addLog("🏆 Concours Grosse Récolte remporté ! (+5 PV)", 1); }
-            else if(s2.maxHarvest > s1.maxHarvest) { state.p2.pv += 5; addLog("🏆 Concours Grosse Récolte remporté ! (+5 PV)", 2); }
-            
-            // PV Nb Récoltes
-            if(s1.harvestCount > s2.harvestCount) { state.p1.pv += 5; addLog("🏆 Concours Nb Récoltes remporté ! (+5 PV)", 1); }
-            else if(s2.harvestCount > s1.harvestCount) { state.p2.pv += 5; addLog("🏆 Concours Nb Récoltes remporté ! (+5 PV)", 2); }
-
-            // Reset Stats et Foire
-            state.p1.stats = {maxHarvest:0, harvestCount:0}; state.p2.stats = {maxHarvest:0, harvestCount:0};
-            state.foire = { camelot: 0, conseiller: 0 };
+            if(s1.maxHarvest > s2.maxHarvest) { state.p1.pv += 5; addLog("🏆 Concours Grosse Récolte remporté ! (+5 PV)", 1); } else if(s2.maxHarvest > s1.maxHarvest) { state.p2.pv += 5; addLog("🏆 Concours Grosse Récolte remporté ! (+5 PV)", 2); }
+            if(s1.harvestCount > s2.harvestCount) { state.p1.pv += 5; addLog("🏆 Concours Nb Récoltes remporté ! (+5 PV)", 1); } else if(s2.harvestCount > s1.harvestCount) { state.p2.pv += 5; addLog("🏆 Concours Nb Récoltes remporté ! (+5 PV)", 2); }
+            state.p1.stats = {maxHarvest:0, harvestCount:0}; state.p2.stats = {maxHarvest:0, harvestCount:0}; state.foire = { camelot: 0, conseiller: 0 };
         }
 
         state.saisonIdx++; if(state.saisonIdx > 3) { state.saisonIdx = 0; state.annee++; }
@@ -597,10 +613,21 @@
             pData.zones.forEach(z => { 
                 if(z && z.slots && z.slots.length > 0) { 
                     z.slots.forEach(c => {
-                        let rc = c.rc || []; let sm = c.sm || []; let survie = z.batiment === 'SERRE' ? rc.map(se => ALL_SEASONS[(ALL_SEASONS.indexOf(se)+3)%4]).concat(rc).concat(sm) : rc.concat(sm);
-                        if(!survie.includes(newSeason)) {
-                            if(c.cat === 'A') { c.eCur = c.e; c.sCur = c.s; c.amd = 0; addLog(`🍂 Repos de l'arbre.`, pid); } 
-                            else { let msg = `🥀 Mort de ${c.nom}.`; c.dead = true; if(pData.zones.some(x => x.batiment === 'COMPOSTEUR')) { pData.compost = (pData.compost||0) + 2; msg += " Recyclé (+2💩)."; } addLog(msg, pid); }
+                        // 🟢 RESTAURATION : Survie intelligente des saisons intermédiaires
+                        let validSeasons = new Set();
+                        (c.sm || []).forEach(s => validSeasons.add(s)); (c.rc || []).forEach(s => validSeasons.add(s));
+                        (c.sm || []).forEach(startS => {
+                            let startI = ALL_SEASONS.indexOf(startS); let dists = (c.rc || []).map(endS => (ALL_SEASONS.indexOf(endS) - startI + 4) % 4);
+                            if(dists.length > 0) { let minDist = Math.min(...dists); for(let i=0; i<=minDist; i++) validSeasons.add(ALL_SEASONS[(startI + i) % 4]); }
+                        });
+                        if(z.batiment === 'SERRE') {
+                            let expanded = new Set(validSeasons);
+                            validSeasons.forEach(s => { let idx = ALL_SEASONS.indexOf(s); expanded.add(ALL_SEASONS[(idx + 3) % 4]); expanded.add(ALL_SEASONS[(idx + 1) % 4]); });
+                            validSeasons = expanded;
+                        }
+                        if(!validSeasons.has(newSeason)) {
+                            if(c.cat === 'A') { c.eCur = c.e; c.sCur = c.s; c.amd = 0; addLog(`🍂 L'arbre ${c.nom} se repose.`, pid); } 
+                            else { let msg = `🥀 Mort de ${c.nom} sur Z${z.id===14 ? 'PO' : z.num}.`; c.dead = true; if(pData.zones.some(x => x.batiment === 'COMPOSTEUR')) { pData.compost = (pData.compost||0) + 2; msg += " Recyclé (+2💩)."; } addLog(msg, pid); }
                         }
                     });
                     z.slots = z.slots.filter(c => !c.dead);
