@@ -2,7 +2,7 @@
 <html lang="fr">
 <head>
     <meta charset="UTF-8">
-    <title>La Main Verte - V34 (Aménagements Corrigés)</title>
+    <title>La Main Verte - V35 (Sélection et Adjacence Corrigées)</title>
     <script src="https://www.gstatic.com/firebasejs/9.17.1/firebase-app-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/9.17.1/firebase-database-compat.js"></script>
     <style>
@@ -85,7 +85,7 @@
 <body>
 
 <div id="lobby">
-    <h1 style="font-size: 3em; margin-bottom: 10px;">🌱 La Main Verte</h1>
+    <h1 style="font-size: 3em; margin-bottom: 10px;">🌱 La Main Verte <span style="font-size:0.4em; color:#a5d6a7; vertical-align: middle;">V35</span></h1>
     <p style="font-size: 1.2em; margin-bottom: 30px;">Choisissez un mode de jeu :</p>
     <button class="btn-lobby" onclick="startNewGame('SOLO')">👤 Jouer en Solo</button>
     <button class="btn-lobby" style="background:#8e24aa" onclick="startNewGame('IA_SOLO')">🤖 Mode Spectateur (IA Solo)</button>
@@ -268,6 +268,7 @@
             };
             ['C','S','A'].forEach(cat => { for(let i=0; i<2; i++) { let d = draw(cat); if(d) state.market[cat].push(d); } });
             document.getElementById('game-over-screen').style.display = 'none'; await db.set(state);
+            localSelectedId = null; // Reset selection on new game
         } catch(e) { console.error(e); } finally { isInitializing = false; } 
     }
 
@@ -341,7 +342,11 @@
             }
 
             d.className = `zone zone-id-${i} ${z.num !== null ? 'zone-color-'+z.num : ''} ${typeClass} ${z.batiment && z.batiment!=='SERRE' ? 'tuile-batiment' : ''} ${z.batiment==='SERRE' ? 'has-serre' : ''} ${localSelectedId === z.id ? 'selected' : ''}`;
-            d.style.opacity = acc ? "1" : "0.3"; d.onclick = () => { if(acc && isMyTurn && !state.gameOver) { localSelectedId = z.id; render(); } };
+            d.style.opacity = acc ? "1" : "0.3"; 
+            d.onclick = (e) => { 
+                e.stopPropagation(); 
+                if(acc && isMyTurn && !state.gameOver) { localSelectedId = z.id; render(); } 
+            };
             
             if(z.id === 0) { d.innerHTML = `🏠 MAISON<br>Zone 0`; }
             else if(!z.type) { d.innerHTML = `Zone ${z.id === 14 ? 'PO 1,2' : z.num}${acc?'':'<br>🔒'}`; }
@@ -404,8 +409,18 @@
 
         const btnCont = document.getElementById('action-buttons-container');
         
+        // INDICATEUR VISUEL DE LA CIBLE
+        let selectionText = "Aucune zone sélectionnée";
+        if (localSelectedId !== null) {
+            let z = me.zones[localSelectedId];
+            let zName = localSelectedId === 14 ? "PO 1,2" : (localSelectedId === 0 ? "Maison" : "Zone " + z.num);
+            selectionText = `📍 Cible : <b>${zName}</b> ${z.type ? '[' + z.type + ']' : '[Vide]'}`;
+        }
+        
+        let htmlBtns = `<div style="grid-column: span 4; text-align:center; padding: 4px; background:#fffde7; border:1px solid #ffb300; border-radius:4px; margin-bottom:4px; font-size:0.85em; color:#e65100;">${selectionText}</div>`;
+
         if(me.amenagementMode) {
-            btnCont.innerHTML = `
+            htmlBtns += `
                 <button class="btn-action" style="background:#e53935; grid-column: span 4;" onclick="toggleAmenagement()">✅ Terminer Biodiversité</button>
                 <button class="btn-action" style="background:#aed581; color:#33691e;" onclick="actT('HAIE')">🌿 Haie Z3-5 (-3💰)</button>
                 <button class="btn-action" style="background:#388e3c" onclick="actT('FORÊT')">🌲 Forêt Z3-5 (-3💰)</button>
@@ -413,7 +428,7 @@
                 <button class="btn-action" style="background:#4fc3f7; color:#01579b;" onclick="actT('MARE')">💧 Mare Z2-4 (-4💰)</button>
             `;
         } else {
-            btnCont.innerHTML = `
+            htmlBtns += `
                 <button class="btn-action" style="background:#4caf50" onclick="actT('POTAGER')" ${dis||me.time<s.costAmenagerPotagerTemps||me.money<costP_Or?'disabled':''}>🏗️ Potager (-${costP_Or}💰, -3h)</button>
                 <button class="btn-action" style="background:#fbc02d;color:#333" onclick="actT('VERGER')" ${dis||me.time<s.costAmenagerPotagerTemps||me.money<costP_Or?'disabled':''}>🏗️ Verger (-${costP_Or}💰, -3h)</button>
                 <button class="btn-action" style="background:#ff5722" onclick="toggleAmenagement()" ${dis||me.time<3?'disabled':''}>🌳 Biodiversité (-3h)</button>
@@ -425,6 +440,8 @@
                 <button class="btn-action" style="background:#e53935; font-size:1em;" onclick="actFin()" ${dis?'disabled':''}>💤 Fin de Saison</button>
             `;
         }
+        
+        btnCont.innerHTML = htmlBtns;
 
         const upG = document.getElementById('up-grid'); upG.innerHTML = "";
         UP_NAMES.forEach((n, i) => {
@@ -507,8 +524,12 @@
         if(zId === null || zId === undefined) return alert("Veuillez d'abord cliquer sur un hexagone vide du plateau !");
         
         const zoneCible = me.zones[zId];
-        if(zoneCible.type !== null) return alert("Cet emplacement est déjà aménagé !");
-        
+        let nomZ = zId === 14 ? 'PO 1,2' : (zId === 0 ? 'Maison' : 'Z'+zoneCible.num);
+
+        if(zoneCible.type !== null) {
+            return alert(`L'emplacement sélectionné (${nomZ}) est déjà aménagé en ${zoneCible.type} ! Veuillez cliquer sur une zone vide.`);
+        }
+
         let num = parseInt(zoneCible.num);
 
         // NOUVEAU : On force l'adjacence pour les Zones 1 et 2 qui sont "proches de la maison"
@@ -532,17 +553,18 @@
             costO = (t === 'MARE') ? 4 : 3; costH = 0; 
         }
 
-        if(me.money < costO || me.time < costH) return alert("Fonds ou temps insuffisants !");
+        if(me.money < costO) return alert(`Il vous manque des sous (Coût : ${costO}💰) !`);
+        if(me.time < costH) return alert(`Il vous manque du temps (Coût : ${costH}h) !`);
         
         me.money -= costO; me.time -= costH; zoneCible.type = t; 
         addLog(`🏗️ ${t} sur Z${zId===14 ? 'PO' : num} (-${costO}💰${costH>0?`, -${costH}h`:''}).`, pId); 
-        localSelectedId = null;
+        localSelectedId = null; // Désélectionne pour éviter un double clic accidentel
         sync(); 
     }
 
     function actB(zId = localSelectedId) { 
         const pId = state.turn; const me = state['p'+pId], z=me.zones[zId], s=state.settings; 
-        if(!z) return alert("Veuillez d'abord sélectionner une zone sur le plateau !");
+        if(zId === null || zId === undefined) return alert("Veuillez d'abord sélectionner une zone sur le plateau !");
         if(me.time < 4) return alert("Construire un bâtiment coûte 4 unités de temps !");
         
         const ch = prompt(`Bâtiments (Coût action: -4h) :\n1: Serre (${s.costSerreOr}💰 - Sur Potager existant)\n2: Composteur (${s.costComposteurOr}💰 - Sur Zone 1 ou 2 VIDE)\n3: Local (${s.costLocalOr}💰 - Sur zone VIDE)`);
@@ -550,7 +572,7 @@
 
         if(ch==="1") { 
             if(z.type!=="POTAGER") return alert("La Serre se place par-dessus un Potager !");
-            if(z.batiment==="SERRE") return alert("Déjà une Serre ici !");
+            if(z.batiment==="SERRE") return alert("Il y a déjà une Serre ici !");
             if(me.money<s.costSerreOr) return alert("Fonds insuffisants."); 
             me.time-=4; me.money-=s.costSerreOr; z.batiment="SERRE"; addLog(`🏠 SERRE construite (-${s.costSerreOr}💰, -4h).`, pId); 
         }
@@ -664,13 +686,15 @@
         } 
         
         if(c.cat === 'S') { 
-            if(me.time < cost) return; if(!z || !z.slots || z.slots.length === 0) return alert("Zone vide !");
+            if(zId === null || zId === undefined) return alert("Veuillez sélectionner une zone pour y appliquer cette carte !");
+            if(me.time < cost) return; if(!z || !z.slots || z.slots.length === 0) return alert("Zone vide ! Il faut y planter quelque chose d'abord.");
             if(listCompagnes.includes(c.nom)) { let slotLibre = z.slots.find(pl => !pl.compagne); if(!slotLibre) return alert("Plantes déjà accompagnées !"); me.time-=cost; slotLibre.compagne = c.nom; addLog(`✨ Compagne ${c.nom}.`, pId); }
             else { me.time-=cost; if(c.nom.includes("Fumier")) { me.compost=(me.compost||0)+2; } else if(c.nom.includes("Ortie")) { z.slots.forEach(pl => pl.eCur = Math.max(0, pl.eCur-4)); } else if(c.nom.includes("Paillage")) { z.slots.forEach(pl => { pl.eCur = Math.max(0, pl.eCur-2); pl.sCur = Math.max(0, pl.sCur-1); }); } else if(c.nom.includes("Corne")) { z.slots.forEach(pl => pl.amd = (pl.amd||0)+2); } }
             me.hand.splice(idx,1); sync(); return;
         } 
         
-        if(me.time < cost) return; if(!z || !z.type) return alert("Sélectionnez une zone !");
+        if(zId === null || zId === undefined) return alert("Veuillez sélectionner une zone pour planter !");
+        if(me.time < cost) return; if(!z || !z.type) return alert("Cet hexagone n'est pas aménagé !");
         
         let isPetitFruit = listPetitsFruits.some(pf => c.nom.includes(pf));
         if(c.cat==='L' && z.type!=='POTAGER' && !(z.type==='VERGER' && isPetitFruit)) return alert("Légume = Potager (ou Petit fruit = Verger).");
