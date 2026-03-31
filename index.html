@@ -2,7 +2,7 @@
 <html lang="fr">
 <head>
     <meta charset="UTF-8">
-    <title>La Main Verte - V39 (Affichage Bâtiments)</title>
+    <title>La Main Verte - V40 (Correction Bâtiments)</title>
     <script src="https://www.gstatic.com/firebasejs/9.17.1/firebase-app-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/9.17.1/firebase-database-compat.js"></script>
     <style>
@@ -88,7 +88,7 @@
 <body>
 
 <div id="lobby">
-    <h1 style="font-size: 3em; margin-bottom: 10px;">🌱 La Main Verte <span style="font-size:0.4em; color:#a5d6a7; vertical-align: middle;">V39</span></h1>
+    <h1 style="font-size: 3em; margin-bottom: 10px;">🌱 La Main Verte <span style="font-size:0.4em; color:#a5d6a7; vertical-align: middle;">V40</span></h1>
     <p style="font-size: 1.2em; margin-bottom: 30px;">Choisissez un mode de jeu :</p>
     <button class="btn-lobby" onclick="startNewGame('SOLO')">👤 Jouer en Solo</button>
     <button class="btn-lobby" style="background:#8e24aa" onclick="startNewGame('IA_SOLO')">🤖 Mode Spectateur (IA Solo)</button>
@@ -395,7 +395,8 @@
             else if(!z.type) { d.innerHTML = `Zone ${z.id === 14 ? 'PO 1,2' : z.num}${acc?'':'<br>🔒'}`; }
             else {
                 let displayType = z.type;
-                if(z.type === 'COMPOSTEUR' || z.type === 'LOCAL OUTILS') displayType = "LOCAL";
+                if(z.type === 'COMPOSTEUR') displayType = "COMPOSTEUR";
+                else if(z.type === 'LOCAL OUTILS') displayType = "LOCAL";
                 d.innerHTML = `<b>${displayType}${z.batiment && z.batiment !== z.type ?' + '+z.batiment:''}</b> (${z.id===14 ? 'PO' : `Z${z.num}`})`;
                 if(z.slots.length > 0) {
                     let htmlSlots = `<div class="slot-container">`;
@@ -536,7 +537,7 @@
         const costCam = 2 + (state.foire.camelot || 0); const costCons = 2 + (state.foire.conseiller || 0);
         let html = `<div style="display:flex;justify-content:space-between; align-items:center;"><h2>🎪 Foire Agricole</h2><button onclick="localFoireOpen=false;render()">Fermer</button></div>`;
         html += `<div style="display:grid; grid-template-columns: 1fr 1fr 1fr; gap:15px; margin-top:20px;">`;
-        html += `<div style="background:#e8eaf6; padding:15px; border-radius:8px; border:2px solid #fbc02d;"><h3>🛍️ Le Stand</h3><p>Vendez des cartes de votre main pour 1💰. (Coût : 1h/carte).</p><hr>`;
+        html += `<div style="background:#e8eaf6; padding:15px; border-radius:8px; border:2px solid #fbc02d;"><h3>🛍️ Le Stand</h3><p>Vendez des cartes pour 1💰. (Coût : 1h/carte).</p><hr>`;
         (me.hand||[]).forEach((c, idx) => { html += `<button style="width:100%; margin-bottom:5px; cursor:pointer;" onclick="actFoireStand(${idx})" ${me.time<1?'disabled':''}>Vendre ${c.nom} (+1💰, -1h)</button>`; });
         html += `</div>`;
         html += `<div style="background:#e8f5e9; padding:15px; border-radius:8px; border:2px solid #4caf50;"><h3>🚧 Le Camelot</h3><p>Achetez des clôtures.<br><b>File :</b> +${state.foire.camelot||0}h</p>
