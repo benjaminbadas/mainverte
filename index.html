@@ -2,7 +2,7 @@
 <html lang="fr">
 <head>
     <meta charset="UTF-8">
-    <title>La Main Verte - V24 (Data-Driven Économie)</title>
+    <title>La Main Verte - V25 (Plateau Hexagonal)</title>
     <script src="https://www.gstatic.com/firebasejs/9.17.1/firebase-app-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/9.17.1/firebase-database-compat.js"></script>
     <style>
@@ -24,15 +24,65 @@
         .hud { display: flex; justify-content: space-between; align-items: center; background: white; padding: 10px; border-radius: 8px; box-shadow: 0 2px 5px rgba(0,0,0,0.1); margin-bottom: 5px; font-weight: bold; font-size: 0.9em; border-top: 4px solid var(--p1); }
         .hud-opp { background: #e3f2fd; padding: 6px 10px; border-radius: 8px; margin-bottom: 10px; font-size: 0.8em; color: #1565c0; border: 1px solid #bbdefb; display: flex; justify-content: space-between; align-items: center;}
         
-        .farm-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; background: #d7ccc8; padding: 10px; border-radius: 12px; }
-        .zone { min-height: 140px; background: #efebe9; border: 2px dashed #bcaaa4; border-radius: 8px; display: flex; flex-direction: column; align-items: center; justify-content: center; position: relative; font-size: 0.75em; cursor: pointer; text-align: center; transition: 0.2s; }
-        .zone.selected { border: 3px solid #ff9800 !important; box-shadow: 0 0 10px rgba(255,152,0,0.6); transform: scale(1.02); z-index: 10;}
-        .tuile-potager { background: var(--potager) !important; border: 2px solid #2e7d32 !important; }
-        .tuile-verger { background: var(--verger) !important; border: 2px solid #fbc02d !important; }
-        .tuile-amenag { background: var(--amenag) !important; border: 2px solid #ff5722 !important; }
+        /* --- NOUVEAU PLATEAU HEXAGONAL --- */
+        .farm-grid { 
+            position: relative; 
+            width: 100%; 
+            min-height: 420px; /* Espace pour les 4 rangées */
+            background: #d7ccc8; 
+            padding: 10px; 
+            border-radius: 12px; 
+            margin-top: 5px;
+            margin-bottom: 5px;
+        }
+
+        .zone {
+            position: absolute;
+            width: 100px; 
+            height: 115px; 
+            background: #efebe9; 
+            border: 2px dashed #bcaaa4;
+            border-radius: 8px;
+            display: flex; flex-direction: column; align-items: center; justify-content: center;
+            font-size: 0.70em; cursor: pointer; text-align: center;
+            transition: 0.2s;
+            clip-path: polygon(50% 0%, 100% 25%, 100% 75%, 50% 100%, 0% 75%, 0% 25%); 
+            z-index: 1;
+        }
+
+        .zone.selected { border: 3px solid #ff9800 !important; box-shadow: 0 0 10px rgba(255,152,0,0.6); transform: scale(1.05); z-index: 10;}
+
+        /* Couleurs de base des zones inspirées de l'image */
+        .zone-color-0 { background: #f3e5f5; border-color: #ce93d8; color: #7b1fa2; }
+        .zone-color-1, .zone-color-2, .zone-color-3 { background: #efebe9; border-color: #bcaaa4; color: #5d4037; }
+        .zone-color-4 { background: #c8e6c9; border-color: #2e7d32; color: #1b5e20; }
+        .zone-color-5 { background: #1b5e20; border-color: #0a3311; color: white; }
+        
+        /* Surcharges quand un aménagement est construit */
+        .tuile-potager { background: var(--potager) !important; border: 2px solid #2e7d32 !important; color: #1b5e20; }
+        .tuile-verger { background: var(--verger) !important; border: 2px solid #fbc02d !important; color: #5d4037; }
+        .tuile-amenag { background: var(--amenag) !important; border: 2px solid #ff5722 !important; color: #bf360c; }
         .tuile-batiment { background: var(--batiment) !important; border: 2px solid #263238 !important; color: white; }
         .has-serre { box-shadow: inset 0 0 15px rgba(3, 169, 244, 0.6); border: 3px solid #03a9f4 !important; background: var(--serre) !important; }
-        
+
+        /* Coordonnées des 15 hexagones */
+        .zone-id-0 { top: 10px; left: 10px; }   /* Z0 */
+        .zone-id-1 { top: 10px; left: 120px; }  /* Z1 */
+        .zone-id-2 { top: 10px; left: 230px; }  /* Z1 */
+        .zone-id-3 { top: 10px; left: 340px; }  /* Z4 */
+        .zone-id-4 { top: 10px; left: 450px; }  /* Z4 */
+        .zone-id-5 { top: 100px; left: 65px; }  /* Z2 */
+        .zone-id-6 { top: 100px; left: 175px; } /* Z3 */
+        .zone-id-7 { top: 100px; left: 285px; } /* Z3 */
+        .zone-id-8 { top: 100px; left: 395px; } /* Z5 */
+        .zone-id-9 { top: 190px; left: 120px; } /* Z2 */
+        .zone-id-10 { top: 190px; left: 230px; } /* Z3 */
+        .zone-id-11 { top: 190px; left: 340px; } /* Z4 */
+        .zone-id-12 { top: 190px; left: 450px; } /* Z5 */
+        .zone-id-13 { top: 280px; left: 450px; } /* Z5 */
+        .zone-id-14 { top: 190px; left: 10px; background: #e0f2f1; border-color: #009688; color: #00695c; } /* PO 1,2 */
+        /* ------------------------------- */
+
         .card { border: 1px solid #ddd; border-radius: 6px; padding: 6px; margin-bottom: 4px; background: white; font-size: 0.75em; border-left: 4px solid var(--p1); cursor: help; position: relative;}
         .btn-action { width: 100%; padding: 8px; border: none; border-radius: 4px; font-weight: bold; color: white; cursor: pointer; font-size: 0.75em; margin-bottom: 3px; transition: 0.2s; }
         .btn-action:hover:not(:disabled) { filter: brightness(1.1); }
@@ -48,7 +98,7 @@
         .price-tag { position: absolute; top: -6px; right: -6px; background: var(--gold); padding: 1px 5px; border-radius: 8px; font-size: 0.8em; font-weight: bold; border: 1px solid #b8860b; }
         
         .alert-rav { background: #ffebee; color: #c62828; padding: 4px; border-radius: 4px; font-size: 0.75em; margin-bottom: 5px; border: 1px solid #ef9a9a; text-align: center; font-weight: bold;}
-        .logs { height: 180px; background: var(--dark); color: #a5d6a7; padding: 8px; font-family: monospace; font-size: 0.75em; overflow-y: auto; border-radius: 6px; margin-top:5px; border: 2px solid #455a64;}
+        .logs { height: 150px; background: var(--dark); color: #a5d6a7; padding: 8px; font-family: monospace; font-size: 0.75em; overflow-y: auto; border-radius: 6px; margin-top:5px; border: 2px solid #455a64;}
         
         .turn-banner { background: #ff9800; color: white; text-align: center; padding: 5px; font-weight: bold; display: none; border-radius: 4px; margin-bottom: 5px;}
         .turn-banner.active { display: block; background: #4caf50; }
@@ -117,6 +167,7 @@
     <div id="aux-tray" style="display:none; gap:5px; margin-bottom:8px; background:#e3f2fd; padding:5px; border-radius:5px; border:1px solid #90caf9; flex-wrap:wrap; font-size:0.8em; color:#1565c0;"></div>
     
     <div class="farm-grid" id="farm-grid"></div>
+    
     <div class="logs" id="game-logs"></div>
     <div id="action-buttons-container" style="display: grid; grid-template-columns: repeat(4, 1fr); gap:4px; margin-top:10px;"></div>
 </div>
@@ -157,10 +208,11 @@
     const SAISON_NOMS = ["🌷 Printemps", "☀️ Été", "🍂 Automne", "❄️ Hiver"];
     const ALL_SEASONS = ["P","E","A","H"];
 
-    // Fallback des paramètres par défaut au cas où Firebase serait vide
+    // Tableau de correspondance pour les 15 hexagones (numéros de zone)
+    const zoneNumbersMap = [0, 1, 1, 4, 4, 2, 3, 3, 5, 2, 3, 4, 5, 5, null];
+
     const defaultSettings = {
-        costAmenagerPotagerOr: 2, costAmenagerPotagerTemps: 3,
-        costAmenagerNatureOr: 3, costAmenagerNatureTemps: 3,
+        costAmenagerPotagerOr: 2, costAmenagerPotagerTemps: 3, costAmenagerNatureOr: 3, costAmenagerNatureTemps: 3,
         costSerreOr: 3, costSerreTemps: 4, costComposteurOr: 4, costComposteurTemps: 4, costLocalOr: 5, costLocalTemps: 4,
         costArroserTemps: 1, costAmenderTemps: 1, costComposterTemps: 1, costRecolterTemps: 2,
         costUp2Or: 2, costUp2Temps: 3, costUp3Or: 4, costUp3Temps: 5,
@@ -174,6 +226,19 @@
     let localModalOpen = false;
     let localPicksLeft = 0;
     let isInitializing = false;
+
+    function generatePlayer() {
+        return { 
+            money: 10, time: 10, timeMax: 10, compost: 0, 
+            upgrades: Array(8).fill(1), hand: [], auxActifs: [], 
+            // Création des 15 zones
+            zones: zoneNumbersMap.map((num, i) => ({ 
+                id: i, num: num, 
+                type: num === 0 ? "LIFE" : (i === 14 ? "AMÉNAGEMENT" : null), 
+                culture: null, batiment: null 
+            })) 
+        };
+    }
 </script>
 
 <script src="bot.js"></script>
@@ -221,10 +286,6 @@
         if(state.gameLogs.length > 250) state.gameLogs.pop(); 
     }
 
-    function generatePlayer() {
-        return { money: 10, time: 10, timeMax: 10, compost: 0, upgrades: Array(8).fill(1), hand: [], auxActifs: [], zones: Array(6).fill(null).map((_, i) => ({ id: i, type: i === 0 ? "LIFE" : null, culture: null, batiment: null })) };
-    }
-
     async function initNewGame(creatorId = null, mode = 'MULTI') {
         if(isInitializing) return;
         isInitializing = true;
@@ -235,7 +296,6 @@
             let config = snapConf.val();
             if(!config || !config.decks) { alert("ERREUR: Base Admin vide !"); isInitializing = false; return; }
 
-            // Chargement des paramètres d'équilibrage
             let loadedSettings = config.settings || defaultSettings;
             for(let k in defaultSettings) if(loadedSettings[k]===undefined) loadedSettings[k]=defaultSettings[k];
 
@@ -246,7 +306,7 @@
 
             state = { 
                 mode: mode, turn: 1, annee: 1, saisonIdx: 0, gameOver: false, 
-                settings: loadedSettings, // ON ENREGISTRE LES PARAMÈTRES ICI !
+                settings: loadedSettings, 
                 decks: builtDecks, ravPool: builtRavs, market: { C: [], S: [], A: [] }, 
                 currentMeteo: {p:0, s:0}, currentRav: null, p1: generatePlayer(), p2: generatePlayer(), gameLogs: [msg] 
             };
@@ -324,22 +384,30 @@
         else tray.style.display="none";
 
         const grid = document.getElementById('farm-grid'); grid.innerHTML = "";
-        me.zones.forEach(z => {
-            const acc = z.id <= (me.upgrades[0] === 1 ? 3 : (me.upgrades[0] === 2 ? 4 : 5));
+        me.zones.forEach((z, i) => {
+            // L'accessibilité dépend de l'amélioration Terrain (0 à 3)
+            // Terrain 1 = Zones 0 à 3
+            // Terrain 2 = Zones 0 à 4
+            // Terrain 3 = Zones 0 à 5
+            // Z0 (Maison) et ID 14 (PO 1,2) sont toujours ouverts
+            const acc = (z.num !== null && z.num <= (me.upgrades[0] === 1 ? 3 : (me.upgrades[0] === 2 ? 4 : 5))) || z.id === 14 || z.id === 0;
             const isS = z.batiment === 'SERRE';
+            
             const d = document.createElement('div');
-            d.className = `zone ${z.type ? 'tuile-'+z.type.toLowerCase() : ''} ${z.batiment && !isS ? 'tuile-batiment' : ''} ${isS ? 'has-serre' : ''} ${localSelectedId === z.id ? 'selected' : ''}`;
+            // Affectation dynamique des classes CSS pour l'hexagone
+            d.className = `zone zone-id-${i} ${z.num !== null ? 'zone-color-'+z.num : ''} ${z.type ? 'tuile-'+z.type.toLowerCase() : ''} ${z.batiment && !isS ? 'tuile-batiment' : ''} ${isS ? 'has-serre' : ''} ${localSelectedId === z.id ? 'selected' : ''}`;
             d.style.opacity = acc ? "1" : "0.3";
             d.onclick = () => { if(acc && isMyTurn && !botEnabled && !state.gameOver) { localSelectedId = z.id; render(); } };
             
-            if(z.id === 0) { d.innerHTML = "🏠 MAISON"; }
-            else if(!z.type) { d.innerHTML = `ZONE ${z.id}${acc?'':'<br>🔒'}`; }
+            if(z.id === 0) { d.innerHTML = `🏠 MAISON<br>Zone 0`; }
+            else if(z.id === 14) { d.innerHTML = `<b>AMÉNAGEMENT</b><br>PO 1,2`; }
+            else if(!z.type) { d.innerHTML = `Zone ${z.num}${acc?'':'<br>🔒'}`; }
             else {
                 let header = z.type; if(z.batiment) header += ` + ${z.batiment}`;
-                d.innerHTML = `<b>${header}</b>`;
+                d.innerHTML = `<b>${header}</b> (Z${z.num})`;
                 if(z.culture) {
                     let yieldInfo = `${z.culture.nom}`;
-                    if(z.culture.amd && z.culture.amd > 0) yieldInfo += ` <span style="background:var(--p1);color:white;padding:1px 4px;border-radius:4px;font-size:0.8em;" title="Bonus de rendement lié à l'amendement">+${z.culture.amd}💰</span>`;
+                    if(z.culture.amd && z.culture.amd > 0) yieldInfo += ` <span style="background:var(--p1);color:white;padding:1px 4px;border-radius:4px;font-size:0.8em;">+${z.culture.amd}💰</span>`;
                     d.innerHTML += `<br>${yieldInfo}<br>💧${z.culture.eCur} ☀️${z.culture.sCur}`;
                     if(z.culture.eCur <= 0 && z.culture.sCur <= 0) {
                         d.innerHTML += `<br><button onclick="actionRecolter(${z.id})" style="background:var(--p1); color:white; border:none; padding:4px; border-radius:4px; margin-top:4px;" title="Récolter et gagner de l'argent" ${!isMyTurn || me.time<s.costRecolterTemps || botEnabled || state.gameOver ? 'disabled':''}>🧺 Récolter</button>`;
@@ -434,12 +502,21 @@
     function consm() { localPicksLeft--; if(localPicksLeft<=0) { localModalOpen=false; ['C','S','A'].forEach(cat => { if(!state.market[cat]) state.market[cat] = []; while(state.market[cat].length < 2) { let c = draw(cat); if(c) state.market[cat].push(c); else break; } }); } sync(); }
 
     function actT(t, zId = localSelectedId) { 
-        const pId = state.turn; const me = state['p'+pId]; const s = state.settings; if(!zId || zId===0) return; 
+        const pId = state.turn; const me = state['p'+pId]; const s = state.settings; if(!zId && zId!==0) return; 
+        
+        // --- NOUVELLE RÈGLE DE RESTRICTION ---
+        // Le Potager n'est autorisé que sur les zones 1 et 2
+        const zoneCible = me.zones[zId];
+        if (t === 'POTAGER' && zoneCible.num !== 1 && zoneCible.num !== 2) {
+            return alert("Un Potager ne peut être aménagé QUE sur les zones 1 ou 2 !");
+        }
+
         let costO = t === 'AMÉNAGEMENT' ? s.costAmenagerNatureOr : Math.max(0, s.costAmenagerPotagerOr - (me.upgrades[5] >= 2 ? (me.upgrades[5]===3 ? 2 : 1) : 0));
         let costH = t === 'AMÉNAGEMENT' ? s.costAmenagerNatureTemps : s.costAmenagerPotagerTemps;
+        
         if(me.money < costO || me.time < costH) return; 
         me.money -= costO; me.time -= costH; me.zones[zId].type = t; 
-        addLog(`🏗️ Aménagement d'un ${t} sur la Zone ${zId} (-${costO}💰, -${costH}h).`, pId); sync(); 
+        addLog(`🏗️ Aménagement d'un ${t} sur la Zone ${zoneCible.num} (-${costO}💰, -${costH}h).`, pId); sync(); 
     }
 
     function actB(zId = localSelectedId) { 
@@ -517,7 +594,7 @@
             let curS = ALL_SEASONS[state.saisonIdx];
             let smValid = z.batiment === 'SERRE' ? (c.sm||[]).map(se => ALL_SEASONS[(ALL_SEASONS.indexOf(se)+3)%4]).concat(c.sm||[]) : (c.sm||[]);
             if(!smValid.includes(curS)) return;
-            me.time-=cost; z.culture={...c, eCur:c.e, sCur:c.s, amd:0}; me.hand.splice(idx,1); addLog(`🌱 Semis de ${c.nom} sur Zone ${zId} (-${cost}h).`, pId);
+            me.time-=cost; z.culture={...c, eCur:c.e, sCur:c.s, amd:0}; me.hand.splice(idx,1); addLog(`🌱 Semis de ${c.nom} sur Zone ${z.num} (-${cost}h).`, pId);
         }
         sync(); 
     }
@@ -566,9 +643,9 @@
                     let rc = z.culture.rc || []; let sm = z.culture.sm || [];
                     let survie = z.batiment === 'SERRE' ? rc.map(se => ALL_SEASONS[(ALL_SEASONS.indexOf(se)+3)%4]).concat(rc).concat(sm) : rc.concat(sm);
                     if(!survie.includes(newSeason)) {
-                        if(z.culture.cat === 'A') { z.culture.eCur = z.culture.e; z.culture.sCur = z.culture.s; z.culture.amd = 0; addLog(`🍂 L'arbre sur Zone ${z.id} se repose.`, pid); } 
+                        if(z.culture.cat === 'A') { z.culture.eCur = z.culture.e; z.culture.sCur = z.culture.s; z.culture.amd = 0; addLog(`🍂 L'arbre sur Zone ${z.num} se repose.`, pid); } 
                         else {
-                            let msg = `🥀 Mort de ${z.culture.nom} sur Zone ${z.id}.`; z.culture = null;
+                            let msg = `🥀 Mort de ${z.culture.nom} sur Zone ${z.num}.`; z.culture = null;
                             if(pData.zones.some(x => x.batiment === 'COMPOSTEUR')) { pData.compost = (pData.compost||0) + 2; msg += " Recyclé en compost (+2💩)."; }
                             addLog(msg, pid);
                         }
