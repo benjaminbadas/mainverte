@@ -2,193 +2,252 @@
 <html lang="fr">
 <head>
     <meta charset="UTF-8">
-    <title>La Main Verte - Base de Données (Mega-Extension)</title>
+    <title>La Main Verte - Éditeur de Base de Données</title>
     <script src="https://www.gstatic.com/firebasejs/9.17.1/firebase-app-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/9.17.1/firebase-database-compat.js"></script>
     <style>
-        body { font-family: 'Segoe UI', sans-serif; background: #263238; color: white; padding: 40px; text-align: center; }
-        .container { background: #37474f; padding: 40px; border-radius: 12px; box-shadow: 0 10px 30px rgba(0,0,0,0.5); max-width: 800px; margin: 0 auto; }
-        h1 { color: #81c784; font-size: 2.5em; margin-bottom: 10px; }
-        p { font-size: 1.2em; color: #b0bec5; margin-bottom: 30px; }
-        .btn { background: #ff9800; color: white; border: none; padding: 20px 40px; font-size: 1.5em; border-radius: 8px; cursor: pointer; font-weight: bold; transition: 0.3s; box-shadow: 0 4px 15px rgba(255,152,0,0.4); }
-        .btn:hover { background: #f57c00; transform: scale(1.05); }
-        .log { margin-top: 30px; background: #1e272b; padding: 20px; border-radius: 8px; color: #a5d6a7; font-family: monospace; text-align: left; height: 300px; overflow-y: auto; }
-        .stats { display: flex; justify-content: space-around; margin-top: 20px; font-size: 1.2em; font-weight: bold; color: #ffccbc; }
+        body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; background: #eceff1; padding: 20px; color: #263238; }
+        .container { max-width: 1200px; margin: 0 auto; background: white; padding: 20px; border-radius: 12px; box-shadow: 0 5px 20px rgba(0,0,0,0.1); }
+        h1 { color: #2e7d32; text-align: center; font-size: 2.5em; margin-bottom: 5px; }
+        p.subtitle { text-align: center; color: #546e7a; margin-bottom: 20px; }
+        
+        /* SYSTÈME D'ONGLETS */
+        .tabs { display: flex; border-bottom: 2px solid #2e7d32; margin-bottom: 20px; }
+        .tab { padding: 10px 20px; cursor: pointer; font-weight: bold; background: #e8f5e9; border: 1px solid transparent; border-bottom: none; border-radius: 8px 8px 0 0; margin-right: 5px; color: #2e7d32; transition: 0.2s; }
+        .tab:hover { background: #c8e6c9; }
+        .tab.active { background: #2e7d32; color: white; border-color: #2e7d32; }
+        .tab-content { display: none; }
+        .tab-content.active { display: block; overflow-x: auto; }
+
+        /* TABLEAUX */
+        table { width: 100%; border-collapse: collapse; font-size: 0.9em; }
+        th { background: #37474f; color: white; padding: 10px; text-align: left; position: sticky; top: 0; }
+        td { padding: 8px; border-bottom: 1px solid #cfd8dc; }
+        tr:hover { background: #f5f5f5; }
+        input[type="text"], input[type="number"] { width: 100%; padding: 6px; box-sizing: border-box; border: 1px solid #b0bec5; border-radius: 4px; }
+        input[type="number"] { width: 60px; text-align: center; }
+        .input-large { width: 250px !important; }
+
+        .btn-save { display: block; width: 100%; background: #ff9800; color: white; border: none; padding: 15px; font-size: 1.5em; font-weight: bold; border-radius: 8px; cursor: pointer; margin-top: 30px; transition: 0.3s; box-shadow: 0 4px 10px rgba(255,152,0,0.4); }
+        .btn-save:hover { background: #f57c00; transform: scale(1.02); }
     </style>
 </head>
 <body>
 
 <div class="container">
-    <h1>🌱 Base de Données Centrale</h1>
-    <p>Générateur de cartes (Légumes, Arbres, Auxiliaires, Soutiens, Ravageurs et Événements).</p>
-    
-    <button class="btn" onclick="generateAndPushDatabase()">🚀 Générer et Injecter la Mega-Extension</button>
-    
-    <div class="stats" id="stats-banner"></div>
-    <div class="log" id="console-log">En attente de génération...</div>
+    <h1>🗄️ Base de Données des Cartes</h1>
+    <p class="subtitle">Modifiez les statistiques du jeu. Saisons valides : P, E, A, H (séparées par des virgules).</p>
+
+    <div class="tabs">
+        <div class="tab active" onclick="switchTab('legumes')">🍅 Légumes</div>
+        <div class="tab" onclick="switchTab('arbres')">🍎 Arbres Fruitiers</div>
+        <div class="tab" onclick="switchTab('compagnes')">🌼 Compagnes</div>
+        <div class="tab" onclick="switchTab('soutien')">🛠️ Soutiens</div>
+        <div class="tab" onclick="switchTab('auxiliaires')">🦊 Auxiliaires</div>
+        <div class="tab" onclick="switchTab('events')">⚡ Événements</div>
+    </div>
+
+    <div id="legumes" class="tab-content active"><table id="table-legumes"></table></div>
+    <div id="arbres" class="tab-content"><table id="table-arbres"></table></div>
+    <div id="compagnes" class="tab-content"><table id="table-compagnes"></table></div>
+    <div id="soutien" class="tab-content"><table id="table-soutien"></table></div>
+    <div id="auxiliaires" class="tab-content"><table id="table-auxiliaires"></table></div>
+    <div id="events" class="tab-content"><table id="table-events"></table></div>
+
+    <button class="btn-save" onclick="saveToFirebase()">💾 Sauvegarder toute la base dans Firebase</button>
 </div>
 
 <script>
-    // --- CONNEXION FIREBASE ---
+    // --- FIREBASE INIT ---
     const firebaseConfig = {
         apiKey: "AIzaSyA_OHv6TDiVsn4PwM9s25gij8lBwQH8xrg",
         authDomain: "main-verte-72483.firebaseapp.com",
         databaseURL: "https://main-verte-72483-default-rtdb.europe-west1.firebasedatabase.app",
         projectId: "main-verte-72483",
-        storageBucket: "main-verte-72483.firebasestorage.app",
-        messagingSenderId: "633454274346",
-        appId: "1:633454274346:web:7261efcfe1b9cecdd6e053"
+        storageBucket: "main-verte-72483.firebasestorage.app"
     };
     firebase.initializeApp(firebaseConfig);
-    const dbConfig = firebase.database().ref("game-config");
+    const dbConfig = firebase.database().ref("game-config/decks");
 
-    function log(msg) {
-        const c = document.getElementById('console-log');
-        c.innerHTML += `<div>> ${msg}</div>`;
-        c.scrollTop = c.scrollHeight;
+    // --- DONNÉES PAR DÉFAUT (Extraites de ta liste) ---
+    const dataLegumes = [
+        { nom: "Artichaut", p: 1, t: 1, g: 5, e: 12, s: 4, sm: "P,E", rc: "A,H", qte: 2 },
+        { nom: "Aubergine", p: 1, t: 1, g: 3, e: 5, s: 2, sm: "P", rc: "E,A", qte: 2 },
+        { nom: "Betterave", p: 1, t: 1, g: 5, e: 5, s: 2, sm: "P,E", rc: "A,H", qte: 2 },
+        { nom: "Carotte", p: 1, t: 1, g: 5, e: 4, s: 2, sm: "P,E,A,H", rc: "P,E,A", qte: 2 },
+        { nom: "Chou Brocoli", p: 1, t: 0, g: 4, e: 9, s: 3, sm: "E,A", rc: "H,P", qte: 2 },
+        { nom: "Concombre", p: 1, t: 1, g: 5, e: 4, s: 2, sm: "P,E", rc: "E,A", qte: 2 },
+        { nom: "Courge", p: 1, t: 1, g: 6, e: 4, s: 2, sm: "P", rc: "A", qte: 2 },
+        { nom: "Haricot Nain", p: 1, t: 1, g: 3, e: 3, s: 2, sm: "P,E", rc: "A", qte: 2 },
+        { nom: "Laitue", p: 1, t: 2, g: 6, e: 4, s: 2, sm: "P,E,A", rc: "H,P,E,A", qte: 2 },
+        { nom: "Mâche", p: 1, t: 1, g: 5, e: 4, s: 2, sm: "E,A", rc: "H,P", qte: 2 },
+        { nom: "Maïs", p: 1, t: 2, g: 5, e: 4, s: 2, sm: "P,E", rc: "E,A", qte: 2 },
+        { nom: "Patate Douce", p: 1, t: 2, g: 5, e: 5, s: 2, sm: "P", rc: "A", qte: 2 },
+        { nom: "Poireau", p: 1, t: 1, g: 4, e: 4, s: 2, sm: "P", rc: "H,A", qte: 2 },
+        { nom: "Pomme de Terre", p: 1, t: 1, g: 3, e: 5, s: 2, sm: "P", rc: "E", qte: 2 },
+        { nom: "Radis", p: 1, t: 1, g: 4, e: 1, s: 1, sm: "P,E,A,H", rc: "P,E,A,H", qte: 3 },
+        { nom: "Tomate", p: 1, t: 1, g: 3, e: 5, s: 2, sm: "P,E", rc: "E,A", qte: 2 }
+    ];
+
+    const dataArbres = [
+        { nom: "Abricotier", p: 3, t: 3, g: 10, e: 9, s: 4, sm: "E", qte: 1 },
+        { nom: "Amandier", p: 3, t: 3, g: 10, e: 9, s: 4, sm: "E", qte: 1 },
+        { nom: "Cerisier", p: 3, t: 3, g: 9, e: 11, s: 4, sm: "E", qte: 1 },
+        { nom: "Citronnier", p: 3, t: 3, g: 9, e: 8, s: 3, sm: "A", qte: 1 },
+        { nom: "Figuier", p: 3, t: 3, g: 9, e: 11, s: 4, sm: "E", qte: 1 },
+        { nom: "Noyer", p: 3, t: 3, g: 10, e: 9, s: 4, sm: "P", qte: 1 },
+        { nom: "Pêcher", p: 3, t: 3, g: 10, e: 8, s: 3, sm: "E", qte: 1 },
+        { nom: "Pommier", p: 3, t: 3, g: 9, e: 11, s: 4, sm: "A", qte: 1 },
+        { nom: "Prunier", p: 3, t: 3, g: 10, e: 11, s: 4, sm: "E", qte: 1 }
+    ];
+
+    const dataCompagnes = [
+        { nom: "Ail", p: 1, t: 1, e: 5, s: 2, desc: "+1 rendement pour Légume ou Fruit", qte: 2 },
+        { nom: "Aneth", p: 1, t: 1, e: 4, s: 2, desc: "+1 besoin comblé pour culture", qte: 2 },
+        { nom: "Basilic", p: 1, t: 1, e: 4, s: 2, desc: "+1 besoin comblé pour culture", qte: 2 },
+        { nom: "Bourrache", p: 1, t: 1, e: 4, s: 2, desc: "+1 besoin comblé pour culture", qte: 2 },
+        { nom: "Capucine", p: 1, t: 1, e: 4, s: 2, desc: "+1 besoin comblé pour culture", qte: 2 },
+        { nom: "Ciboulette", p: 1, t: 1, e: 4, s: 2, desc: "+1 besoin comblé pour culture", qte: 2 },
+        { nom: "Épinard", p: 1, t: 1, e: 3, s: 2, desc: "+1 besoin comblé pour culture", qte: 2 },
+        { nom: "Menthe", p: 1, t: 1, e: 4, s: 2, desc: "+1 besoin comblé pour culture", qte: 2 },
+        { nom: "Souci", p: 1, t: 1, e: 4, s: 2, desc: "+1 besoin comblé pour culture", qte: 2 }
+    ];
+
+    const dataSoutien = [
+        { nom: "Arrosoir 10L", p: 2, t: 1, desc: "+2 Eau lors d'un arrosage", qte: 2 },
+        { nom: "Brouette", p: 2, t: 1, desc: "-1 Temps pour 2 pts d'amendement (req. Local)", qte: 2 },
+        { nom: "Serre", p: 3, t: 4, desc: "Avance le semis d'1 saison, prolonge la récolte d'1 saison", qte: 3 },
+        { nom: "Tuteur", p: 1, t: 1, desc: "Permet de cultiver des plantes grimpantes sans prendre de place", qte: 3 },
+        { nom: "Récupérateur d'eau", p: 3, t: 2, desc: "Stocke jusqu'à 7 unités d'Eau", qte: 1 },
+        { nom: "Poules", p: 2, t: 1, desc: "-1 Temps => +1 Rendement (req. Clôture + Prairie)", qte: 2 },
+        { nom: "Moutons", p: 3, t: 1, desc: "-2 Temps => +2 Rendement (req. Clôture + Prairie)", qte: 1 },
+        { nom: "Cheval", p: 4, t: 1, desc: "-2 Temps => +3 Rendement. Annule blessure. (req. Clôture + Prairie)", qte: 1 }
+    ];
+
+    const dataAuxiliaires = [
+        { nom: "Hérisson", p: 2, t: 1, prereq: "Haie", prot: "Limaces", qte: 2 },
+        { nom: "Grenouille", p: 2, t: 1, prereq: "Mare", prot: "Mouches", qte: 2 },
+        { nom: "Coccinelle", p: 1, t: 1, prereq: "Prairie", prot: "Pucerons", qte: 3 },
+        { nom: "Rapace", p: 3, t: 1, prereq: "Forêt", prot: "Campagnols", qte: 1 },
+        { nom: "Chauve-souris", p: 2, t: 1, prereq: "Forêt", prot: "Carpocapse", qte: 2 }
+    ];
+
+    const dataEvents = [
+        { nom: "Saison exceptionnelle", type: "Positif", desc: "+2 sous à la récolte", qte: 1 },
+        { nom: "Travail en musique", type: "Positif", desc: "+2 Temps disponible", qte: 1 },
+        { nom: "Aide de la région", type: "Positif", desc: "Gain immédiat de 2 sous", qte: 1 },
+        { nom: "Grêle", type: "Négatif", desc: "Serres indisponibles, -2 rendement sur fruitiers", qte: 1 },
+        { nom: "Sécheresse", type: "Négatif", desc: "Lancez 1 dé précipitation en moins", qte: 1 },
+        { nom: "Blessure", type: "Négatif", desc: "Un jardinier en moins cette saison", qte: 1 }
+    ];
+
+    // --- GÉNÉRATION DES TABLEAUX UI ---
+    function renderTable(tableId, dataArray, columnsDef) {
+        const table = document.getElementById(tableId);
+        let headerHTML = "<tr>";
+        columnsDef.forEach(col => headerHTML += `<th>${col.label}</th>`);
+        headerHTML += "</tr>";
+        table.innerHTML = headerHTML;
+
+        dataArray.forEach((item, idx) => {
+            let rowHTML = "<tr>";
+            columnsDef.forEach(col => {
+                let val = item[col.key] !== undefined ? item[col.key] : "";
+                if(col.type === 'text' || col.type === 'large') {
+                    rowHTML += `<td><input type="text" class="${col.type==='large'?'input-large':''}" data-idx="${idx}" data-key="${col.key}" value="${val}"></td>`;
+                } else if (col.type === 'number') {
+                    rowHTML += `<td><input type="number" data-idx="${idx}" data-key="${col.key}" value="${val}"></td>`;
+                }
+            });
+            rowHTML += "</tr>";
+            table.innerHTML += rowHTML;
+        });
     }
 
-    // ==========================================
-    // LES LISTES DE DONNÉES BRUTES
-    // ==========================================
-    const listLegumes = ["Artichaut", "Aubergine", "Betterave", "Carotte", "Céleri", "Chayotte", "Chou", "Concombre", "Cornichon", "Courge", "Courgette", "Côtes de blette", "Fève", "Fraise", "Fenouil", "Haricot", "Laitue", "Mâche", "Maïs", "Melon", "Navet", "Panais", "Pastèque", "Patate Douce", "Piment fort", "Poireau", "Pois", "Poivron", "Pomme de terre", "Radis", "Tomate"];
-    const listArbres = ["Abricotier", "Actinidier", "Amandier", "Brugnonier", "Cassissier", "Cerisier", "Châtaignier", "Citronnier", "Cognassier", "Combava", "Figuier", "Framboisier", "Grenadier", "Groseillier", "Kumquat", "Mandarinier", "Mûrier", "Myrtillier", "Noisetier", "Noyer", "Olivier", "Oranger", "Pamplemoussier", "Pêcher", "Physalis", "Plaqueminier", "Poirier", "Pommier", "Prunier", "Vigne"];
-    const listCompagnes = ["Ail", "Aneth", "Agastache", "Basilic", "Bleuet", "Bourrache", "Capucine", "Cébette", "Cerfeuil", "Ciboulette", "Coriandre", "Cosmos", "Echalote", "Épinard", "Estragon", "Lin", "Marguerite", "Mélilot Blanc", "Mélisse", "Menthe", "Moutarde", "Oignon", "Origan", "Oeillet d'Inde", "Persil", "Romarin", "Sarriette", "Sauge", "Serpolet", "Souci", "Tanaisie", "Thym", "Tournesol"];
-    const listOutils = ["Animaux", "Arrosoir 10L", "Brouette", "Barrière", "Enrouleur", "Gants", "Filet de protection", "Piège", "Piège à phéromones", "Sécateur", "Treillage", "Tunnel", "Tuteur", "Tuyau d'arrosage", "Voile de forçage", "Voile de protection", "Arrosage automatique", "Goutte à goutte", "Épandeur", "Motoculteur", "Semoir", "Clôture", "Forage", "Récupérateur d'eau", "Nichoir", "Ruche", "Baissières", "Paysagiste"];
-    // Mots-clés reconnus par le moteur du jeu (Fumier, Ortie, Paillage, Corne)
-    const listTechniques = ["Fumier", "Purin d'ortie", "Paillage", "Corne broyée", "Bel Étalage", "Cagette", "Ceinture lombaire", "Décoction d'ail", "Halloween", "Formations", "Pass VIP", "Carte Fidélité", "Ventes privées", "Entraide", "Produits de la ferme"];
-    const listAuxiliaires = ["Lézard", "Carabe", "Araignée", "Grenouille", "Chauve-souris", "Chat", "Rapace", "Hérisson", "Chrysope", "Passereaux", "Syrphe", "Coccinelle", "Lampyre", "Crapaud", "Staphylin"];
-    const listRavageurs = ["Carpocapse", "Cécidomyie", "Campagnol", "Altise", "Cochenilles", "Acariens", "Étourneau", "Lapin de Garenne", "Limaces", "Escargots", "Doryphore", "Merle", "Loir", "Phalène brumeuse", "Pucerons", "Mouches", "Punaise", "Sanglier", "Rat taupier", "Teigne", "Thrips"];
-    const listEvents = ["Biodynamie", "Grève des fournisseurs", "Grêle", "Cueillette à la ferme", "Augmentation TVA", "Saison nuageuse", "Sécheresse", "Bonne saison", "Mauvaise saison"];
-    const listObjectifs = ["Roi du compost", "Crésus", "Constructor", "Aquaman", "Inspecteur gadgets", "Naturalis", "Biodiversité", "Main verte", "Trésorerie"];
+    function init() {
+        renderTable("table-legumes", dataLegumes, [
+            {label: "Nom", key: "nom", type: "text"}, {label: "Achat(💰)", key: "p", type: "number"}, {label: "Temps(⏳)", key: "t", type: "number"},
+            {label: "Gain(💰)", key: "g", type: "number"}, {label: "Eau(💧)", key: "e", type: "number"}, {label: "Soleil(☀️)", key: "s", type: "number"},
+            {label: "Semis", key: "sm", type: "text"}, {label: "Récolte", key: "rc", type: "text"}, {label: "Qté Deck", key: "qte", type: "number"}
+        ]);
+        renderTable("table-arbres", dataArbres, [
+            {label: "Nom", key: "nom", type: "text"}, {label: "Achat(💰)", key: "p", type: "number"}, {label: "Temps(⏳)", key: "t", type: "number"},
+            {label: "Gain(💰)", key: "g", type: "number"}, {label: "Eau(💧)", key: "e", type: "number"}, {label: "Soleil(☀️)", key: "s", type: "number"},
+            {label: "Plantation", key: "sm", type: "text"}, {label: "Qté Deck", key: "qte", type: "number"}
+        ]);
+        renderTable("table-compagnes", dataCompagnes, [
+            {label: "Nom", key: "nom", type: "text"}, {label: "Achat(💰)", key: "p", type: "number"}, {label: "Temps(⏳)", key: "t", type: "number"},
+            {label: "Eau(💧)", key: "e", type: "number"}, {label: "Soleil(☀️)", key: "s", type: "number"}, {label: "Effet", key: "desc", type: "large"}, {label: "Qté Deck", key: "qte", type: "number"}
+        ]);
+        renderTable("table-soutien", dataSoutien, [
+            {label: "Nom", key: "nom", type: "text"}, {label: "Achat(💰)", key: "p", type: "number"}, {label: "Temps(⏳)", key: "t", type: "number"},
+            {label: "Effet / Bonus", key: "desc", type: "large"}, {label: "Qté Deck", key: "qte", type: "number"}
+        ]);
+        renderTable("table-auxiliaires", dataAuxiliaires, [
+            {label: "Nom", key: "nom", type: "text"}, {label: "Achat(💰)", key: "p", type: "number"}, {label: "Temps(⏳)", key: "t", type: "number"},
+            {label: "Prérequis", key: "prereq", type: "text"}, {label: "Cible (Protège de)", key: "prot", type: "text"}, {label: "Qté Deck", key: "qte", type: "number"}
+        ]);
+        renderTable("table-events", dataEvents, [
+            {label: "Nom", key: "nom", type: "text"}, {label: "Type", key: "type", type: "text"}, {label: "Description", key: "desc", type: "large"}, {label: "Qté Deck", key: "qte", type: "number"}
+        ]);
+    }
 
-    const saisons = ["P", "E", "A", "H"];
+    // --- LOGIQUE UI ONGLETS ---
+    function switchTab(tabId) {
+        document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+        document.querySelectorAll('.tab-content').forEach(c => c.classList.remove('active'));
+        event.target.classList.add('active');
+        document.getElementById(tabId).classList.add('active');
+    }
 
-    function randomRange(min, max) { return Math.floor(Math.random() * (max - min + 1)) + min; }
-    function getRandomSeasons(count) {
+    // --- SAUVEGARDE FIREBASE ---
+    function extractData(tableId, baseArray) {
+        let rows = document.getElementById(tableId).querySelectorAll('tr');
         let res = [];
-        let pool = [...saisons];
-        for(let i=0; i<count; i++) {
-            if(pool.length === 0) break;
-            let idx = Math.floor(Math.random()*pool.length);
-            res.push(pool.splice(idx, 1)[0]);
+        for(let i=1; i<rows.length; i++) { // Skip header
+            let inputs = rows[i].querySelectorAll('input');
+            let obj = {};
+            inputs.forEach(inp => {
+                let key = inp.getAttribute('data-key');
+                let val = inp.value;
+                if(inp.type === 'number') obj[key] = parseInt(val) || 0;
+                else if(key === 'sm' || key === 'rc') obj[key] = val.split(',').map(s=>s.trim()); // Parse arrays for seasons
+                else obj[key] = val;
+            });
+            res.push(obj);
         }
         return res;
     }
 
-    async function generateAndPushDatabase() {
-        document.getElementById('console-log').innerHTML = "";
-        log("Démarrage de la génération procédurale...");
+    function saveToFirebase() {
+        let finalDecks = { C: [], S: [], A: [], E: [] };
 
-        let decks = { C: [], S: [], A: [], E: [], O: [] };
-        let ravPool = [];
+        // Parsing Légumes (C) et ajout du tag 'cat'
+        extractData('table-legumes', dataLegumes).forEach(c => finalDecks.C.push({...c, cat: 'L'}));
+        // Parsing Arbres (C)
+        extractData('table-arbres', dataArbres).forEach(c => finalDecks.C.push({...c, cat: 'A', rc: c.sm})); // Récolte = Semis par défaut pour l'arbre
+        
+        // Parsing Soutien & Compagnes (S)
+        extractData('table-compagnes', dataCompagnes).forEach(c => finalDecks.S.push({...c, cat: 'S'}));
+        extractData('table-soutien', dataSoutien).forEach(c => finalDecks.S.push({...c, cat: 'S'}));
+        
+        // Parsing Auxiliaires (A)
+        extractData('table-auxiliaires', dataAuxiliaires).forEach(c => finalDecks.A.push({...c, cat: 'X'}));
+        
+        // Parsing Events (E)
+        extractData('table-events', dataEvents).forEach(c => finalDecks.E.push({...c, cat: 'E'}));
 
-        // 1. GÉNÉRATION DES LÉGUMES (Deck C)
-        listLegumes.forEach(nom => {
-            decks.C.push({
-                nom: nom, cat: 'L', t: 1, 
-                p: randomRange(1, 2),        // Prix d'achat faible
-                g: randomRange(5, 12),       // Gain modéré
-                e: randomRange(2, 4),        // Besoin Eau
-                s: randomRange(2, 4),        // Besoin Soleil
-                sm: getRandomSeasons(2),     // 2 saisons de semis
-                rc: getRandomSeasons(1),     // 1 saison de récolte
-                qte: 2
-            });
+        // Envoi
+        dbConfig.set(finalDecks).then(() => {
+            alert("✅ Base de données mise à jour avec succès dans Firebase !");
+        }).catch(err => {
+            console.error(err);
+            alert("❌ Erreur lors de la sauvegarde.");
         });
-        log(`${listLegumes.length} Légumes générés.`);
-
-        // 2. GÉNÉRATION DES ARBRES FRUITIERS (Deck C)
-        listArbres.forEach(nom => {
-            decks.C.push({
-                nom: nom, cat: 'A', t: 2, 
-                p: randomRange(3, 5),        // Prix d'achat élevé
-                g: randomRange(15, 25),      // Gain massif
-                e: randomRange(4, 6),        // Besoin Eau lourd
-                s: randomRange(4, 6),        // Besoin Soleil lourd
-                sm: getRandomSeasons(1),     
-                rc: getRandomSeasons(1),     
-                qte: 1
-            });
-        });
-        log(`${listArbres.length} Arbres Fruitiers générés.`);
-
-        // 3. GÉNÉRATION DES SOUTIENS & COMPAGNES (Deck S)
-        [...listCompagnes, ...listOutils, ...listTechniques].forEach(nom => {
-            // Description générique basée sur le nom
-            let desc = "Apporte un bonus à votre exploitation.";
-            if(nom.includes("Fumier")) desc = "Ajoute +2 Compost immédiatement.";
-            else if(nom.includes("ortie")) desc = "Réduit le besoin en Eau d'une culture de 4💧.";
-            else if(nom.includes("Paillage")) desc = "Réduit le besoin de 2💧 et 1☀️ d'une culture.";
-            else if(nom.includes("Corne")) desc = "Augmente le gain de la récolte de +2💰.";
-            
-            decks.S.push({
-                nom: nom, cat: 'S', t: 1, 
-                p: randomRange(1, 3), 
-                desc: desc, 
-                qte: 2
-            });
-        });
-        log(`${listCompagnes.length + listOutils.length + listTechniques.length} Cartes Soutien générées.`);
-
-        // 4. GÉNÉRATION DES RAVAGEURS (Pool de menaces)
-        listRavageurs.forEach(nom => {
-            ravPool.push({
-                nom: nom, 
-                d: randomRange(3, 8), // Dégâts en pièces d'or
-                qte: 1
-            });
-        });
-        log(`${listRavageurs.length} Ravageurs générés.`);
-
-        // 5. GÉNÉRATION DES AUXILIAIRES (Deck A)
-        // On assigne à chaque auxiliaire un ravageur aléatoire à protéger
-        listAuxiliaires.forEach(nom => {
-            let targetRav = listRavageurs[Math.floor(Math.random() * listRavageurs.length)];
-            decks.A.push({
-                nom: nom, cat: 'X', t: 1, 
-                p: randomRange(1, 2), 
-                prot: targetRav, 
-                qte: 2
-            });
-        });
-        log(`${listAuxiliaires.length} Auxiliaires générés.`);
-
-        // 6. ÉVÉNEMENTS ET OBJECTIFS (Pour usage futur du moteur)
-        listEvents.forEach(nom => { decks.E.push({ nom: nom, type: 'Event' }); });
-        listObjectifs.forEach(nom => { decks.O.push({ nom: nom, type: 'Objectif' }); });
-        log("Événements et Objectifs préparés.");
-
-        // Conservation des paramètres d'équilibrage s'ils existent déjà
-        let currentSettings = {};
-        try {
-            const snap = await dbConfig.child("settings").once("value");
-            if(snap.exists()) currentSettings = snap.val();
-        } catch(e) {}
-
-        // SAUVEGARDE FINALE DANS FIREBASE
-        const finalData = {
-            decks: decks,
-            ravageurs: ravPool,
-            settings: currentSettings // On ne supprime pas tes prix !
-        };
-
-        try {
-            await dbConfig.set(finalData);
-            log("✅ INJECTION TERMINÉE AVEC SUCCÈS !");
-            
-            let totalCards = decks.C.length + decks.S.length + decks.A.length;
-            document.getElementById('stats-banner').innerHTML = `
-                <span>🌾 Cultures: ${decks.C.length}</span>
-                <span>🛠️ Soutiens: ${decks.S.length}</span>
-                <span>🦊 Auxiliaires: ${decks.A.length}</span>
-                <span>🐛 Ravageurs: ${ravPool.length}</span>
-            `;
-            alert(`Succès ! La mega-extension (${totalCards} cartes) a été injectée dans le jeu.`);
-        } catch(err) {
-            log("❌ ERREUR LORS DE L'INJECTION : " + err.message);
-        }
     }
+
+    // Lancement
+    window.onload = init;
 </script>
 </body>
 </html>
