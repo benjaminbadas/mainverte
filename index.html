@@ -2,7 +2,7 @@
 <html lang="fr">
 <head>
     <meta charset="UTF-8">
-    <title>La Main Verte - V25 (Plateau Hexagonal)</title>
+    <title>La Main Verte - V26 (Plateau Hexagonal & Potager Départ)</title>
     <script src="https://www.gstatic.com/firebasejs/9.17.1/firebase-app-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/9.17.1/firebase-database-compat.js"></script>
     <style>
@@ -24,11 +24,10 @@
         .hud { display: flex; justify-content: space-between; align-items: center; background: white; padding: 10px; border-radius: 8px; box-shadow: 0 2px 5px rgba(0,0,0,0.1); margin-bottom: 5px; font-weight: bold; font-size: 0.9em; border-top: 4px solid var(--p1); }
         .hud-opp { background: #e3f2fd; padding: 6px 10px; border-radius: 8px; margin-bottom: 10px; font-size: 0.8em; color: #1565c0; border: 1px solid #bbdefb; display: flex; justify-content: space-between; align-items: center;}
         
-        /* --- NOUVEAU PLATEAU HEXAGONAL --- */
         .farm-grid { 
             position: relative; 
             width: 100%; 
-            min-height: 420px; /* Espace pour les 4 rangées */
+            min-height: 420px; 
             background: #d7ccc8; 
             padding: 10px; 
             border-radius: 12px; 
@@ -52,36 +51,33 @@
 
         .zone.selected { border: 3px solid #ff9800 !important; box-shadow: 0 0 10px rgba(255,152,0,0.6); transform: scale(1.05); z-index: 10;}
 
-        /* Couleurs de base des zones inspirées de l'image */
         .zone-color-0 { background: #f3e5f5; border-color: #ce93d8; color: #7b1fa2; }
         .zone-color-1, .zone-color-2, .zone-color-3 { background: #efebe9; border-color: #bcaaa4; color: #5d4037; }
         .zone-color-4 { background: #c8e6c9; border-color: #2e7d32; color: #1b5e20; }
         .zone-color-5 { background: #1b5e20; border-color: #0a3311; color: white; }
         
-        /* Surcharges quand un aménagement est construit */
         .tuile-potager { background: var(--potager) !important; border: 2px solid #2e7d32 !important; color: #1b5e20; }
         .tuile-verger { background: var(--verger) !important; border: 2px solid #fbc02d !important; color: #5d4037; }
         .tuile-amenag { background: var(--amenag) !important; border: 2px solid #ff5722 !important; color: #bf360c; }
         .tuile-batiment { background: var(--batiment) !important; border: 2px solid #263238 !important; color: white; }
         .has-serre { box-shadow: inset 0 0 15px rgba(3, 169, 244, 0.6); border: 3px solid #03a9f4 !important; background: var(--serre) !important; }
 
-        /* Coordonnées des 15 hexagones */
-        .zone-id-0 { top: 10px; left: 10px; }   /* Z0 */
-        .zone-id-1 { top: 10px; left: 120px; }  /* Z1 */
-        .zone-id-2 { top: 10px; left: 230px; }  /* Z1 */
-        .zone-id-3 { top: 10px; left: 340px; }  /* Z4 */
-        .zone-id-4 { top: 10px; left: 450px; }  /* Z4 */
-        .zone-id-5 { top: 100px; left: 65px; }  /* Z2 */
-        .zone-id-6 { top: 100px; left: 175px; } /* Z3 */
-        .zone-id-7 { top: 100px; left: 285px; } /* Z3 */
-        .zone-id-8 { top: 100px; left: 395px; } /* Z5 */
-        .zone-id-9 { top: 190px; left: 120px; } /* Z2 */
-        .zone-id-10 { top: 190px; left: 230px; } /* Z3 */
-        .zone-id-11 { top: 190px; left: 340px; } /* Z4 */
-        .zone-id-12 { top: 190px; left: 450px; } /* Z5 */
-        .zone-id-13 { top: 280px; left: 450px; } /* Z5 */
-        .zone-id-14 { top: 190px; left: 10px; background: #e0f2f1; border-color: #009688; color: #00695c; } /* PO 1,2 */
-        /* ------------------------------- */
+        .zone-id-0 { top: 10px; left: 10px; }   
+        .zone-id-1 { top: 10px; left: 120px; }  
+        .zone-id-2 { top: 10px; left: 230px; }  
+        .zone-id-3 { top: 10px; left: 340px; }  
+        .zone-id-4 { top: 10px; left: 450px; }  
+        .zone-id-5 { top: 100px; left: 65px; }  
+        .zone-id-6 { top: 100px; left: 175px; } 
+        .zone-id-7 { top: 100px; left: 285px; } 
+        .zone-id-8 { top: 100px; left: 395px; } 
+        .zone-id-9 { top: 190px; left: 120px; } 
+        .zone-id-10 { top: 190px; left: 230px; } 
+        .zone-id-11 { top: 190px; left: 340px; } 
+        .zone-id-12 { top: 190px; left: 450px; } 
+        .zone-id-13 { top: 280px; left: 450px; } 
+        /* Correction : Pas de couleur forcée pour laisser le vert "Potager" s'afficher */
+        .zone-id-14 { top: 190px; left: 10px; } 
 
         .card { border: 1px solid #ddd; border-radius: 6px; padding: 6px; margin-bottom: 4px; background: white; font-size: 0.75em; border-left: 4px solid var(--p1); cursor: help; position: relative;}
         .btn-action { width: 100%; padding: 8px; border: none; border-radius: 4px; font-weight: bold; color: white; cursor: pointer; font-size: 0.75em; margin-bottom: 3px; transition: 0.2s; }
@@ -114,13 +110,11 @@
 <div id="lobby">
     <h1 style="font-size: 3em; margin-bottom: 10px;">🌱 La Main Verte</h1>
     <p style="font-size: 1.2em; margin-bottom: 30px;">Choisissez un mode de jeu :</p>
-    
     <button class="btn-lobby" onclick="startNewGame('SOLO')">👤 Jouer en Solo</button>
     <button class="btn-lobby" style="background:#8e24aa" onclick="startNewGame('IA_SOLO')">🤖 Mode Spectateur (IA Solo)</button>
     <button class="btn-lobby" style="background:#0288d1" onclick="startNewGame('VS_IA')">🤖 Jouer contre l'Ordinateur</button>
     <button class="btn-lobby" style="background:#ff9800" onclick="startNewGame('IA_VS_IA')">🍿 Mode Spectateur (IA vs IA)</button>
     <button class="btn-lobby" style="background:var(--p1)" onclick="startNewGame('MULTI')">🌍 Créer une partie à 2 Joueurs</button>
-    
     <hr style="width: 50%; border-color: #555; margin: 15px 0;">
     <button class="btn-lobby" style="background:#546e7a;" onclick="joinGame(2)">🚜 Rejoindre la partie (Joueur 2)</button>
     <button class="btn-lobby" style="background:#d32f2f; width:250px; font-size:0.9em; margin-top:20px;" onclick="confirmReset(true)">⚠️ Reset Global du Serveur</button>
@@ -132,7 +126,6 @@
         <div id="winner-text" class="score-winner"></div>
         <div class="score-row"><span>Joueur 1 :</span> <span id="final-score-1">0💰</span></div>
         <div class="score-row" id="score-row-2"><span>Joueur 2 :</span> <span id="final-score-2">0💰</span></div>
-        
         <div style="display:flex; gap:10px; justify-content:center; margin-top:30px;">
             <button class="btn-lobby" style="width:auto; font-size:0.9em;" onclick="document.getElementById('lobby').style.display='flex'">Menu Principal</button>
             <button class="btn-lobby" style="background:#607d8b; width:auto; font-size:0.9em;" onclick="document.getElementById('game-over-screen').style.display='none'">🔍 Voir Plateau & Logs</button>
@@ -145,17 +138,15 @@
 </div>
 
 <div class="main-game">
-    <div id="turn-banner" class="turn-banner">Veuillez patienter, c'est le tour de l'adversaire...</div>
-    
+    <div id="turn-banner" class="turn-banner">Veuillez patienter...</div>
     <div class="hud" id="my-hud">
         <div id="season-display">📅 Saison...</div>
         <div>💰 <span id="res-money">0</span> | ⏳ <span id="res-time">0</span>/<span id="res-timemax">10</span>h</div>
         <div title="Points de Compost accumulés">💩 <span id="res-compost" class="res-pill">0</span></div>
         <div id="meteo-display" style="background:#e3f2fd; padding:3px 10px; border-radius:10px;">🎲 --</div>
-        
-        <button id="champion-btn" onclick="playChampion()" style="background:#fbc02d; color:#333; border:none; border-radius:4px; padding:4px 8px; cursor:pointer; font-weight:bold; transition:0.3s;" title="Regarder le meilleur Bot actuel jouer à vitesse normale sans muter">🏆 Jouer Champion</button>
-        <button id="auto-train-btn" onclick="toggleAutoTrain()" style="background:#009688; color:white; border:none; border-radius:4px; padding:4px 8px; cursor:pointer; font-weight:bold; transition:0.3s;" title="Relance les parties en boucle jusqu'à battre le record">🧬 Auto-Train: OFF</button>
-        <button id="bot-btn" onclick="toggleBot()" style="background:#9c27b0; color:white; border:none; border-radius:4px; padding:4px 8px; cursor:pointer; font-weight:bold; transition:0.3s;" title="Laisser l'ordinateur jouer à votre place">🤖 Bot: OFF</button>
+        <button id="champion-btn" onclick="playChampion()" style="background:#fbc02d; color:#333; border:none; border-radius:4px; padding:4px 8px; cursor:pointer; font-weight:bold; transition:0.3s;" title="Regarder le meilleur Bot actuel jouer">🏆 Jouer Champion</button>
+        <button id="auto-train-btn" onclick="toggleAutoTrain()" style="background:#009688; color:white; border:none; border-radius:4px; padding:4px 8px; cursor:pointer; font-weight:bold; transition:0.3s;">🧬 Auto-Train: OFF</button>
+        <button id="bot-btn" onclick="toggleBot()" style="background:#9c27b0; color:white; border:none; border-radius:4px; padding:4px 8px; cursor:pointer; font-weight:bold; transition:0.3s;">🤖 Bot: OFF</button>
         <button onclick="confirmReset()" style="background:#ff5252; color:white; border:none; border-radius:4px; padding:4px 8px; cursor:pointer; font-weight:bold;">🧹 Reset</button>
     </div>
     
@@ -208,7 +199,6 @@
     const SAISON_NOMS = ["🌷 Printemps", "☀️ Été", "🍂 Automne", "❄️ Hiver"];
     const ALL_SEASONS = ["P","E","A","H"];
 
-    // Tableau de correspondance pour les 15 hexagones (numéros de zone)
     const zoneNumbersMap = [0, 1, 1, 4, 4, 2, 3, 3, 5, 2, 3, 4, 5, 5, null];
 
     const defaultSettings = {
@@ -231,10 +221,10 @@
         return { 
             money: 10, time: 10, timeMax: 10, compost: 0, 
             upgrades: Array(8).fill(1), hand: [], auxActifs: [], 
-            // Création des 15 zones
             zones: zoneNumbersMap.map((num, i) => ({ 
                 id: i, num: num, 
-                type: num === 0 ? "LIFE" : (i === 14 ? "AMÉNAGEMENT" : null), 
+                // CORRECTION : L'hexagone 14 (PO 1,2) est un POTAGER dès le début !
+                type: num === 0 ? "LIFE" : (i === 14 ? "POTAGER" : null), 
                 culture: null, batiment: null 
             })) 
         };
@@ -248,16 +238,13 @@
         myId = 1;
         document.getElementById('lobby').style.display = 'none';
         document.getElementById('my-hud').style.borderTopColor = 'var(--p1)';
-        
         if (mode === 'IA_SOLO' || mode === 'IA_VS_IA' || mode === 'VS_IA') { botEnabled = true; } 
         else { botEnabled = false; }
-        
         initNewGame(1, mode);
     }
 
     function joinGame(id) {
-        myId = id;
-        document.getElementById('lobby').style.display = 'none';
+        myId = id; document.getElementById('lobby').style.display = 'none';
         document.getElementById('my-hud').style.borderTopColor = id === 1 ? 'var(--p1)' : 'var(--p2)';
         if(state) render();
     }
@@ -265,11 +252,8 @@
     db.on("value", snap => {
         const val = snap.val();
         if(val && val.p1) {
-            if (state && (state.saisonIdx !== val.saisonIdx || state.annee !== val.annee) && !val.gameOver) {
-                playSeasonAnimation(val.saisonIdx, val.annee);
-            }
-            state = val; 
-            render(); 
+            if (state && (state.saisonIdx !== val.saisonIdx || state.annee !== val.annee) && !val.gameOver) { playSeasonAnimation(val.saisonIdx, val.annee); }
+            state = val; render(); 
         }
     });
 
@@ -279,8 +263,7 @@
         if(!state.gameLogs) state.gameLogs = [];
         let suffix = "";
         if(state && state['p'+pid] && !msg.startsWith("🏆") && !msg.startsWith("> 🧹")) {
-            let p = state['p'+pid];
-            suffix = ` [💰${p.money} | ⏳${p.time} | 💩${p.compost||0}]`;
+            let p = state['p'+pid]; suffix = ` [💰${p.money} | ⏳${p.time} | 💩${p.compost||0}]`;
         }
         state.gameLogs.unshift(`[J${pid}] ` + msg + suffix);
         if(state.gameLogs.length > 250) state.gameLogs.pop(); 
@@ -305,23 +288,17 @@
             (config.ravageurs || []).forEach(r => { let q = r.qte || 1; for(let i=0; i<q; i++) builtRavs.push({...r}); });
 
             state = { 
-                mode: mode, turn: 1, annee: 1, saisonIdx: 0, gameOver: false, 
-                settings: loadedSettings, 
+                mode: mode, turn: 1, annee: 1, saisonIdx: 0, gameOver: false, settings: loadedSettings, 
                 decks: builtDecks, ravPool: builtRavs, market: { C: [], S: [], A: [] }, 
                 currentMeteo: {p:0, s:0}, currentRav: null, p1: generatePlayer(), p2: generatePlayer(), gameLogs: [msg] 
             };
             ['C','S','A'].forEach(cat => { for(let i=0; i<2; i++) { let d = draw(cat); if(d) state.market[cat].push(d); } });
-            
-            document.getElementById('game-over-screen').style.display = 'none';
-            await db.set(state);
+            document.getElementById('game-over-screen').style.display = 'none'; await db.set(state);
         } catch(e) { console.error(e); }
         finally { isInitializing = false; } 
     }
 
-    function draw(cat) {
-        if(!state.decks[cat] || state.decks[cat].length === 0) return null;
-        return state.decks[cat].splice(Math.floor(Math.random()*state.decks[cat].length), 1)[0];
-    }
+    function draw(cat) { if(!state.decks[cat] || state.decks[cat].length === 0) return null; return state.decks[cat].splice(Math.floor(Math.random()*state.decks[cat].length), 1)[0]; }
 
     function playSeasonAnimation(sIdx, annee) {
         if(state.gameOver) return;
@@ -336,16 +313,11 @@
     function showGameOver() {
         document.getElementById('game-over-screen').style.display = 'flex';
         document.getElementById('final-score-1').innerText = state.p1.money + " 💰";
-        
         if(state.mode === 'SOLO' || state.mode === 'IA_SOLO') {
-            document.getElementById('score-row-2').style.display = 'none';
-            document.getElementById('winner-text').innerText = "🎉 Ferme terminée !";
+            document.getElementById('score-row-2').style.display = 'none'; document.getElementById('winner-text').innerText = "🎉 Ferme terminée !";
         } else {
-            document.getElementById('score-row-2').style.display = 'flex';
-            document.getElementById('final-score-2').innerText = state.p2.money + " 💰";
-            let w = "Égalité !";
-            if(state.p1.money > state.p2.money) w = "🏆 Le Joueur 1 Gagne !";
-            if(state.p2.money > state.p1.money) w = "🏆 Le Joueur 2 Gagne !";
+            document.getElementById('score-row-2').style.display = 'flex'; document.getElementById('final-score-2').innerText = state.p2.money + " 💰";
+            let w = "Égalité !"; if(state.p1.money > state.p2.money) w = "🏆 Le Joueur 1 Gagne !"; if(state.p2.money > state.p1.money) w = "🏆 Le Joueur 2 Gagne !";
             document.getElementById('winner-text').innerText = w;
         }
     }
@@ -354,11 +326,7 @@
         if(!state || !myId) return;
         if(state.gameOver && document.getElementById('game-over-screen').style.display !== 'none') showGameOver();
 
-        const me = state['p'+myId];
-        const opp = state['p'+(myId === 1 ? 2 : 1)];
-        const isMyTurn = state.turn === myId;
-        const s = state.settings;
-
+        const me = state['p'+myId]; const opp = state['p'+(myId === 1 ? 2 : 1)]; const isMyTurn = state.turn === myId; const s = state.settings;
         document.getElementById('opp-hud').style.display = (state.mode === 'SOLO' || state.mode === 'IA_SOLO') ? 'none' : 'flex';
 
         const banner = document.getElementById('turn-banner');
@@ -367,14 +335,11 @@
 
         const setTxt = (id, txt) => { const el = document.getElementById(id); if(el) el.innerText = txt; };
         setTxt('res-money', me.money); setTxt('res-time', me.time); setTxt('res-timemax', me.timeMax); setTxt('res-compost', me.compost);
-        setTxt('season-display', `📅 ${SAISON_NOMS[state.saisonIdx]} - An ${state.annee}/3`);
-        setTxt('meteo-display', `🌧️ ${state.currentMeteo.p} | ☀️ ${state.currentMeteo.s}`);
+        setTxt('season-display', `📅 ${SAISON_NOMS[state.saisonIdx]} - An ${state.annee}/3`); setTxt('meteo-display', `🌧️ ${state.currentMeteo.p} | ☀️ ${state.currentMeteo.s}`);
         setTxt('opp-money', opp.money); setTxt('opp-time', opp.time); setTxt('opp-compost', opp.compost);
         setTxt('deck-count', `C:${(state.decks.C||[]).length} | S:${(state.decks.S||[]).length} | A:${(state.decks.A||[]).length}`);
         
-        const logBox = document.getElementById('game-logs');
-        if(logBox && state.gameLogs) logBox.innerHTML = state.gameLogs.map(l => `<div>${l}</div>`).join('');
-
+        const logBox = document.getElementById('game-logs'); if(logBox && state.gameLogs) logBox.innerHTML = state.gameLogs.map(l => `<div>${l}</div>`).join('');
         const rZone = document.getElementById('ravageur-zone');
         if(state.currentRav) { rZone.innerText = `⚠️ RAVAGEUR : ${state.currentRav.n || state.currentRav.nom} (-${state.currentRav.d}💰)`; rZone.style.display = 'block'; }
         else rZone.style.display = 'none';
@@ -385,26 +350,22 @@
 
         const grid = document.getElementById('farm-grid'); grid.innerHTML = "";
         me.zones.forEach((z, i) => {
-            // L'accessibilité dépend de l'amélioration Terrain (0 à 3)
-            // Terrain 1 = Zones 0 à 3
-            // Terrain 2 = Zones 0 à 4
-            // Terrain 3 = Zones 0 à 5
-            // Z0 (Maison) et ID 14 (PO 1,2) sont toujours ouverts
             const acc = (z.num !== null && z.num <= (me.upgrades[0] === 1 ? 3 : (me.upgrades[0] === 2 ? 4 : 5))) || z.id === 14 || z.id === 0;
             const isS = z.batiment === 'SERRE';
             
             const d = document.createElement('div');
-            // Affectation dynamique des classes CSS pour l'hexagone
             d.className = `zone zone-id-${i} ${z.num !== null ? 'zone-color-'+z.num : ''} ${z.type ? 'tuile-'+z.type.toLowerCase() : ''} ${z.batiment && !isS ? 'tuile-batiment' : ''} ${isS ? 'has-serre' : ''} ${localSelectedId === z.id ? 'selected' : ''}`;
             d.style.opacity = acc ? "1" : "0.3";
             d.onclick = () => { if(acc && isMyTurn && !botEnabled && !state.gameOver) { localSelectedId = z.id; render(); } };
             
+            // CORRECTION DE L'AFFICHAGE DU TEXTE
+            let zoneName = z.id === 14 ? "PO 1,2" : `Z${z.num}`;
+
             if(z.id === 0) { d.innerHTML = `🏠 MAISON<br>Zone 0`; }
-            else if(z.id === 14) { d.innerHTML = `<b>AMÉNAGEMENT</b><br>PO 1,2`; }
-            else if(!z.type) { d.innerHTML = `Zone ${z.num}${acc?'':'<br>🔒'}`; }
+            else if(!z.type) { d.innerHTML = `Zone ${z.id === 14 ? 'PO 1,2' : z.num}${acc?'':'<br>🔒'}`; }
             else {
                 let header = z.type; if(z.batiment) header += ` + ${z.batiment}`;
-                d.innerHTML = `<b>${header}</b> (Z${z.num})`;
+                d.innerHTML = `<b>${header}</b> (${zoneName})`;
                 if(z.culture) {
                     let yieldInfo = `${z.culture.nom}`;
                     if(z.culture.amd && z.culture.amd > 0) yieldInfo += ` <span style="background:var(--p1);color:white;padding:1px 4px;border-radius:4px;font-size:0.8em;">+${z.culture.amd}💰</span>`;
@@ -504,10 +465,8 @@
     function actT(t, zId = localSelectedId) { 
         const pId = state.turn; const me = state['p'+pId]; const s = state.settings; if(!zId && zId!==0) return; 
         
-        // --- NOUVELLE RÈGLE DE RESTRICTION ---
-        // Le Potager n'est autorisé que sur les zones 1 et 2
         const zoneCible = me.zones[zId];
-        if (t === 'POTAGER' && zoneCible.num !== 1 && zoneCible.num !== 2) {
+        if (t === 'POTAGER' && zoneCible.num !== 1 && zoneCible.num !== 2 && zId !== 14) {
             return alert("Un Potager ne peut être aménagé QUE sur les zones 1 ou 2 !");
         }
 
@@ -516,7 +475,7 @@
         
         if(me.money < costO || me.time < costH) return; 
         me.money -= costO; me.time -= costH; me.zones[zId].type = t; 
-        addLog(`🏗️ Aménagement d'un ${t} sur la Zone ${zoneCible.num} (-${costO}💰, -${costH}h).`, pId); sync(); 
+        addLog(`🏗️ Aménagement d'un ${t} sur la Zone ${zoneCible.id===14 ? 'PO 1,2' : zoneCible.num} (-${costO}💰, -${costH}h).`, pId); sync(); 
     }
 
     function actB(zId = localSelectedId) { 
@@ -594,7 +553,7 @@
             let curS = ALL_SEASONS[state.saisonIdx];
             let smValid = z.batiment === 'SERRE' ? (c.sm||[]).map(se => ALL_SEASONS[(ALL_SEASONS.indexOf(se)+3)%4]).concat(c.sm||[]) : (c.sm||[]);
             if(!smValid.includes(curS)) return;
-            me.time-=cost; z.culture={...c, eCur:c.e, sCur:c.s, amd:0}; me.hand.splice(idx,1); addLog(`🌱 Semis de ${c.nom} sur Zone ${z.num} (-${cost}h).`, pId);
+            me.time-=cost; z.culture={...c, eCur:c.e, sCur:c.s, amd:0}; me.hand.splice(idx,1); addLog(`🌱 Semis de ${c.nom} sur Zone ${z.id===14 ? 'PO 1,2' : z.num} (-${cost}h).`, pId);
         }
         sync(); 
     }
@@ -643,9 +602,9 @@
                     let rc = z.culture.rc || []; let sm = z.culture.sm || [];
                     let survie = z.batiment === 'SERRE' ? rc.map(se => ALL_SEASONS[(ALL_SEASONS.indexOf(se)+3)%4]).concat(rc).concat(sm) : rc.concat(sm);
                     if(!survie.includes(newSeason)) {
-                        if(z.culture.cat === 'A') { z.culture.eCur = z.culture.e; z.culture.sCur = z.culture.s; z.culture.amd = 0; addLog(`🍂 L'arbre sur Zone ${z.num} se repose.`, pid); } 
+                        if(z.culture.cat === 'A') { z.culture.eCur = z.culture.e; z.culture.sCur = z.culture.s; z.culture.amd = 0; addLog(`🍂 L'arbre sur Zone ${z.id===14 ? 'PO' : z.num} se repose.`, pid); } 
                         else {
-                            let msg = `🥀 Mort de ${z.culture.nom} sur Zone ${z.num}.`; z.culture = null;
+                            let msg = `🥀 Mort de ${z.culture.nom} sur Zone ${z.id===14 ? 'PO' : z.num}.`; z.culture = null;
                             if(pData.zones.some(x => x.batiment === 'COMPOSTEUR')) { pData.compost = (pData.compost||0) + 2; msg += " Recyclé en compost (+2💩)."; }
                             addLog(msg, pid);
                         }
