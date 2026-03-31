@@ -38,7 +38,6 @@ function triggerBot(pId, force = false) {
         return;
     }
     
-    // Le bot ne joue que si c'est une IA, sauf si on force (Mode Champion)
     let isIA = false;
     if (state.mode === 'IA_SOLO' || state.mode === 'IA_VS_IA') isIA = true;
     if (state.mode === 'VS_IA' && pId === 2) isIA = true;
@@ -47,8 +46,15 @@ function triggerBot(pId, force = false) {
 
     isBotThinking = true;
     setTimeout(() => {
-        executeBestAction(pId);
-        isBotThinking = false;
+        try {
+            executeBestAction(pId);
+        } catch (error) {
+            console.error("Erreur dans le cerveau du Bot :", error);
+            // S'il crashe, il passe son tour pour ne pas bloquer le jeu
+            actFin();
+        } finally {
+            isBotThinking = false;
+        }
     }, botDelay);
 }
 
@@ -61,6 +67,10 @@ function executeBestAction(pId) {
     if (!me.zones) me.zones = [];
     if (!me.auxActifs) me.auxActifs = [];
     if (!me.upgrades) me.upgrades = Array(8).fill(1);
+
+    const listPetitsFruits = ["Fraise", "Melon", "Pastèque"]; 
+    const listGrimpantes = ["Haricot", "Pois", "Concombre", "Cornichon", "Chayotte", "Vigne"];
+    const listCompagnes = ["Ail", "Aneth", "Agastache", "Basilic", "Bleuet", "Bourrache", "Capucine", "Cébette", "Cerfeuil", "Ciboulette", "Coriandre", "Cosmos", "Echalote", "Épinard", "Estragon", "Lin", "Marguerite", "Mélilot Blanc", "Mélisse", "Menthe", "Moutarde", "Oignon", "Origan", "Oeillet d'Inde", "Persil", "Romarin", "Sarriette", "Sauge", "Serpolet", "Souci", "Tanaisie", "Thym", "Tournesol"];
 
     // --- PRIORITÉ 1 : RÉCOLTER ---
     for (let i = 0; i < me.zones.length; i++) {
@@ -81,13 +91,32 @@ function executeBestAction(pId) {
     for (let i = 0; i < me.hand.length; i++) {
         let c = me.hand[i];
         let cost = Math.max(0, (c.t || 1) - (me.upgrades[2] - 1));
-        if (me.time >= cost && c.cat === 'X') {
-            playC(i, null);
-            return;
+        if (me.time >= cost) {
+            if (c.cat === 'X' || (c.cat === 'S' && !listCompagnes.includes(c.nom) && !c.nom.includes("Fumier") && !c.nom.includes("Ortie") && !c.nom.includes("Paillage") && !c.nom.includes("Corne"))) {
+                playC(i, null);
+                return;
+            }
         }
     }
 
-    // --- PRIORITÉ 3 : ARROSER ---
+    // --- PRIORITÉ 3 : SOUTIENS CIBLÉS (Engrais / Compagnes) ---
+    for (let i = 0; i < me.hand.length; i++) {
+        let c = me.hand[i];
+        let cost = Math.max(0, (c.t || 1) - (me.upgrades[2] - 1));
+        if (me.time >= cost && c.cat === 'S') {
+            if(c.nom.includes("Fumier")) {
+                playC(i, null); return;
+            } else if(listCompagnes.includes(c.nom)) {
+                let tz = me.zones.find(z => z.slots && z.slots.some(pl => !pl.compagne));
+                if(tz) { localSelectedId = tz.id; playC(i, tz.id); return; }
+            } else {
+                let tz = me.zones.find(z => z.slots && z.slots.length > 0);
+                if(tz) { localSelectedId = tz.id; playC(i, tz.id); return; }
+            }
+        }
+    }
+
+    // --- PRIORITÉ 4 : ARROSER ---
     if (me.time >= s.costArroserTemps) {
         for (let i = 0; i < me.zones.length; i++) {
             let z = me.zones[i];
@@ -99,23 +128,24 @@ function executeBestAction(pId) {
         }
     }
 
-    // --- PRIORITÉ 4 : PLANTER UN LÉGUME / ARBRE ---
+    // --- PRIORITÉ 5 : PLANTER UN LÉGUME / ARBRE ---
+    let curS = ALL_SEASONS[state.saisonIdx];
+    let hasTuteur = me.auxActifs.some(a => a && (a.includes("Tuteur") || a.includes("Treillage")));
+    
     for (let i = 0; i < me.hand.length; i++) {
         let c = me.hand[i];
         let cost = Math.max(0, (c.t || 1) - (me.upgrades[2] - 1));
         if (me.time < cost) continue;
 
         if (c.cat === 'L' || c.cat === 'A') {
-            let isPetitFruit = ["Fraise", "Melon", "Pastèque"].some(pf => c.nom.includes(pf));
-            let isGrimpante = ["Haricot", "Pois", "Concombre", "Cornichon", "Chayotte", "Vigne"].some(g => c.nom.includes(g));
-            let hasTuteur = me.auxActifs.some(a => a.includes("Tuteur") || a.includes("Treillage"));
-            let curS = ["P","E","A","H"][state.saisonIdx];
+            let isPetitFruit = listPetitsFruits.some(pf => c.nom.includes(pf));
+            let isGrimpante = listGrimpantes.some(g => c.nom.includes(g));
 
             for (let j = 0; j < me.zones.length; j++) {
                 let z = me.zones[j];
                 if (!z.type) continue; 
                 
-                let smValid = z.batiment === 'SERRE' ? (c.sm||[]).map(se => ["P","E","A","H"][(["P","E","A","H"].indexOf(se)+3)%4]).concat(c.sm||[]) : (c.sm||[]);
+                let smValid = z.batiment === 'SERRE' ? (c.sm||[]).map(se => ALL_SEASONS[(ALL_SEASONS.indexOf(se)+3)%4]).concat(c.sm||[]) : (c.sm||[]);
                 if(!smValid.includes(curS)) continue; 
 
                 if (c.cat === 'L' && z.type !== 'POTAGER' && !(z.type === 'VERGER' && isPetitFruit)) continue; 
@@ -124,7 +154,7 @@ function executeBestAction(pId) {
                 let maxSlots = z.type === 'POTAGER' ? 2 : 1;
                 let occupied = 0;
                 (z.slots || []).forEach(pl => {
-                    if (!(["Haricot", "Pois", "Concombre", "Cornichon", "Chayotte", "Vigne"].some(g => pl.nom.includes(g)) && hasTuteur)) occupied++;
+                    if (!(listGrimpantes.some(g => pl.nom.includes(g)) && hasTuteur)) occupied++;
                 });
 
                 if (!(isGrimpante && hasTuteur) && occupied >= maxSlots) continue; 
@@ -136,28 +166,23 @@ function executeBestAction(pId) {
         }
     }
 
-    // --- PRIORITÉ 5 : AMÉNAGER UN TERRAIN ---
-    let hasPlants = me.hand.some(c => c.cat === 'L' || c.cat === 'A');
+    // --- PRIORITÉ 6 : AMÉNAGER UN TERRAIN ---
+    let wantsPotager = me.hand.some(c => c.cat === 'L' && !listPetitsFruits.some(pf => c.nom.includes(pf)));
+    let wantsVerger = me.hand.some(c => c.cat === 'A' || listPetitsFruits.some(pf => c.nom.includes(pf)));
     let costP_Or = Math.max(0, s.costAmenagerPotagerOr - (me.upgrades[5] >= 2 ? (me.upgrades[5] === 3 ? 2 : 1) : 0));
-    
-    if (hasPlants && me.time >= s.costAmenagerPotagerTemps && me.money >= costP_Or) {
-        let emptyAdj = me.zones.find(z => !z.type && typeof isAdjacent === 'function' && (isAdjacent(me, z.id) || z.num == 1 || z.num == 2));
-        
-        if (emptyAdj) {
-            let num = parseInt(emptyAdj.num);
-            localSelectedId = emptyAdj.id;
-            
-            if (num === 1 || num === 2) {
-                actT('POTAGER', emptyAdj.id);
-                return;
-            } else if (num >= 3 && num <= 5) {
-                actT('VERGER', emptyAdj.id);
-                return;
-            }
+
+    if (me.time >= s.costAmenagerPotagerTemps && me.money >= costP_Or) {
+        if (wantsPotager) {
+            let pz = me.zones.find(z => !z.type && (z.num == 1 || z.num == 2) && (typeof isAdjacent === 'function' && (isAdjacent(me, z.id) || z.num == 1 || z.num == 2)));
+            if (pz) { localSelectedId = pz.id; actT('POTAGER', pz.id); return; }
+        }
+        if (wantsVerger) {
+            let vz = me.zones.find(z => !z.type && z.num >= 2 && z.num <= 5 && (typeof isAdjacent === 'function' && (isAdjacent(me, z.id) || z.num == 1 || z.num == 2)));
+            if (vz) { localSelectedId = vz.id; actT('VERGER', vz.id); return; }
         }
     }
 
-    // --- PRIORITÉ 6 : AMÉLIORER SON EXPLOITATION (UPGRADES) ---
+    // --- PRIORITÉ 7 : AMÉLIORATIONS ---
     if (me.money >= 5 && me.time >= 4) {
         for(let i=0; i<8; i++) {
             let costH = me.upgrades[i]===1 ? s.costUp2Temps : s.costUp3Temps; 
@@ -165,52 +190,63 @@ function executeBestAction(pId) {
             let isUpLocked = (me.upgrades[i] === 2 && (!state.coop || !state.coop.unlocks || !state.coop.unlocks.upgrades3));
             
             if (me.upgrades[i] < 3 && me.time >= costH && me.money >= costM && !isUpLocked) {
-                upgr(i);
-                return;
+                upgr(i); return;
             }
         }
     }
 
-    // --- PRIORITÉ 7 : FOIRE (ALLER CHERCHER DES OBJECTIFS) ---
+    // --- PRIORITÉ 8 : VENTE À LA FOIRE (Si Main pleine) ---
+    if (me.hand.length >= 4 && me.time >= 1) {
+        actFoireStand(0);
+        return;
+    }
+
+    // --- PRIORITÉ 9 : OBJECTIFS FOIRE ---
     let costCons = 2 + (state.foire.conseiller || 0);
     if (state.annee >= 2 && me.time >= costCons && state.decks.O && state.decks.O.length > 0) {
         me.time -= costCons;
         state.foire.conseiller = (state.foire.conseiller || 0) + 1;
-        
         let obj = state.decks.O.splice(Math.floor(Math.random() * state.decks.O.length), 1)[0];
         if(!me.objectives) me.objectives=[];
         me.objectives.push(obj);
-        
         addLog(`🤖 Le bot a récupéré l'Objectif : ${obj.nom}`, pId);
         sync();
         return;
     }
 
-    // --- PRIORITÉ 8 : JARDINERIE (MARCHÉ) ---
+    // --- PRIORITÉ 10 : JARDINERIE (MARCHÉ) ---
     let redJ = me.upgrades[6] >= 2 ? 1 : 0;
     let costJ = Math.max(0, s.jardSlot3Temps - redJ);
-    
-    if (me.time >= costJ && me.money >= 3 && me.hand.length < 4) {
-        let cat = ['C', 'S', 'A'][Math.floor(Math.random() * 3)];
-        if (state.market[cat] && state.market[cat].length > 0) {
-            let card = state.market[cat][0]; 
-            if (me.money >= card.p) {
-                me.time -= costJ;
-                me.money -= card.p;
-                me.hand.push(card);
-                state.market[cat].splice(0, 1);
-                addLog(`🤖 Le bot achète ${card.nom} au marché.`, pId);
-                
-                let maxCards = (state.coop && state.coop.unlocks && state.coop.unlocks.market3) ? 3 : 2;
-                while(state.market[cat].length < maxCards && state.decks[cat].length > 0) { 
-                    state.market[cat].push(state.decks[cat].splice(Math.floor(Math.random()*state.decks[cat].length), 1)[0]); 
-                }
-                sync();
-                return;
+    if (me.time >= costJ && me.hand.length < 4) {
+        let affordableCards = [];
+        ['C', 'S', 'A'].forEach(cat => {
+            if(state.market[cat]) {
+                state.market[cat].forEach(card => {
+                    if(card && me.money >= card.p) affordableCards.push({c: card, cat: cat});
+                });
             }
+        });
+        
+        if (affordableCards.length > 0) {
+            let pick = affordableCards[Math.floor(Math.random() * affordableCards.length)];
+            me.time -= costJ;
+            me.money -= pick.c.p;
+            me.hand.push(pick.c);
+            
+            let idx = state.market[pick.cat].findIndex(c => c.nom === pick.c.nom);
+            if(idx !== -1) state.market[pick.cat].splice(idx, 1);
+            
+            addLog(`🤖 Le bot achète ${pick.c.nom}.`, pId);
+            
+            let maxCards = (state.coop && state.coop.unlocks && state.coop.unlocks.market3) ? 3 : 2;
+            while(state.market[pick.cat].length < maxCards && state.decks[pick.cat].length > 0) { 
+                state.market[pick.cat].push(state.decks[pick.cat].splice(Math.floor(Math.random()*state.decks[pick.cat].length), 1)[0]); 
+            }
+            sync();
+            return;
         }
     }
 
-    // --- PRIORITÉ 9 : FIN DE SAISON ---
+    // --- PRIORITÉ 11 : FIN DE SAISON ---
     actFin();
 }
