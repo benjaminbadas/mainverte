@@ -2,7 +2,7 @@
 <html lang="fr">
 <head>
     <meta charset="UTF-8">
-    <title>La Main Verte - V28 (Édition Intégrale Hexagonale & Multi-Slots)</title>
+    <title>La Main Verte - V29 (Édition Intégrale Absolue)</title>
     <script src="https://www.gstatic.com/firebasejs/9.17.1/firebase-app-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/9.17.1/firebase-database-compat.js"></script>
     <style>
@@ -26,7 +26,7 @@
         
         /* GRILLE HEXAGONALE */
         .farm-grid { 
-            position: relative; width: 100%; min-height: 420px; 
+            position: relative; width: 100%; min-height: 430px; 
             background: #d7ccc8; padding: 10px; border-radius: 12px; 
             margin-top: 5px; margin-bottom: 5px;
         }
@@ -42,7 +42,6 @@
 
         .zone.selected { border: 3px solid #ff9800 !important; box-shadow: 0 0 10px rgba(255,152,0,0.6); transform: scale(1.05); z-index: 10;}
 
-        /* Couleurs de Zones */
         .zone-color-0 { background: #f3e5f5; border-color: #ce93d8; color: #7b1fa2; }
         .zone-color-1, .zone-color-2, .zone-color-3 { background: #efebe9; border-color: #bcaaa4; color: #5d4037; }
         .zone-color-4 { background: #c8e6c9; border-color: #2e7d32; color: #1b5e20; }
@@ -54,15 +53,15 @@
         .tuile-batiment { background: var(--batiment) !important; border: 2px solid #263238 !important; color: white; }
         .has-serre { box-shadow: inset 0 0 15px rgba(3, 169, 244, 0.6); border: 3px solid #03a9f4 !important; background: var(--serre) !important; }
 
-        /* Coordonnées Hexagones */
         .zone-id-0 { top: 10px; left: 10px; }   .zone-id-1 { top: 10px; left: 120px; }  .zone-id-2 { top: 10px; left: 230px; }  
         .zone-id-3 { top: 10px; left: 340px; }  .zone-id-4 { top: 10px; left: 450px; }  .zone-id-5 { top: 100px; left: 65px; }  
         .zone-id-6 { top: 100px; left: 175px; } .zone-id-7 { top: 100px; left: 285px; } .zone-id-8 { top: 100px; left: 395px; } 
         .zone-id-9 { top: 190px; left: 120px; } .zone-id-10 { top: 190px; left: 230px; } .zone-id-11 { top: 190px; left: 340px; } 
         .zone-id-12 { top: 190px; left: 450px; } .zone-id-13 { top: 280px; left: 450px; } .zone-id-14 { top: 190px; left: 10px; } 
 
-        .slot-container { display: flex; flex-direction: column; gap: 2px; width: 85%; margin-top: 4px;}
-        .mini-plant { background: rgba(255,255,255,0.75); border: 1px solid rgba(0,0,0,0.2); border-radius: 4px; padding: 2px; font-size: 0.85em; line-height: 1.2; box-shadow: 0 1px 3px rgba(0,0,0,0.1); cursor: pointer;}
+        /* MULTI-SLOTS */
+        .slot-container { display: flex; flex-direction: column; gap: 2px; width: 85%; margin-top: 2px;}
+        .mini-plant { background: rgba(255,255,255,0.85); border: 1px solid rgba(0,0,0,0.3); border-radius: 4px; padding: 2px; font-size: 0.85em; line-height: 1.1; cursor: pointer;}
         .mini-plant:hover { background: white; transform: scale(1.02); }
 
         .card { border: 1px solid #ddd; border-radius: 6px; padding: 6px; margin-bottom: 4px; background: white; font-size: 0.75em; border-left: 4px solid var(--p1); cursor: help; position: relative;}
@@ -130,7 +129,7 @@
         <div>💰 <span id="res-money">0</span> | ⏳ <span id="res-time">0</span>/<span id="res-timemax">10</span>h</div>
         <div title="Points de Compost accumulés">💩 <span id="res-compost" class="res-pill">0</span></div>
         <div id="meteo-display" style="background:#e3f2fd; padding:3px 10px; border-radius:10px;">🎲 --</div>
-        <button id="champion-btn" onclick="playChampion()" style="background:#fbc02d; color:#333; border:none; border-radius:4px; padding:4px 8px; cursor:pointer; font-weight:bold; transition:0.3s;" title="Regarder le meilleur Bot actuel jouer">🏆 Jouer Champion</button>
+        <button id="champion-btn" onclick="playChampion()" style="background:#fbc02d; color:#333; border:none; border-radius:4px; padding:4px 8px; cursor:pointer; font-weight:bold; transition:0.3s;" title="Regarder le meilleur Bot actuel jouer sans muter">🏆 Jouer Champion</button>
         <button id="auto-train-btn" onclick="toggleAutoTrain()" style="background:#009688; color:white; border:none; border-radius:4px; padding:4px 8px; cursor:pointer; font-weight:bold; transition:0.3s;">🧬 Auto-Train: OFF</button>
         <button id="bot-btn" onclick="toggleBot()" style="background:#9c27b0; color:white; border:none; border-radius:4px; padding:4px 8px; cursor:pointer; font-weight:bold; transition:0.3s;">🤖 Bot: OFF</button>
         <button onclick="confirmReset()" style="background:#ff5252; color:white; border:none; border-radius:4px; padding:4px 8px; cursor:pointer; font-weight:bold;">🧹 Reset</button>
@@ -204,8 +203,7 @@
             zones: zoneNumbersMap.map((num, i) => ({ 
                 id: i, num: num, 
                 type: num === 0 ? "LIFE" : (i === 14 ? "POTAGER" : null), 
-                slots: [], // REMPLACE "culture: null" -> Gère 1 ou 2 plantes
-                batiment: null 
+                slots: [], batiment: null 
             })) 
         };
     }
@@ -230,10 +228,6 @@
     db.on("value", snap => {
         const val = snap.val();
         if(val && val.p1) {
-            // MIGRATION SÉCURITÉ : Si vieille base de données, on force un reset
-            if(!val.p1.zones[0].slots) {
-                console.warn("Ancienne base détectée. Réinitialisation conseillée.");
-            }
             if (state && (state.saisonIdx !== val.saisonIdx || state.annee !== val.annee) && !val.gameOver) { playSeasonAnimation(val.saisonIdx, val.annee); }
             state = val; render(); 
         }
@@ -327,12 +321,12 @@
         else rZone.style.display = 'none';
 
         const tray = document.getElementById('aux-tray');
-        if(me.auxActifs && me.auxActifs.length > 0) { tray.style.display="flex"; tray.innerHTML = '<b>🛡️ Boucliers : </b> ' + me.auxActifs.map(a => `<span style="background:white; padding:2px; border-radius:4px; margin-left:4px;">🦊 Anti-${a}</span>`).join(''); } 
+        if(me.auxActifs && me.auxActifs.length > 0) { tray.style.display="flex"; tray.innerHTML = '<b>🛡️ Boucliers/Outils : </b> ' + me.auxActifs.map(a => `<span style="background:white; padding:2px; border-radius:4px; margin-left:4px;">🦊 ${a}</span>`).join(''); } 
         else tray.style.display="none";
 
         const grid = document.getElementById('farm-grid'); grid.innerHTML = "";
         me.zones.forEach((z, i) => {
-            if(!z.slots) z.slots = []; // Sécurité rétrocompatibilité
+            if(!z.slots) z.slots = []; 
             const acc = (z.num !== null && z.num <= (me.upgrades[0] === 1 ? 3 : (me.upgrades[0] === 2 ? 4 : 5))) || z.id === 14 || z.id === 0;
             const isS = z.batiment === 'SERRE';
             
@@ -349,11 +343,11 @@
                 let header = z.type; if(z.batiment) header += ` + ${z.batiment}`;
                 d.innerHTML = `<b>${header}</b> (${zoneName})`;
                 
-                // AFFICHAGE DES SLOTS MULTIPLES
                 if(z.slots.length > 0) {
                     let htmlSlots = `<div class="slot-container">`;
                     z.slots.forEach((c, idx) => {
                         let yieldInfo = `${c.nom}`;
+                        if(c.compagne) yieldInfo += ` <span style="color:#e91e63; font-size:0.8em; font-weight:bold;">(✨${c.compagne})</span>`;
                         if(c.amd && c.amd > 0) yieldInfo += ` <span style="color:#2e7d32; font-weight:bold;">(+${c.amd}💰)</span>`;
                         htmlSlots += `<div class="mini-plant" onclick="event.stopPropagation(); actionRecolter(${z.id}, ${idx})">
                             <b>${yieldInfo}</b><br>💧${c.eCur} ☀️${c.sCur}`;
@@ -464,9 +458,16 @@
     function consm() { localPicksLeft--; if(localPicksLeft<=0) { localModalOpen=false; ['C','S','A'].forEach(cat => { if(!state.market[cat]) state.market[cat] = []; while(state.market[cat].length < 2) { let c = draw(cat); if(c) state.market[cat].push(c); else break; } }); } sync(); }
 
     function actT(t, zId = localSelectedId) { 
-        const pId = state.turn; const me = state['p'+pId]; const s = state.settings; if(!zId && zId!==0) return; 
+        const pId = state.turn; const me = state['p'+pId]; const s = state.settings; if(zId === null || zId === undefined) return; 
+        
         const zoneCible = me.zones[zId];
-        if (t === 'POTAGER' && zoneCible.num !== 1 && zoneCible.num !== 2 && zId !== 14) { return alert("Un Potager ne peut être aménagé QUE sur les zones 1 ou 2 !"); }
+        
+        if (t === 'POTAGER' && zoneCible.num !== 1 && zoneCible.num !== 2 && zId !== 14) {
+            return alert("Un Potager ne peut être aménagé QUE sur les zones 1 ou 2 !");
+        }
+        if (t === 'VERGER' && (zoneCible.num < 2 || zoneCible.num > 5)) {
+            return alert("Un Verger ne peut être aménagé QUE sur les zones 2, 3, 4 ou 5 !");
+        }
 
         let costO = t === 'AMÉNAGEMENT' ? s.costAmenagerNatureOr : Math.max(0, s.costAmenagerPotagerOr - (me.upgrades[5] >= 2 ? (me.upgrades[5]===3 ? 2 : 1) : 0));
         let costH = t === 'AMÉNAGEMENT' ? s.costAmenagerNatureTemps : s.costAmenagerPotagerTemps;
@@ -486,7 +487,6 @@
         sync(); 
     }
     
-    // ARROSAGE DE ZONE (Multi-slots)
     function actArr(zId = localSelectedId) { 
         const pId = state.turn; const me=state['p'+pId], z=me.zones[zId], s=state.settings; 
         if(z && z.slots && z.slots.length > 0 && me.time>=s.costArroserTemps) { 
@@ -498,7 +498,6 @@
         } 
     }
     
-    // AMENDEMENT DE ZONE (Multi-slots)
     function actAmd(zId = localSelectedId) { 
         const pId = state.turn; const me=state['p'+pId], z=me.zones[zId], s=state.settings; 
         const hasComp = me.zones.some(x => x.batiment === 'COMPOSTEUR');
@@ -507,12 +506,11 @@
             me.time-=s.costAmenderTemps; me.compost--; 
             let plants = [];
             z.slots.forEach(c => { c.amd = (c.amd || 0) + 1; plants.push(c.nom); });
-            addLog(`💩 Amendement de ${plants.join(' & ')} (+1💰 futur, -1💩, -${s.costAmenderTemps}h).`, pId); 
+            addLog(`💩 Amendement de ${plants.join(' & ')} (+1💰, -1💩, -${s.costAmenderTemps}h).`, pId); 
             sync(); 
         } 
     }
 
-    // COMPOSTAGE DE ZONE (Multi-slots)
     function actComposter(zId = localSelectedId) {
         const pId = state.turn; const me = state['p'+pId], z = me.zones[zId], s=state.settings; 
         const hasComp = me.zones.some(x => x.batiment === 'COMPOSTEUR');
@@ -524,7 +522,7 @@
         
         if(hasArbre) {
             z.slots.forEach(c => { if(c.cat === 'A') { c.eCur = c.e; c.sCur = c.s; c.amd = 0; }});
-            addLog(`♻️ Entretien de l'arbre sur Z${z.num} (Besoins réinitialisés, -${s.costComposterTemps}h).`, pId);
+            addLog(`♻️ Entretien de l'arbre sur Z${z.num} (-${s.costComposterTemps}h).`, pId);
         } else {
             let nb = z.slots.length;
             me.compost = (me.compost || 0) + (2 * nb); 
@@ -543,7 +541,6 @@
         addLog(`⚙️ Amélioration ${UP_NAMES[i]} au niveau ${me.upgrades[i]} (-${costM}💰, -${costH}h).`, pId); sync(); 
     }
     
-    // RÉCOLTE INDIVIDUELLE (Cible un slot précis)
     function actionRecolter(id, slotIdx) { 
         const pId = state.turn; const me = state['p'+pId], z = me.zones[id], s=state.settings; 
         if(me.time < s.costRecolterTemps) return;
@@ -567,43 +564,82 @@
         const pId = state.turn; const me = state['p'+pId], c = me.hand[idx], z = me.zones[zId];
         const cost = Math.max(0, (c.t||1)-(me.upgrades[2]-1));
         
-        if(c.cat === 'X') { me.time-=cost; if(!me.auxActifs) me.auxActifs=[]; me.auxActifs.push(c.prot); me.hand.splice(idx,1); addLog(`🦊 Auxiliaire déployé : Anti-${c.prot} (-${cost}h).`, pId); } 
-        else if(c.cat === 'S') { 
-            me.time-=cost; 
-            if(c.nom.includes("Fumier")) { me.compost=(me.compost||0)+2; addLog(`✨ Soutien : ${c.nom} (+2💩, -${cost}h).`, pId); }
-            if(c.nom.includes("Ortie") && z && z.slots && z.slots.length > 0) { z.slots.forEach(pl => pl.eCur = Math.max(0, pl.eCur-4)); addLog(`✨ Soutien : ${c.nom} (-4💧 sur Z${z.num}, -${cost}h).`, pId); }
-            if(c.nom.includes("Paillage") && z && z.slots && z.slots.length > 0) { z.slots.forEach(pl => { pl.eCur = Math.max(0, pl.eCur-2); pl.sCur = Math.max(0, pl.sCur-1); }); addLog(`✨ Soutien : ${c.nom} (-2💧 -1☀️ sur Z${z.num}, -${cost}h).`, pId); }
-            if(c.nom.includes("Corne") && z && z.slots && z.slots.length > 0) { z.slots.forEach(pl => pl.amd = (pl.amd||0)+2); addLog(`✨ Soutien : ${c.nom} (+2💰 rendement sur Z${z.num}, -${cost}h).`, pId); }
-            me.hand.splice(idx,1); 
-        } else { 
-            if(!z || !z.type) return alert("Sélectionnez une zone aménagée !");
-            if(c.cat==='L' && z.type!=='POTAGER') return alert("Les légumes vont dans un Potager.");
-            if(c.cat==='A' && z.type!=='VERGER') return alert("Les arbres vont dans un Verger.");
-            
-            // --- GESTION DES CAPACITÉS MULTI-SLOTS ---
-            let maxSlots = z.type === 'POTAGER' ? 2 : 1;
-            let isGrimpante = c.nom.includes("Haricot") || c.nom.includes("Pois");
-            if(!z.slots) z.slots = [];
-            let occupied = z.slots.filter(pl => !(pl.nom.includes("Haricot") || pl.nom.includes("Pois"))).length;
+        const listPetitsFruits = ["Fraise", "Melon", "Pastèque"]; 
+        const listGrimpantes = ["Haricot", "Pois", "Concombre", "Cornichon", "Chayotte", "Vigne"];
+        const listCompagnes = ["Ail", "Aneth", "Agastache", "Basilic", "Bleuet", "Bourrache", "Capucine", "Cébette", "Cerfeuil", "Ciboulette", "Coriandre", "Cosmos", "Echalote", "Épinard", "Estragon", "Lin", "Marguerite", "Mélilot Blanc", "Mélisse", "Menthe", "Moutarde", "Oignon", "Origan", "Oeillet d'Inde", "Persil", "Romarin", "Sarriette", "Sauge", "Serpolet", "Souci", "Tanaisie", "Thym", "Tournesol"];
 
-            if(!isGrimpante && occupied >= maxSlots) {
-                return alert(`Capacité maximale atteinte pour ce ${z.type} (${maxSlots} plante(s)).`);
+        if(c.cat === 'X' || (c.cat === 'S' && !listCompagnes.includes(c.nom) && !c.nom.includes("Fumier") && !c.nom.includes("Ortie") && !c.nom.includes("Paillage") && !c.nom.includes("Corne"))) { 
+            if(me.time < cost) return;
+            me.time-=cost; 
+            if(!me.auxActifs) me.auxActifs=[]; 
+            me.auxActifs.push(c.cat==='X' ? c.prot : c.nom); 
+            me.hand.splice(idx,1); 
+            addLog(`🛠️ Matériel/Auxiliaire déployé : ${c.nom} (-${cost}h).`, pId);
+            sync(); return;
+        } 
+        
+        if(c.cat === 'S') { 
+            if(me.time < cost) return;
+            if(!z || !z.slots || z.slots.length === 0) return alert("Il faut des plantes sur cette zone pour utiliser ce soutien/compagne !");
+            
+            if(listCompagnes.includes(c.nom)) {
+                let slotLibre = z.slots.find(pl => !pl.compagne);
+                if(!slotLibre) return alert("Toutes les cultures de cette zone ont déjà une plante compagne !");
+                me.time-=cost;
+                slotLibre.compagne = c.nom; 
+                addLog(`✨ Plante compagne ${c.nom} associée à ${slotLibre.nom} (-${cost}h).`, pId);
             }
-            // ------------------------------------------
-
-            let curS = ALL_SEASONS[state.saisonIdx];
-            let smValid = z.batiment === 'SERRE' ? (c.sm||[]).map(se => ALL_SEASONS[(ALL_SEASONS.indexOf(se)+3)%4]).concat(c.sm||[]) : (c.sm||[]);
-            if(!smValid.includes(curS)) return alert("Ce n'est pas la bonne saison pour semer cela !");
-            
-            me.time-=cost; 
-            z.slots.push({...c, eCur:c.e, sCur:c.s, amd:0}); 
-            me.hand.splice(idx,1); 
-            addLog(`🌱 Semis de ${c.nom} sur Z${z.id===14 ? 'PO' : z.num} (-${cost}h).`, pId);
+            else {
+                me.time-=cost;
+                if(c.nom.includes("Fumier")) { me.compost=(me.compost||0)+2; addLog(`✨ Soutien : ${c.nom} (+2💩, -${cost}h).`, pId); }
+                else if(c.nom.includes("Ortie")) { z.slots.forEach(pl => pl.eCur = Math.max(0, pl.eCur-4)); addLog(`✨ Soutien : ${c.nom} (-4💧, -${cost}h).`, pId); }
+                else if(c.nom.includes("Paillage")) { z.slots.forEach(pl => { pl.eCur = Math.max(0, pl.eCur-2); pl.sCur = Math.max(0, pl.sCur-1); }); addLog(`✨ Soutien : ${c.nom} (-2💧 -1☀️, -${cost}h).`, pId); }
+                else if(c.nom.includes("Corne")) { z.slots.forEach(pl => pl.amd = (pl.amd||0)+2); addLog(`✨ Soutien : ${c.nom} (+2💰 rendement, -${cost}h).`, pId); }
+            }
+            me.hand.splice(idx,1); sync(); return;
+        } 
+        
+        if(me.time < cost) return;
+        if(!z || !z.type) return alert("Sélectionnez une zone aménagée !");
+        
+        let isPetitFruit = listPetitsFruits.some(pf => c.nom.includes(pf));
+        if(c.cat==='L' && z.type!=='POTAGER' && !(z.type==='VERGER' && isPetitFruit)) {
+            return alert("Ce légume doit aller dans un Potager ! (Seuls les petits fruits sont tolérés au Verger).");
         }
+        if(c.cat==='A' && z.type!=='VERGER') return alert("Les arbres vont exclusivement dans un Verger.");
+        
+        let maxSlots = z.type === 'POTAGER' ? 2 : 1;
+        let isGrimpante = listGrimpantes.some(g => c.nom.includes(g));
+        let hasTuteur = (me.auxActifs || []).some(a => a.includes("Tuteur") || a.includes("Treillage"));
+        
+        if(!z.slots) z.slots = [];
+        
+        let occupied = 0;
+        z.slots.forEach(pl => {
+            let plIsGrimpante = listGrimpantes.some(g => pl.nom.includes(g));
+            if (!(plIsGrimpante && hasTuteur)) occupied++;
+        });
+
+        if(!(isGrimpante && hasTuteur) && occupied >= maxSlots) {
+            if(isGrimpante && !hasTuteur) return alert("Ce potager est plein ! Il vous faut un Tuteur ou un Treillage pour faire grimper cette plante sans prendre de place.");
+            return alert(`Capacité maximale atteinte pour ce ${z.type} (${maxSlots} emplacement(s)).`);
+        }
+
+        let curS = ALL_SEASONS[state.saisonIdx];
+        let smValid = z.batiment === 'SERRE' ? (c.sm||[]).map(se => ALL_SEASONS[(ALL_SEASONS.indexOf(se)+3)%4]).concat(c.sm||[]) : (c.sm||[]);
+        if(!smValid.includes(curS)) return alert("Ce n'est pas la bonne saison pour semer cela !");
+        
+        me.time-=cost; 
+        z.slots.push({...c, eCur:c.e, sCur:c.s, amd:0, compagne: null}); 
+        me.hand.splice(idx,1); 
+        
+        let msgLog = `🌱 Semis de ${c.nom}`;
+        if(isGrimpante && hasTuteur) msgLog += " (Grimpante avec Tuteur)";
+        addLog(`${msgLog} sur Z${z.id===14 ? 'PO 1,2' : z.num} (-${cost}h).`, pId);
+        
         sync(); 
     }
 
-    // RÉSOLUTION DE SAISON (Multi-slots)
     function resolveSeason() {
         let curS = ALL_SEASONS[state.saisonIdx];
         let pBase = Math.floor(Math.random()*3)+1; 
@@ -662,7 +698,6 @@
                             }
                         }
                     });
-                    // Nettoyage des morts
                     z.slots = z.slots.filter(c => !c.dead);
                 }
             });
