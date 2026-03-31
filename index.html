@@ -2,7 +2,7 @@
 <html lang="fr">
 <head>
     <meta charset="UTF-8">
-    <title>La Main Verte - V29 (Édition Intégrale Absolue)</title>
+    <title>La Main Verte - V30 (Foire Agricole & PV)</title>
     <script src="https://www.gstatic.com/firebasejs/9.17.1/firebase-app-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/9.17.1/firebase-database-compat.js"></script>
     <style>
@@ -19,34 +19,18 @@
         .score-winner { color: var(--p1); font-size: 2em; margin-bottom: 20px; }
 
         .main-game { flex: 1; display: flex; flex-direction: column; padding: 10px; overflow-y: auto; }
-        .sidebar { width: 420px; background: white; border-left: 2px solid #ddd; padding: 10px; display: flex; flex-direction: column; overflow-y: auto;}
+        .sidebar { width: 440px; background: white; border-left: 2px solid #ddd; padding: 10px; display: flex; flex-direction: column; overflow-y: auto;}
         
         .hud { display: flex; justify-content: space-between; align-items: center; background: white; padding: 10px; border-radius: 8px; box-shadow: 0 2px 5px rgba(0,0,0,0.1); margin-bottom: 5px; font-weight: bold; font-size: 0.9em; border-top: 4px solid var(--p1); }
         .hud-opp { background: #e3f2fd; padding: 6px 10px; border-radius: 8px; margin-bottom: 10px; font-size: 0.8em; color: #1565c0; border: 1px solid #bbdefb; display: flex; justify-content: space-between; align-items: center;}
         
-        /* GRILLE HEXAGONALE */
-        .farm-grid { 
-            position: relative; width: 100%; min-height: 430px; 
-            background: #d7ccc8; padding: 10px; border-radius: 12px; 
-            margin-top: 5px; margin-bottom: 5px;
-        }
-
-        .zone {
-            position: absolute; width: 100px; height: 115px; 
-            background: #efebe9; border: 2px dashed #bcaaa4; border-radius: 8px;
-            display: flex; flex-direction: column; align-items: center; justify-content: center;
-            font-size: 0.70em; cursor: pointer; text-align: center; transition: 0.2s;
-            clip-path: polygon(50% 0%, 100% 25%, 100% 75%, 50% 100%, 0% 75%, 0% 25%); 
-            z-index: 1;
-        }
-
+        .farm-grid { position: relative; width: 100%; min-height: 430px; background: #d7ccc8; padding: 10px; border-radius: 12px; margin-top: 5px; margin-bottom: 5px; }
+        .zone { position: absolute; width: 100px; height: 115px; background: #efebe9; border: 2px dashed #bcaaa4; border-radius: 8px; display: flex; flex-direction: column; align-items: center; justify-content: center; font-size: 0.70em; cursor: pointer; text-align: center; transition: 0.2s; clip-path: polygon(50% 0%, 100% 25%, 100% 75%, 50% 100%, 0% 75%, 0% 25%); z-index: 1; }
         .zone.selected { border: 3px solid #ff9800 !important; box-shadow: 0 0 10px rgba(255,152,0,0.6); transform: scale(1.05); z-index: 10;}
-
         .zone-color-0 { background: #f3e5f5; border-color: #ce93d8; color: #7b1fa2; }
         .zone-color-1, .zone-color-2, .zone-color-3 { background: #efebe9; border-color: #bcaaa4; color: #5d4037; }
         .zone-color-4 { background: #c8e6c9; border-color: #2e7d32; color: #1b5e20; }
         .zone-color-5 { background: #1b5e20; border-color: #0a3311; color: white; }
-        
         .tuile-potager { background: var(--potager) !important; border: 2px solid #2e7d32 !important; color: #1b5e20; }
         .tuile-verger { background: var(--verger) !important; border: 2px solid #fbc02d !important; color: #5d4037; }
         .tuile-amenag { background: var(--amenag) !important; border: 2px solid #ff5722 !important; color: #bf360c; }
@@ -59,7 +43,6 @@
         .zone-id-9 { top: 190px; left: 120px; } .zone-id-10 { top: 190px; left: 230px; } .zone-id-11 { top: 190px; left: 340px; } 
         .zone-id-12 { top: 190px; left: 450px; } .zone-id-13 { top: 280px; left: 450px; } .zone-id-14 { top: 190px; left: 10px; } 
 
-        /* MULTI-SLOTS */
         .slot-container { display: flex; flex-direction: column; gap: 2px; width: 85%; margin-top: 2px;}
         .mini-plant { background: rgba(255,255,255,0.85); border: 1px solid rgba(0,0,0,0.3); border-radius: 4px; padding: 2px; font-size: 0.85em; line-height: 1.1; cursor: pointer;}
         .mini-plant:hover { background: white; transform: scale(1.02); }
@@ -68,15 +51,14 @@
         .btn-action { width: 100%; padding: 8px; border: none; border-radius: 4px; font-weight: bold; color: white; cursor: pointer; font-size: 0.75em; margin-bottom: 3px; transition: 0.2s; }
         .btn-action:hover:not(:disabled) { filter: brightness(1.1); }
         .res-pill { background: #e8f5e9; padding: 2px 6px; border-radius: 10px; color: var(--p1); border: 1px solid var(--p1); }
+        .res-pv { background: #fff8e1; padding: 2px 6px; border-radius: 10px; color: #f57f17; border: 1px solid #fbc02d; font-weight:bold;}
         button:disabled { filter: grayscale(100%); opacity: 0.5; cursor: not-allowed; transform: none; }
         
         .modal-overlay { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.8); z-index: 100; align-items: center; justify-content: center; }
         .modal-content { background: #fff; padding: 15px; border-radius: 12px; width: 95%; max-width: 1000px; max-height: 90vh; overflow-y: auto; box-shadow: 0 10px 30px rgba(0,0,0,0.5); }
         .rayon-grid { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 10px; }
         .rayon { background: #f9f9f9; padding: 8px; border-radius: 8px; border: 1px solid #ccc; }
-        .btn-jard-action { width: 100%; margin-bottom: 5px; padding: 4px; font-size: 0.8em; cursor: pointer; background: #eee; border: 1px solid #ccc; border-radius: 4px; }
         .jard-card { border: 2px solid #ddd; padding: 6px; border-radius: 6px; margin-bottom: 6px; cursor: pointer; background: white; position: relative; font-size: 0.85em; transition: 0.2s;}
-        .price-tag { position: absolute; top: -6px; right: -6px; background: var(--gold); padding: 1px 5px; border-radius: 8px; font-size: 0.8em; font-weight: bold; border: 1px solid #b8860b; }
         
         .alert-rav { background: #ffebee; color: #c62828; padding: 4px; border-radius: 4px; font-size: 0.75em; margin-bottom: 5px; border: 1px solid #ef9a9a; text-align: center; font-weight: bold;}
         .logs { height: 150px; background: var(--dark); color: #a5d6a7; padding: 8px; font-family: monospace; font-size: 0.75em; overflow-y: auto; border-radius: 6px; margin-top:5px; border: 2px solid #455a64;}
@@ -86,15 +68,12 @@
 
         #season-anim-overlay { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(255,255,255,0.7); z-index: 2000; align-items: center; justify-content: center; opacity: 0; transition: opacity 0.5s ease-in-out; }
         .anim-box { background: white; border: 5px solid var(--p1); border-radius: 20px; padding: 40px 80px; box-shadow: 0 15px 40px rgba(0,0,0,0.3); text-align: center; transform: scale(0.8); transition: transform 0.5s cubic-bezier(0.175, 0.885, 0.32, 1.275); }
-        #anim-title { font-size: 3.5em; font-weight: bold; color: var(--p1); margin-bottom: 10px; }
-        #anim-subtitle { font-size: 1.5em; color: #555; font-weight: bold; }
     </style>
 </head>
 <body>
 
 <div id="lobby">
     <h1 style="font-size: 3em; margin-bottom: 10px;">🌱 La Main Verte</h1>
-    <p style="font-size: 1.2em; margin-bottom: 30px;">Choisissez un mode de jeu :</p>
     <button class="btn-lobby" onclick="startNewGame('SOLO')">👤 Jouer en Solo</button>
     <button class="btn-lobby" style="background:#8e24aa" onclick="startNewGame('IA_SOLO')">🤖 Mode Spectateur (IA Solo)</button>
     <button class="btn-lobby" style="background:#0288d1" onclick="startNewGame('VS_IA')">🤖 Jouer contre l'Ordinateur</button>
@@ -109,34 +88,34 @@
     <div class="score-box">
         <h1 style="margin-top:0;">🏁 Fin de la Partie !</h1>
         <div id="winner-text" class="score-winner"></div>
-        <div class="score-row"><span>Joueur 1 :</span> <span id="final-score-1">0💰</span></div>
-        <div class="score-row" id="score-row-2"><span>Joueur 2 :</span> <span id="final-score-2">0💰</span></div>
+        <div class="score-row"><span>Joueur 1 :</span> <span id="final-score-1">0 🏆</span></div>
+        <div class="score-row" id="score-row-2"><span>Joueur 2 :</span> <span id="final-score-2">0 🏆</span></div>
         <div style="display:flex; gap:10px; justify-content:center; margin-top:30px;">
-            <button class="btn-lobby" style="width:auto; font-size:0.9em;" onclick="document.getElementById('lobby').style.display='flex'">Menu Principal</button>
-            <button class="btn-lobby" style="background:#607d8b; width:auto; font-size:0.9em;" onclick="document.getElementById('game-over-screen').style.display='none'">🔍 Voir Plateau & Logs</button>
+            <button class="btn-lobby" onclick="document.getElementById('lobby').style.display='flex'">Menu Principal</button>
+            <button class="btn-lobby" style="background:#607d8b" onclick="document.getElementById('game-over-screen').style.display='none'">🔍 Voir Plateau</button>
         </div>
     </div>
 </div>
 
 <div id="season-anim-overlay">
-    <div class="anim-box" id="anim-box"><div id="anim-title"></div><div id="anim-subtitle"></div></div>
+    <div class="anim-box" id="anim-box"><div id="anim-title" style="font-size: 3.5em; font-weight: bold; color: var(--p1);"></div><div id="anim-subtitle" style="font-size: 1.5em; color: #555;"></div></div>
 </div>
 
 <div class="main-game">
     <div id="turn-banner" class="turn-banner">Veuillez patienter...</div>
     <div class="hud" id="my-hud">
         <div id="season-display">📅 Saison...</div>
-        <div>💰 <span id="res-money">0</span> | ⏳ <span id="res-time">0</span>/<span id="res-timemax">10</span>h</div>
-        <div title="Points de Compost accumulés">💩 <span id="res-compost" class="res-pill">0</span></div>
+        <div>💰 <span id="res-money">0</span> | ⏳ <span id="res-time">0</span>/<span id="res-timemax">10</span>h | <span class="res-pv" title="Points de Victoire (But du jeu)">🏆 <span id="res-pv">0</span></span></div>
+        <div title="Compost">💩 <span id="res-compost" class="res-pill">0</span></div>
         <div id="meteo-display" style="background:#e3f2fd; padding:3px 10px; border-radius:10px;">🎲 --</div>
-        <button id="champion-btn" onclick="playChampion()" style="background:#fbc02d; color:#333; border:none; border-radius:4px; padding:4px 8px; cursor:pointer; font-weight:bold; transition:0.3s;" title="Regarder le meilleur Bot actuel jouer sans muter">🏆 Jouer Champion</button>
-        <button id="auto-train-btn" onclick="toggleAutoTrain()" style="background:#009688; color:white; border:none; border-radius:4px; padding:4px 8px; cursor:pointer; font-weight:bold; transition:0.3s;">🧬 Auto-Train: OFF</button>
-        <button id="bot-btn" onclick="toggleBot()" style="background:#9c27b0; color:white; border:none; border-radius:4px; padding:4px 8px; cursor:pointer; font-weight:bold; transition:0.3s;">🤖 Bot: OFF</button>
-        <button onclick="confirmReset()" style="background:#ff5252; color:white; border:none; border-radius:4px; padding:4px 8px; cursor:pointer; font-weight:bold;">🧹 Reset</button>
+        <button id="champion-btn" onclick="playChampion()" style="background:#fbc02d; color:#333; border:none; border-radius:4px; padding:4px 8px; cursor:pointer;">🏆 Jouer Champion</button>
+        <button id="auto-train-btn" onclick="toggleAutoTrain()" style="background:#009688; color:white; border:none; border-radius:4px; padding:4px 8px; cursor:pointer;">🧬 Auto-Train: OFF</button>
+        <button id="bot-btn" onclick="toggleBot()" style="background:#9c27b0; color:white; border:none; border-radius:4px; padding:4px 8px; cursor:pointer;">🤖 Bot: OFF</button>
+        <button onclick="confirmReset()" style="background:#ff5252; color:white; border:none; border-radius:4px; padding:4px 8px; cursor:pointer;">🧹 Reset</button>
     </div>
     
     <div class="hud-opp" id="opp-hud">
-        <b>👀 Adversaire :</b> <span>💰 <span id="opp-money">0</span> | ⏳ <span id="opp-time">0</span>h | 💩 <span id="opp-compost">0</span></span>
+        <b>👀 Adversaire :</b> <span>💰 <span id="opp-money">0</span> | ⏳ <span id="opp-time">0</span>h | 🏆 <span id="opp-pv">0</span></span>
     </div>
     
     <div id="ravageur-zone" class="alert-rav" style="display:none;"></div>
@@ -149,14 +128,16 @@
 </div>
 
 <div class="sidebar">
-    <div style="background:#f0f4f7; padding:8px; border-radius:6px; margin-bottom:10px; font-size:0.8em; text-align:center;">
-        <b>🎴 Cartes Pioche :</b> <span id="deck-count">C:0 | S:0 | A:0</span>
+    <div style="background:#f9a825; padding:8px; border-radius:6px; margin-bottom:10px; font-size:0.8em; text-align:center; color:white;">
+        <b>🏆 Concours Annuels</b><br>
+        Grosse Récolte : <span id="concours-max">--</span><br>
+        Nb Récoltes : <span id="concours-count">--</span>
     </div>
+
     <h3 style="margin:0 0 5px 0;">⚙️ Mes Améliorations</h3>
     <div id="up-grid" style="display:grid; grid-template-columns: 1fr 1fr; gap:4px; margin-bottom:10px;"></div>
     
-    <h3 style="margin:0 0 5px 0;">🛒 Marché Commun</h3>
-    <div id="market-preview" style="background:#fffde7; padding:6px; border:1px solid #ffd54f; border-radius:6px; font-size:0.75em; margin-bottom:6px;"></div>
+    <h3 style="margin:0 0 5px 0;">🛒 Jardinerie</h3>
     <div id="jard-buttons-container" style="display:grid; grid-template-columns: 1fr 1fr; gap:4px;"></div>
     
     <h3 style="margin:10px 0 5px 0;">🎒 Ma Main</h3>
@@ -164,19 +145,18 @@
 </div>
 
 <div class="modal-overlay" id="jardinerie-modal"><div class="modal-content" id="modal-content-inner"></div></div>
+<div class="modal-overlay" id="foire-modal"><div class="modal-content" id="foire-content-inner"></div></div>
 
 <script>
+    // --- FIREBASE ET CONSTANTES ---
     const firebaseConfig = {
         apiKey: "AIzaSyA_OHv6TDiVsn4PwM9s25gij8lBwQH8xrg",
         authDomain: "main-verte-72483.firebaseapp.com",
         databaseURL: "https://main-verte-72483-default-rtdb.europe-west1.firebasedatabase.app",
         projectId: "main-verte-72483",
-        storageBucket: "main-verte-72483.firebasestorage.app",
-        messagingSenderId: "633454274346",
-        appId: "1:633454274346:web:7261efcfe1b9cecdd6e053"
+        storageBucket: "main-verte-72483.firebasestorage.app"
     };
     firebase.initializeApp(firebaseConfig);
-    
     const db = firebase.database().ref("game-session-001");
     const dbConfig = firebase.database().ref("game-config");
 
@@ -185,24 +165,19 @@
     const ALL_SEASONS = ["P","E","A","H"];
     const zoneNumbersMap = [0, 1, 1, 4, 4, 2, 3, 3, 5, 2, 3, 4, 5, 5, null];
 
-    const defaultSettings = {
-        costAmenagerPotagerOr: 2, costAmenagerPotagerTemps: 3, costAmenagerNatureOr: 3, costAmenagerNatureTemps: 3,
-        costSerreOr: 3, costSerreTemps: 4, costComposteurOr: 4, costComposteurTemps: 4, costLocalOr: 5, costLocalTemps: 4,
-        costArroserTemps: 1, costAmenderTemps: 1, costComposterTemps: 1, costRecolterTemps: 2,
-        costUp2Or: 2, costUp2Temps: 3, costUp3Or: 4, costUp3Temps: 5,
-        jardSlot1Temps: 3, jardSlot1Pioches: 5, jardSlot2Temps: 2, jardSlot2Pioches: 3,
-        jardSlot3Temps: 2, jardSlot3Pioches: 2, jardSlot4Temps: 1, jardSlot4Pioches: 1
-    };
+    let state = null; let myId = null; let localSelectedId = null; let localModalOpen = false; let localFoireOpen = false; let localPicksLeft = 0; let isInitializing = false;
 
-    let state = null; let myId = null; let localSelectedId = null; let localModalOpen = false; let localPicksLeft = 0; let isInitializing = false;
+    const listPetitsFruits = ["Fraise", "Melon", "Pastèque"]; 
+    const listGrimpantes = ["Haricot", "Pois", "Concombre", "Cornichon", "Chayotte", "Vigne"];
+    const listCompagnes = ["Ail", "Aneth", "Agastache", "Basilic", "Bleuet", "Bourrache", "Capucine", "Cébette", "Cerfeuil", "Ciboulette", "Coriandre", "Cosmos", "Echalote", "Épinard", "Estragon", "Lin", "Marguerite", "Mélilot Blanc", "Mélisse", "Menthe", "Moutarde", "Oignon", "Origan", "Oeillet d'Inde", "Persil", "Romarin", "Sarriette", "Sauge", "Serpolet", "Souci", "Tanaisie", "Thym", "Tournesol"];
 
     function generatePlayer() {
         return { 
+            pv: 0, fences: 0, objectives: [], stats: { maxHarvest: 0, harvestCount: 0 },
             money: 10, time: 10, timeMax: 10, compost: 0, 
             upgrades: Array(8).fill(1), hand: [], auxActifs: [], 
             zones: zoneNumbersMap.map((num, i) => ({ 
-                id: i, num: num, 
-                type: num === 0 ? "LIFE" : (i === 14 ? "POTAGER" : null), 
+                id: i, num: num, type: num === 0 ? "LIFE" : (i === 14 ? "POTAGER" : null), 
                 slots: [], batiment: null 
             })) 
         };
@@ -213,21 +188,20 @@
 
 <script>
     function startNewGame(mode) {
-        myId = 1; document.getElementById('lobby').style.display = 'none';
-        document.getElementById('my-hud').style.borderTopColor = 'var(--p1)';
-        if (mode === 'IA_SOLO' || mode === 'IA_VS_IA' || mode === 'VS_IA') { botEnabled = true; } else { botEnabled = false; }
+        myId = 1; document.getElementById('lobby').style.display = 'none'; document.getElementById('my-hud').style.borderTopColor = 'var(--p1)';
+        botEnabled = (mode === 'IA_SOLO' || mode === 'IA_VS_IA' || mode === 'VS_IA');
         initNewGame(1, mode);
     }
 
     function joinGame(id) {
-        myId = id; document.getElementById('lobby').style.display = 'none';
-        document.getElementById('my-hud').style.borderTopColor = id === 1 ? 'var(--p1)' : 'var(--p2)';
+        myId = id; document.getElementById('lobby').style.display = 'none'; document.getElementById('my-hud').style.borderTopColor = id === 1 ? 'var(--p1)' : 'var(--p2)';
         if(state) render();
     }
 
     db.on("value", snap => {
         const val = snap.val();
         if(val && val.p1) {
+            if(!val.p1.zones[0].slots) console.warn("⚠️ Ancienne BDD détectée ! Veuillez faire un Reset !");
             if (state && (state.saisonIdx !== val.saisonIdx || state.annee !== val.annee) && !val.gameOver) { playSeasonAnimation(val.saisonIdx, val.annee); }
             state = val; render(); 
         }
@@ -237,41 +211,32 @@
 
     function addLog(msg, pid = myId) {
         if(!state.gameLogs) state.gameLogs = [];
-        let suffix = "";
-        if(state && state['p'+pid] && !msg.startsWith("🏆") && !msg.startsWith("> 🧹")) {
-            let p = state['p'+pid]; suffix = ` [💰${p.money} | ⏳${p.time} | 💩${p.compost||0}]`;
+        let suffix = ""; if(state && state['p'+pid] && !msg.startsWith("🏆") && !msg.startsWith("> 🧹")) {
+            let p = state['p'+pid]; suffix = ` [💰${p.money} | ⏳${p.time} | 🏆${p.pv||0}]`;
         }
         state.gameLogs.unshift(`[J${pid}] ` + msg + suffix);
         if(state.gameLogs.length > 250) state.gameLogs.pop(); 
     }
 
     async function initNewGame(creatorId = null, mode = 'MULTI') {
-        if(isInitializing) return;
-        isInitializing = true;
-        let msg = creatorId ? `> 🧹 Partie (Mode: ${mode}) initialisée.` : "> Nouvelle partie initialisée.";
-
+        if(isInitializing) return; isInitializing = true;
         try {
-            const snapConf = await dbConfig.once("value");
-            let config = snapConf.val();
-            if(!config || !config.decks) { alert("ERREUR: Base Admin vide !"); isInitializing = false; return; }
-
-            let loadedSettings = config.settings || defaultSettings;
-            for(let k in defaultSettings) if(loadedSettings[k]===undefined) loadedSettings[k]=defaultSettings[k];
-
-            let builtDecks = { C: [], S: [], A: [] };
-            ['C','S','A'].forEach(cat => { (config.decks[cat] || []).forEach(c => { let q = c.qte || 1; for(let i=0; i<q; i++) builtDecks[cat].push({...c}); }); });
-            let builtRavs = [];
-            (config.ravageurs || []).forEach(r => { let q = r.qte || 1; for(let i=0; i<q; i++) builtRavs.push({...r}); });
+            const snapConf = await dbConfig.once("value"); let config = snapConf.val();
+            let decks = { C: [], S: [], A: [], O: [] };
+            ['C','S','A','O'].forEach(cat => { (config.decks[cat] || []).forEach(c => { let q = c.qte || 1; for(let i=0; i<q; i++) decks[cat].push({...c}); }); });
+            
+            let defaultSet = { costAmenagerPotagerOr:2, costAmenagerPotagerTemps:3, costAmenagerNatureOr:3, costAmenagerNatureTemps:3, costSerreOr:3, costSerreTemps:4, costComposteurOr:4, costComposteurTemps:4, costLocalOr:5, costLocalTemps:4, costArroserTemps:1, costAmenderTemps:1, costComposterTemps:1, costRecolterTemps:2, costUp2Or:2, costUp2Temps:3, costUp3Or:4, costUp3Temps:5, jardSlot1Temps:3, jardSlot1Pioches:5, jardSlot2Temps:2, jardSlot2Pioches:3, jardSlot3Temps:2, jardSlot3Pioches:2, jardSlot4Temps:1, jardSlot4Pioches:1 };
+            let loadedSettings = config.settings || defaultSet; for(let k in defaultSet) if(loadedSettings[k]===undefined) loadedSettings[k]=defaultSet[k];
 
             state = { 
                 mode: mode, turn: 1, annee: 1, saisonIdx: 0, gameOver: false, settings: loadedSettings, 
-                decks: builtDecks, ravPool: builtRavs, market: { C: [], S: [], A: [] }, 
-                currentMeteo: {p:0, s:0}, currentRav: null, p1: generatePlayer(), p2: generatePlayer(), gameLogs: [msg] 
+                decks: decks, ravPool: config.ravageurs||[], market: { C: [], S: [], A: [] }, 
+                foire: { camelot: 0, conseiller: 0 },
+                currentMeteo: {p:0, s:0}, currentRav: null, p1: generatePlayer(), p2: generatePlayer(), gameLogs: [creatorId ? `> 🧹 Partie (Mode: ${mode}) initialisée.` : "> Nouvelle partie initialisée."] 
             };
             ['C','S','A'].forEach(cat => { for(let i=0; i<2; i++) { let d = draw(cat); if(d) state.market[cat].push(d); } });
             document.getElementById('game-over-screen').style.display = 'none'; await db.set(state);
-        } catch(e) { console.error(e); }
-        finally { isInitializing = false; } 
+        } catch(e) { console.error(e); } finally { isInitializing = false; } 
     }
 
     function draw(cat) { if(!state.decks[cat] || state.decks[cat].length === 0) return null; return state.decks[cat].splice(Math.floor(Math.random()*state.decks[cat].length), 1)[0]; }
@@ -279,46 +244,46 @@
     function playSeasonAnimation(sIdx, annee) {
         if(state.gameOver) return;
         const overlay = document.getElementById('season-anim-overlay');
-        document.getElementById('anim-title').innerText = SAISON_NOMS[sIdx];
-        document.getElementById('anim-subtitle').innerText = "Année " + annee;
-        overlay.style.display = 'flex';
-        setTimeout(() => { overlay.style.opacity = '1'; document.getElementById('anim-box').style.transform = 'scale(1)'; }, 50);
+        document.getElementById('anim-title').innerText = SAISON_NOMS[sIdx]; document.getElementById('anim-subtitle').innerText = "Année " + annee;
+        overlay.style.display = 'flex'; setTimeout(() => { overlay.style.opacity = '1'; document.getElementById('anim-box').style.transform = 'scale(1)'; }, 50);
         setTimeout(() => { overlay.style.opacity = '0'; document.getElementById('anim-box').style.transform = 'scale(0.8)'; setTimeout(() => overlay.style.display = 'none', 500); }, 2500);
     }
 
     function showGameOver() {
         document.getElementById('game-over-screen').style.display = 'flex';
-        document.getElementById('final-score-1').innerText = state.p1.money + " 💰";
+        document.getElementById('final-score-1').innerText = (state.p1.pv + Math.floor(state.p1.money/10)) + " 🏆";
         if(state.mode === 'SOLO' || state.mode === 'IA_SOLO') {
             document.getElementById('score-row-2').style.display = 'none'; document.getElementById('winner-text').innerText = "🎉 Ferme terminée !";
         } else {
-            document.getElementById('score-row-2').style.display = 'flex'; document.getElementById('final-score-2').innerText = state.p2.money + " 💰";
-            let w = "Égalité !"; if(state.p1.money > state.p2.money) w = "🏆 Le Joueur 1 Gagne !"; if(state.p2.money > state.p1.money) w = "🏆 Le Joueur 2 Gagne !";
-            document.getElementById('winner-text').innerText = w;
+            document.getElementById('score-row-2').style.display = 'flex'; 
+            let s1 = state.p1.pv + Math.floor(state.p1.money/10); let s2 = state.p2.pv + Math.floor(state.p2.money/10);
+            document.getElementById('final-score-2').innerText = s2 + " 🏆";
+            document.getElementById('winner-text').innerText = s1 > s2 ? "🏆 Le Joueur 1 Gagne !" : (s2 > s1 ? "🏆 Le Joueur 2 Gagne !" : "Égalité !");
         }
     }
 
     function render() {
-        if(!state || !myId) return;
-        if(state.gameOver && document.getElementById('game-over-screen').style.display !== 'none') showGameOver();
+        if(!state || !myId) return; if(state.gameOver && document.getElementById('game-over-screen').style.display !== 'none') showGameOver();
 
         const me = state['p'+myId]; const opp = state['p'+(myId === 1 ? 2 : 1)]; const isMyTurn = state.turn === myId; const s = state.settings;
         document.getElementById('opp-hud').style.display = (state.mode === 'SOLO' || state.mode === 'IA_SOLO') ? 'none' : 'flex';
 
         const banner = document.getElementById('turn-banner');
         if(isMyTurn) { banner.innerText = "🎮 C'est à votre tour !"; banner.className = "turn-banner active"; }
-        else { banner.innerText = `⏳ Veuillez patienter, c'est le tour du Joueur ${state.turn}...`; banner.className = "turn-banner"; }
+        else { banner.innerText = `⏳ Veuillez patienter...`; banner.className = "turn-banner"; }
 
         const setTxt = (id, txt) => { const el = document.getElementById(id); if(el) el.innerText = txt; };
-        setTxt('res-money', me.money); setTxt('res-time', me.time); setTxt('res-timemax', me.timeMax); setTxt('res-compost', me.compost);
+        setTxt('res-money', me.money); setTxt('res-time', me.time); setTxt('res-timemax', me.timeMax); setTxt('res-compost', me.compost); setTxt('res-pv', me.pv || 0);
         setTxt('season-display', `📅 ${SAISON_NOMS[state.saisonIdx]} - An ${state.annee}/3`); setTxt('meteo-display', `🌧️ ${state.currentMeteo.p} | ☀️ ${state.currentMeteo.s}`);
-        setTxt('opp-money', opp.money); setTxt('opp-time', opp.time); setTxt('opp-compost', opp.compost);
-        setTxt('deck-count', `C:${(state.decks.C||[]).length} | S:${(state.decks.S||[]).length} | A:${(state.decks.A||[]).length}`);
+        setTxt('opp-money', opp.money); setTxt('opp-time', opp.time); setTxt('opp-pv', opp.pv || 0);
         
+        let j1Stats = state.p1.stats || {maxHarvest:0, harvestCount:0}; let j2Stats = state.p2.stats || {maxHarvest:0, harvestCount:0};
+        setTxt('concours-max', `J1: ${j1Stats.maxHarvest}💰 | J2: ${j2Stats.maxHarvest}💰`);
+        setTxt('concours-count', `J1: ${j1Stats.harvestCount} | J2: ${j2Stats.harvestCount}`);
+
         const logBox = document.getElementById('game-logs'); if(logBox && state.gameLogs) logBox.innerHTML = state.gameLogs.map(l => `<div>${l}</div>`).join('');
         const rZone = document.getElementById('ravageur-zone');
-        if(state.currentRav) { rZone.innerText = `⚠️ RAVAGEUR : ${state.currentRav.n || state.currentRav.nom} (-${state.currentRav.d}💰)`; rZone.style.display = 'block'; }
-        else rZone.style.display = 'none';
+        if(state.currentRav) { rZone.innerText = `⚠️ RAVAGEUR : ${state.currentRav.n || state.currentRav.nom} (-${state.currentRav.d}💰)`; rZone.style.display = 'block'; } else rZone.style.display = 'none';
 
         const tray = document.getElementById('aux-tray');
         if(me.auxActifs && me.auxActifs.length > 0) { tray.style.display="flex"; tray.innerHTML = '<b>🛡️ Boucliers/Outils : </b> ' + me.auxActifs.map(a => `<span style="background:white; padding:2px; border-radius:4px; margin-left:4px;">🦊 ${a}</span>`).join(''); } 
@@ -328,326 +293,263 @@
         me.zones.forEach((z, i) => {
             if(!z.slots) z.slots = []; 
             const acc = (z.num !== null && z.num <= (me.upgrades[0] === 1 ? 3 : (me.upgrades[0] === 2 ? 4 : 5))) || z.id === 14 || z.id === 0;
-            const isS = z.batiment === 'SERRE';
             
             const d = document.createElement('div');
-            d.className = `zone zone-id-${i} ${z.num !== null ? 'zone-color-'+z.num : ''} ${z.type ? 'tuile-'+z.type.toLowerCase() : ''} ${z.batiment && !isS ? 'tuile-batiment' : ''} ${isS ? 'has-serre' : ''} ${localSelectedId === z.id ? 'selected' : ''}`;
-            d.style.opacity = acc ? "1" : "0.3";
-            d.onclick = () => { if(acc && isMyTurn && !botEnabled && !state.gameOver) { localSelectedId = z.id; render(); } };
+            d.className = `zone zone-id-${i} ${z.num !== null ? 'zone-color-'+z.num : ''} ${z.type ? 'tuile-'+z.type.toLowerCase() : ''} ${z.batiment && z.batiment!=='SERRE' ? 'tuile-batiment' : ''} ${z.batiment==='SERRE' ? 'has-serre' : ''} ${localSelectedId === z.id ? 'selected' : ''}`;
+            d.style.opacity = acc ? "1" : "0.3"; d.onclick = () => { if(acc && isMyTurn && !state.gameOver) { localSelectedId = z.id; render(); } };
             
-            let zoneName = z.id === 14 ? "PO 1,2" : `Z${z.num}`;
-
             if(z.id === 0) { d.innerHTML = `🏠 MAISON<br>Zone 0`; }
             else if(!z.type) { d.innerHTML = `Zone ${z.id === 14 ? 'PO 1,2' : z.num}${acc?'':'<br>🔒'}`; }
             else {
-                let header = z.type; if(z.batiment) header += ` + ${z.batiment}`;
-                d.innerHTML = `<b>${header}</b> (${zoneName})`;
-                
+                d.innerHTML = `<b>${z.type}${z.batiment?' + '+z.batiment:''}</b> (${z.id===14 ? 'PO' : `Z${z.num}`})`;
                 if(z.slots.length > 0) {
                     let htmlSlots = `<div class="slot-container">`;
                     z.slots.forEach((c, idx) => {
-                        let yieldInfo = `${c.nom}`;
-                        if(c.compagne) yieldInfo += ` <span style="color:#e91e63; font-size:0.8em; font-weight:bold;">(✨${c.compagne})</span>`;
+                        let yieldInfo = `${c.nom}`; if(c.compagne) yieldInfo += ` <span style="color:#e91e63; font-size:0.8em; font-weight:bold;">(✨${c.compagne})</span>`;
                         if(c.amd && c.amd > 0) yieldInfo += ` <span style="color:#2e7d32; font-weight:bold;">(+${c.amd}💰)</span>`;
-                        htmlSlots += `<div class="mini-plant" onclick="event.stopPropagation(); actionRecolter(${z.id}, ${idx})">
-                            <b>${yieldInfo}</b><br>💧${c.eCur} ☀️${c.sCur}`;
-                        if(c.eCur <= 0 && c.sCur <= 0) {
-                            htmlSlots += `<button style="background:var(--p1); color:white; border:none; padding:2px; width:100%; border-radius:3px; margin-top:2px; font-size:0.9em; cursor:pointer;" ${!isMyTurn || me.time<s.costRecolterTemps || botEnabled || state.gameOver ? 'disabled':''}>🧺 Récolter</button>`;
-                        }
+                        htmlSlots += `<div class="mini-plant" onclick="event.stopPropagation(); actionRecolter(${z.id}, ${idx})"><b>${yieldInfo}</b><br>💧${c.eCur} ☀️${c.sCur}`;
+                        if(c.eCur <= 0 && c.sCur <= 0) htmlSlots += `<button style="background:var(--p1); color:white; border:none; padding:2px; width:100%; border-radius:3px; margin-top:2px; font-size:0.9em; cursor:pointer;" ${!isMyTurn || me.time<s.costRecolterTemps || state.gameOver ? 'disabled':''}>🧺 Récolter</button>`;
                         htmlSlots += `</div>`;
                     });
-                    htmlSlots += `</div>`;
-                    d.innerHTML += htmlSlots;
+                    d.innerHTML += htmlSlots + `</div>`;
                 }
             }
             grid.appendChild(d);
         });
 
-        const prev = document.getElementById('market-preview');
-        if(prev && state.market) { prev.innerHTML = `🌾 ${(state.market.C||[]).map(c=>c.nom).join(', ')||'Vidé'}<br>🛠️ ${(state.market.S||[]).map(c=>c.nom).join(', ')||'Vidé'}<br>🦊 ${(state.market.A||[]).map(c=>c.nom).join(', ')||'Vidé'}`; }
-
         const hDiv = document.getElementById('player-hand'); hDiv.innerHTML = "";
         (me.hand || []).forEach((c, i) => {
             const cost = Math.max(0, (c.t||1) - (me.upgrades[2]-1));
             const card = document.createElement('div'); card.className = "card";
-            
             let details = "";
-            if (c.cat === 'S') details = `✨ <b>Effet :</b> ${c.desc}`;
-            else if (c.cat === 'X') details = `🛡️ <b>Protège :</b> Anti-${c.prot}`;
+            if (c.cat === 'S') details = `✨ <b>Effet :</b> ${c.desc}`; else if (c.cat === 'X') details = `🛡️ <b>Protège :</b> Anti-${c.prot}`;
             else details = `📈 <b>Gain : +${c.g}💰</b><br>💧${c.e} ☀️${c.s}<br>🌱 ${(c.sm||[]).join(',')} | 🧺 ${(c.rc||[]).join(',')}`;
             
-            card.innerHTML = `<b>${c.nom}</b><br><span style="font-size:0.9em;">${details}</span><br><button onclick="playC(${i})" title="Déployer sur le plateau. Coût : ${cost}h" style="width:100%; margin-top:4px; padding:4px; cursor:pointer;" ${!isMyTurn || me.time<cost || botEnabled || state.gameOver ? 'disabled':''}>Jouer (-${cost}h)</button>`;
+            card.innerHTML = `<b>${c.nom}</b><br><span style="font-size:0.9em;">${details}</span>
+            <div style="display:flex; gap:4px; margin-top:4px;">
+                <button onclick="playC(${i})" style="flex:1; padding:4px; cursor:pointer;" ${!isMyTurn || me.time<cost || state.gameOver ? 'disabled':''}>Jouer (-${cost}h)</button>
+            </div>`;
             hDiv.appendChild(card);
         });
 
         renderButtons(me, isMyTurn);
-        document.getElementById('jardinerie-modal').style.display = localModalOpen ? 'flex' : 'none';
-        if(localModalOpen) renderJardModal(me);
-
-        if(typeof triggerBot === "function") {
-            let shouldRunBot = false;
-            if(state.turn === myId && botEnabled && !state.gameOver) shouldRunBot = true; 
-            if((state.mode === 'VS_IA' || state.mode === 'IA_VS_IA') && state.turn === 2 && myId === 1 && !state.gameOver) shouldRunBot = true; 
-            if(state.gameOver && botEnabled) shouldRunBot = true;
-            if(shouldRunBot && !localModalOpen) triggerBot(state.turn);
-        }
+        document.getElementById('jardinerie-modal').style.display = localModalOpen ? 'flex' : 'none'; if(localModalOpen) renderJardModal(me);
+        document.getElementById('foire-modal').style.display = localFoireOpen ? 'flex' : 'none'; if(localFoireOpen) renderFoireModal(me);
+        
+        if(typeof triggerBot === "function") { let shouldRunBot = false; if(state.turn === myId && botEnabled && !state.gameOver) shouldRunBot = true; if((state.mode === 'VS_IA' || state.mode === 'IA_VS_IA') && state.turn === 2 && myId === 1 && !state.gameOver) shouldRunBot = true; if(state.gameOver && botEnabled) shouldRunBot = true; if(shouldRunBot && !localModalOpen && !localFoireOpen) triggerBot(state.turn); }
     }
 
     function renderButtons(me, isMyTurn) {
-        const s = state.settings;
-        const costP_Or = Math.max(0, s.costAmenagerPotagerOr - (me.upgrades[5] >= 2 ? (me.upgrades[5] === 3 ? 2 : 1) : 0));
-        const dis = !isMyTurn || botEnabled || state.gameOver || (state.mode === 'IA_VS_IA' || state.mode === 'IA_SOLO'); 
+        const s = state.settings; const costP_Or = Math.max(0, s.costAmenagerPotagerOr - (me.upgrades[5] >= 2 ? (me.upgrades[5] === 3 ? 2 : 1) : 0));
+        const dis = !isMyTurn || state.gameOver || (state.mode === 'IA_VS_IA' || state.mode === 'IA_SOLO'); 
         const hasComposteur = me.zones.some(z => z.batiment === 'COMPOSTEUR');
-        let finTexte = (state.mode === 'SOLO' || state.mode === 'IA_SOLO') ? '💤 Fin de Saison' : (state.turn===1 ? '⏭️ Terminer le Tour' : '💤 Fin de Saison');
 
         document.getElementById('action-buttons-container').innerHTML = `
-            <button class="btn-action" style="background:#4caf50" onclick="actT('POTAGER')" title="Aménage en Potager. Coût : ${costP_Or}💰, ${s.costAmenagerPotagerTemps}h." ${dis||me.time<s.costAmenagerPotagerTemps||me.money<costP_Or?'disabled':''}>🏗️ Potager (-${costP_Or}💰)</button>
-            <button class="btn-action" style="background:#fbc02d;color:#333" onclick="actT('VERGER')" title="Aménage en Verger. Coût : ${costP_Or}💰, ${s.costAmenagerPotagerTemps}h." ${dis||me.time<s.costAmenagerPotagerTemps||me.money<costP_Or?'disabled':''}>🏗️ Verger (-${costP_Or}💰)</button>
-            <button class="btn-action" style="background:#ff5722" onclick="actT('AMÉNAGEMENT')" title="Crée une zone Nature. Coût : ${s.costAmenagerNatureOr}💰, ${s.costAmenagerNatureTemps}h." ${dis||me.time<s.costAmenagerNatureTemps||me.money<s.costAmenagerNatureOr?'disabled':''}>🌳 Nature (-${s.costAmenagerNatureOr}💰)</button>
-            <button class="btn-action" style="background:#607d8b" onclick="actB()" title="Construit un Bâtiment (Serre, Composteur ou Local)." ${dis||me.time<Math.min(s.costSerreTemps, s.costComposteurTemps, s.costLocalTemps)?'disabled':''}>🏠 Bâtiment</button>
-            <button class="btn-action" style="background:#2196f3" onclick="actArr()" title="Arroser toute la zone (-2💧/plante). Coût : ${s.costArroserTemps}h." ${dis||me.time<s.costArroserTemps?'disabled':''}>💧 Arroser Zone (-${s.costArroserTemps}h)</button>
-            <button class="btn-action" style="background:#795548" onclick="actAmd()" title="Amender toute la zone (+1💰/plante). Coût : ${s.costAmenderTemps}h, 1💩." ${dis||me.time<s.costAmenderTemps||me.compost<1||!hasComposteur?'disabled':''}>💩 Amender Zone (-${s.costAmenderTemps}h)</button>
-            <button class="btn-action" style="background:#5d4037" onclick="actComposter()" title="Composter ou nettoyer la zone. Coût : ${s.costComposterTemps}h." ${dis||!hasComposteur||!me.zones[localSelectedId]?.slots||me.zones[localSelectedId].slots.length===0||me.time<s.costComposterTemps?'disabled':''}>♻️ Composter Zone (-${s.costComposterTemps}h)</button>
-            <button class="btn-action" style="background:#e53935; font-size:1em;" onclick="actFin()" ${dis?'disabled':''}>${finTexte}</button>
+            <button class="btn-action" style="background:#4caf50" onclick="actT('POTAGER')" ${dis||me.time<s.costAmenagerPotagerTemps||me.money<costP_Or?'disabled':''}>🏗️ Potager (-${costP_Or}💰)</button>
+            <button class="btn-action" style="background:#fbc02d;color:#333" onclick="actT('VERGER')" ${dis||me.time<s.costAmenagerPotagerTemps||me.money<costP_Or?'disabled':''}>🏗️ Verger (-${costP_Or}💰)</button>
+            <button class="btn-action" style="background:#ff5722" onclick="actT('AMÉNAGEMENT')" ${dis||me.time<s.costAmenagerNatureTemps||me.money<s.costAmenagerNatureOr?'disabled':''}>🌳 Nature (-${s.costAmenagerNatureOr}💰)</button>
+            <button class="btn-action" style="background:#607d8b" onclick="actB()" ${dis||me.time<Math.min(s.costSerreTemps, s.costComposteurTemps, s.costLocalTemps)?'disabled':''}>🏠 Bâtiment</button>
+            
+            <button class="btn-action" style="background:#2196f3" onclick="actArr()" ${dis||me.time<s.costArroserTemps?'disabled':''}>💧 Arroser Zone</button>
+            <button class="btn-action" style="background:#795548" onclick="actAmd()" ${dis||me.time<s.costAmenderTemps||me.compost<1||!hasComposteur?'disabled':''}>💩 Amender Zone</button>
+            <button class="btn-action" style="background:#9c27b0" onclick="openFoire()" ${dis?'disabled':''}>🎪 FOIRE AGRICOLE</button>
+            <button class="btn-action" style="background:#e53935; font-size:1em;" onclick="actFin()" ${dis?'disabled':''}>💤 Fin de Saison</button>
         `;
 
         const upG = document.getElementById('up-grid'); upG.innerHTML = "";
         UP_NAMES.forEach((n, i) => {
-            const costH = me.upgrades[i]===1 ? s.costUp2Temps : s.costUp3Temps;
-            const costM = me.upgrades[i]===1 ? s.costUp2Or : s.costUp3Or; 
+            const costH = me.upgrades[i]===1 ? s.costUp2Temps : s.costUp3Temps; const costM = me.upgrades[i]===1 ? s.costUp2Or : s.costUp3Or; 
             upG.innerHTML += `<div style="font-size:0.7em; background:#fafafa; padding:4px; border:1px solid #ddd; border-radius:4px;"><b>${n}</b> L${me.upgrades[i]} <button onclick="upgr(${i})" style="float:right;" title="Coût : ${costM}💰 et ${costH}h" ${dis||me.upgrades[i]>=3||me.time<costH||me.money<costM?'disabled':''}>UP</button></div>`;
         });
 
         const jCont = document.getElementById('jard-buttons-container'); jCont.innerHTML = "";
         const redJ = me.upgrades[6]>=2?1:0;
-        const slots = [[s.jardSlot1Temps, s.jardSlot1Pioches], [s.jardSlot2Temps, s.jardSlot2Pioches], [s.jardSlot3Temps, s.jardSlot3Pioches], [s.jardSlot4Temps, s.jardSlot4Pioches]];
-        
-        slots.forEach((ex, i) => {
-            const c = Math.max(0, ex[0]-redJ);
-            jCont.innerHTML += `<button class="btn-action" style="background:#8d6e63" onclick="openJard(${c},${ex[1]})" title="Coûte ${c}h pour ${ex[1]} actions d'achat." ${dis||me.time<c?'disabled':''}>📦 Empl. ${i+1} (${ex[1]} Pioches)</button>`;
+        [[s.jardSlot1Temps, s.jardSlot1Pioches], [s.jardSlot2Temps, s.jardSlot2Pioches], [s.jardSlot3Temps, s.jardSlot3Pioches], [s.jardSlot4Temps, s.jardSlot4Pioches]].forEach((ex, i) => {
+            const c = Math.max(0, ex[0]-redJ); jCont.innerHTML += `<button class="btn-action" style="background:#8d6e63" onclick="openJard(${c},${ex[1]})" ${dis||me.time<c?'disabled':''}>📦 Empl. ${i+1} (${ex[1]} Pioches)</button>`;
         });
     }
 
-    function openJard(h, p) { const me = state['p'+state.turn]; me.time -= h; localPicksLeft = p; localModalOpen = true; addLog(`📦 Voyage à la Jardinerie pour piocher ${p} cartes (-${h}h).`, state.turn); sync(); }
-    
+    // --- JARDINERIE ---
+    function openJard(h, p) { const me = state['p'+state.turn]; me.time -= h; localPicksLeft = p; localModalOpen = true; addLog(`📦 Voyage Jardinerie (-${h}h).`, state.turn); sync(); }
     function renderJardModal(me) {
         const inner = document.getElementById('modal-content-inner');
-        inner.innerHTML = `<div style="display:flex;justify-content:space-between; align-items:center;"><h2>🛒 Marché</h2><div style="font-size:1.2em; color:#d32f2f;"><b>Actions : ${localPicksLeft}</b> | 💰 ${me.money}</div></div><div class="rayon-grid"></div>`;
+        inner.innerHTML = `<div style="display:flex;justify-content:space-between; align-items:center; margin-bottom:10px;"><h2>🛒 Marché</h2><div style="font-size:1.2em; color:#d32f2f;"><b>Actions : ${localPicksLeft}</b> | 💰 ${me.money}</div></div><div class="rayon-grid" id="rg"></div>`;
         ['C','S','A'].forEach(cat => {
             const r = document.createElement('div'); r.className = "rayon";
-            r.innerHTML = `<h3>${cat==='C'?'🌾 Cultures':(cat==='S'?'🛠️ Soutiens':'🦊 Auxiliaires')}</h3><button class="btn-jard-action" onclick="jardP('${cat}')">🎲 Pioche à l'aveugle</button><button class="btn-jard-action" onclick="jardR('${cat}')">🔄 Renouveler le Rayon</button><hr>`;
+            r.innerHTML = `<h3>${cat==='C'?'🌾 Cultures':(cat==='S'?'🛠️ Soutiens':'🦊 Auxiliaires')}</h3><hr>`;
             (state.market[cat] || []).forEach((c, idx) => {
-                const can = me.money >= c.p;
-                const d = document.createElement('div'); d.className = "jard-card"; d.style.opacity = can?"1":"0.4";
-                
-                let details = "";
-                if (c.cat === 'S') details = `✨ <b>Effet :</b> ${c.desc}`;
-                else if (c.cat === 'X') details = `🛡️ <b>Protège :</b> Anti-${c.prot}`;
-                else details = `📈 <b>Gain : +${c.g}💰</b><br>💧${c.e} ☀️${c.s}<br>🌱 ${(c.sm||[]).join(',')} | 🧺 ${(c.rc||[]).join(',')}`;
-                
+                const can = me.money >= c.p; const d = document.createElement('div'); d.className = "jard-card"; d.style.opacity = can?"1":"0.4";
+                let details = c.cat === 'S' ? `✨ ${c.desc}` : (c.cat === 'X' ? `🛡️ Anti-${c.prot}` : `📈 +${c.g}💰<br>💧${c.e} ☀️${c.s}`);
                 d.innerHTML = `<div class="price-tag">${c.p}💰</div><b>${c.nom}</b><br><small>${details}</small>`;
-                d.onclick = () => { if(can) { me.money-=c.p; if(!me.hand) me.hand=[]; me.hand.push(c); state.market[cat].splice(idx,1); if(!state.market[cat]) state.market[cat] = []; if(me.upgrades[6]>=3) { let nc = draw(cat); if(nc) state.market[cat].push(nc); } addLog(`🛒 Achat au marché : ${c.nom} (-${c.p}💰).`, state.turn); consm(); } };
+                d.onclick = () => { if(can) { me.money-=c.p; if(!me.hand) me.hand=[]; me.hand.push(c); state.market[cat].splice(idx,1); if(!state.market[cat]) state.market[cat] = []; if(me.upgrades[6]>=3) { let nc = draw(cat); if(nc) state.market[cat].push(nc); } addLog(`🛒 Achat : ${c.nom} (-${c.p}💰).`, state.turn); localPicksLeft--; if(localPicksLeft<=0){ localModalOpen=false; ['C','S','A'].forEach(ct => { while((state.market[ct]||[]).length < 2) { let nv = draw(ct); if(nv) state.market[ct].push(nv); else break; } }); } sync(); } };
                 r.appendChild(d);
             });
-            inner.querySelector('.rayon-grid').appendChild(r);
+            inner.querySelector('#rg').appendChild(r);
         });
     }
 
-    function jardP(cat) { const pId=state.turn, me=state['p'+pId], c=draw(cat); if(c) { if(c.p<=me.money) { if(confirm(`Tiré : ${c.nom} (${c.p}💰). L'acheter ?`)) { me.money-=c.p; if(!me.hand) me.hand=[]; me.hand.push(c); addLog(`🎲 Pioche à l'aveugle : ${c.nom} achetée (-${c.p}💰).`, pId); consm(); } else { consm(); } } else { alert(`Fonds insuffisants.`); consm(); } } else alert("Pioche vide !"); }
-    function jardR(cat) { state.market[cat] = []; for(let i=0; i<2; i++) { let d = draw(cat); if(d) state.market[cat].push(d); } addLog(`🔄 Renouvellement du rayon ${cat}.`, state.turn); consm(); }
-    function consm() { localPicksLeft--; if(localPicksLeft<=0) { localModalOpen=false; ['C','S','A'].forEach(cat => { if(!state.market[cat]) state.market[cat] = []; while(state.market[cat].length < 2) { let c = draw(cat); if(c) state.market[cat].push(c); else break; } }); } sync(); }
+    // --- FOIRE AGRICOLE ---
+    function openFoire() { localFoireOpen = true; render(); }
+    function renderFoireModal(me) {
+        const inner = document.getElementById('foire-content-inner');
+        const costCam = 2 + (state.foire.camelot || 0); const costCons = 2 + (state.foire.conseiller || 0);
+        
+        let html = `<div style="display:flex;justify-content:space-between; align-items:center;"><h2>🎪 Foire Agricole</h2><button onclick="localFoireOpen=false;render()">Fermer</button></div>`;
+        html += `<div style="display:grid; grid-template-columns: 1fr 1fr 1fr; gap:15px; margin-top:20px;">`;
+        
+        // Stand
+        html += `<div style="background:#e8eaf6; padding:15px; border-radius:8px; border:2px solid #fbc02d;"><h3>🛍️ Le Stand</h3><p>Vendez des cartes de votre main pour 1💰 chacune. (Coût : 1h/carte).</p><hr>`;
+        (me.hand||[]).forEach((c, idx) => {
+            html += `<button style="width:100%; margin-bottom:5px; cursor:pointer;" onclick="actFoireStand(${idx})" ${me.time<1?'disabled':''}>Vendre ${c.nom} (+1💰, -1h)</button>`;
+        });
+        html += `</div>`;
 
+        // Camelot
+        html += `<div style="background:#e8f5e9; padding:15px; border-radius:8px; border:2px solid #4caf50;"><h3>🚧 Le Camelot</h3><p>Achetez des clôtures pour vos animaux.<br><b>File d'attente :</b> +${state.foire.camelot||0}h</p>
+        <button style="width:100%; padding:10px; background:#4caf50; color:white; font-weight:bold; cursor:pointer;" onclick="actFoireCamelot()" ${me.time<costCam || me.money<3 ? 'disabled':''}>Acheter Clôture (-3💰, -${costCam}h)</button></div>`;
+
+        // Conseiller
+        html += `<div style="background:#e3f2fd; padding:15px; border-radius:8px; border:2px solid #2196f3;"><h3>📜 Conseiller en Dév.</h3><p>Piochez 2 Objectifs (PV), gardez-en 1.<br><b>File d'attente :</b> +${state.foire.conseiller||0}h</p>
+        <button style="width:100%; padding:10px; background:#2196f3; color:white; font-weight:bold; cursor:pointer;" onclick="actFoireConseiller()" ${me.time<costCons ? 'disabled':''}>Piocher Objectifs (-${costCons}h)</button></div>`;
+
+        html += `</div>`;
+        inner.innerHTML = html;
+    }
+
+    function actFoireStand(idx) { const me = state['p'+state.turn]; if(me.time<1) return; me.time--; me.money++; me.hand.splice(idx,1); addLog(`🎪 Vente au stand (+1💰, -1h).`, state.turn); sync(); }
+    function actFoireCamelot() { const me = state['p'+state.turn]; const cost = 2 + (state.foire.camelot||0); if(me.time<cost || me.money<3) return; me.time-=cost; me.money-=3; me.fences=(me.fences||0)+1; state.foire.camelot=(state.foire.camelot||0)+1; addLog(`🎪 Achat Clôture (-3💰, -${cost}h).`, state.turn); sync(); }
+    function actFoireConseiller() {
+        const me = state['p'+state.turn]; const cost = 2 + (state.foire.conseiller||0); if(me.time<cost) return;
+        let obj1 = draw('O'); let obj2 = draw('O');
+        if(!obj1 && !obj2) return alert("Pioche d'objectifs vide !");
+        
+        let choice = 1;
+        if(obj1 && obj2) { choice = parseInt(prompt(`Choisissez un objectif (1 ou 2):\n1) ${obj1.nom}\n2) ${obj2.nom}`)) === 2 ? 2 : 1; }
+        
+        me.time-=cost; state.foire.conseiller=(state.foire.conseiller||0)+1;
+        if(!me.objectives) me.objectives=[];
+        
+        if(choice === 1 && obj1) { me.objectives.push(obj1); if(obj2) state.decks.O.push(obj2); }
+        else if(obj2) { me.objectives.push(obj2); if(obj1) state.decks.O.push(obj1); }
+        
+        addLog(`🎪 Objectif de développement récupéré (-${cost}h).`, state.turn); localFoireOpen=false; sync();
+    }
+
+    // --- ACTIONS PLATEAU ---
     function actT(t, zId = localSelectedId) { 
         const pId = state.turn; const me = state['p'+pId]; const s = state.settings; if(zId === null || zId === undefined) return; 
-        
         const zoneCible = me.zones[zId];
         
-        if (t === 'POTAGER' && zoneCible.num !== 1 && zoneCible.num !== 2 && zId !== 14) {
-            return alert("Un Potager ne peut être aménagé QUE sur les zones 1 ou 2 !");
-        }
-        if (t === 'VERGER' && (zoneCible.num < 2 || zoneCible.num > 5)) {
-            return alert("Un Verger ne peut être aménagé QUE sur les zones 2, 3, 4 ou 5 !");
-        }
+        if (t === 'POTAGER' && zoneCible.num !== 1 && zoneCible.num !== 2 && zId !== 14) return alert("Potager = Zone 1 ou 2 !");
+        if (t === 'VERGER' && (zoneCible.num < 2 || zoneCible.num > 5)) return alert("Verger = Zones 2, 3, 4 ou 5 !");
 
         let costO = t === 'AMÉNAGEMENT' ? s.costAmenagerNatureOr : Math.max(0, s.costAmenagerPotagerOr - (me.upgrades[5] >= 2 ? (me.upgrades[5]===3 ? 2 : 1) : 0));
         let costH = t === 'AMÉNAGEMENT' ? s.costAmenagerNatureTemps : s.costAmenagerPotagerTemps;
-        
         if(me.money < costO || me.time < costH) return; 
         me.money -= costO; me.time -= costH; me.zones[zId].type = t; 
-        addLog(`🏗️ Aménagement d'un ${t} sur Z${zoneCible.id===14 ? 'PO' : zoneCible.num} (-${costO}💰, -${costH}h).`, pId); sync(); 
+        addLog(`🏗️ ${t} sur Z${zoneCible.id===14 ? 'PO' : zoneCible.num} (-${costO}💰).`, pId); sync(); 
     }
 
     function actB(zId = localSelectedId) { 
         const pId = state.turn; const me = state['p'+pId], z=me.zones[zId], s=state.settings; if(!z || z.batiment) return;
-        const ch = prompt(`Choisissez le bâtiment :\n1: Serre (${s.costSerreOr}💰, ${s.costSerreTemps}h - Nécessite Potager)\n2: Composteur (${s.costComposteurOr}💰, ${s.costComposteurTemps}h - Nécessite Nature)\n3: Local Outils (${s.costLocalOr}💰, ${s.costLocalTemps}h - Nécessite Nature)`);
-        if(ch==="1" && z.type==="POTAGER") { if(me.money<s.costSerreOr || me.time<s.costSerreTemps) return alert("Fonds/Temps insuffisants."); me.money-=s.costSerreOr; me.time-=s.costSerreTemps; z.batiment="SERRE"; addLog(`🏠 Bâtiment SERRE construit (-${s.costSerreOr}💰, -${s.costSerreTemps}h).`, pId); }
-        else if(ch==="2" && z.type==="AMÉNAGEMENT") { if(me.money<s.costComposteurOr || me.time<s.costComposteurTemps) return alert("Fonds/Temps insuffisants."); me.money-=s.costComposteurOr; me.time-=s.costComposteurTemps; z.batiment="COMPOSTEUR"; addLog(`🏠 Bâtiment COMPOSTEUR construit (-${s.costComposteurOr}💰, -${s.costComposteurTemps}h).`, pId); }
-        else if(ch==="3" && z.type==="AMÉNAGEMENT") { if(me.money<s.costLocalOr || me.time<s.costLocalTemps) return alert("Fonds/Temps insuffisants."); me.money-=s.costLocalOr; me.time-=s.costLocalTemps; z.batiment="LOCAL OUTILS"; addLog(`🏠 Bâtiment LOCAL OUTILS construit (-${s.costLocalOr}💰, -${s.costLocalTemps}h).`, pId); }
-        else if(ch) { alert("❌ Erreur d'emplacement !"); }
+        const ch = prompt(`Choisissez Bâtiment :\n1: Serre (${s.costSerreOr}💰)\n2: Composteur (${s.costComposteurOr}💰)\n3: Local (${s.costLocalOr}💰)`);
+        if(ch==="1" && z.type==="POTAGER") { if(me.money<s.costSerreOr || me.time<s.costSerreTemps) return; me.money-=s.costSerreOr; me.time-=s.costSerreTemps; z.batiment="SERRE"; addLog(`🏠 SERRE construite.`, pId); }
+        else if(ch==="2" && z.type==="AMÉNAGEMENT") { if(me.money<s.costComposteurOr || me.time<s.costComposteurTemps) return; me.money-=s.costComposteurOr; me.time-=s.costComposteurTemps; z.batiment="COMPOSTEUR"; addLog(`🏠 COMPOSTEUR construit.`, pId); }
+        else if(ch==="3" && z.type==="AMÉNAGEMENT") { if(me.money<s.costLocalOr || me.time<s.costLocalTemps) return; me.money-=s.costLocalOr; me.time-=s.costLocalTemps; z.batiment="LOCAL OUTILS"; addLog(`🏠 LOCAL construit.`, pId); }
         sync(); 
     }
     
     function actArr(zId = localSelectedId) { 
         const pId = state.turn; const me=state['p'+pId], z=me.zones[zId], s=state.settings; 
         if(z && z.slots && z.slots.length > 0 && me.time>=s.costArroserTemps) { 
-            me.time-=s.costArroserTemps; 
-            let plants = [];
-            z.slots.forEach(c => { c.eCur = Math.max(0, c.eCur-2); plants.push(c.nom); });
-            addLog(`💧 Arrosage de ${plants.join(' & ')} sur Z${z.id===14?'PO':z.num} (-2💧, -${s.costArroserTemps}h).`, pId); 
-            sync(); 
+            me.time-=s.costArroserTemps; z.slots.forEach(c => { c.eCur = Math.max(0, c.eCur-2); });
+            addLog(`💧 Arrosage Z${z.id===14?'PO':z.num} (-${s.costArroserTemps}h).`, pId); sync(); 
         } 
     }
     
     function actAmd(zId = localSelectedId) { 
         const pId = state.turn; const me=state['p'+pId], z=me.zones[zId], s=state.settings; 
-        const hasComp = me.zones.some(x => x.batiment === 'COMPOSTEUR');
-        if(!hasComp) return alert("Construisez un Composteur !");
         if(z && z.slots && z.slots.length > 0 && me.compost > 0 && me.time >= s.costAmenderTemps) { 
-            me.time-=s.costAmenderTemps; me.compost--; 
-            let plants = [];
-            z.slots.forEach(c => { c.amd = (c.amd || 0) + 1; plants.push(c.nom); });
-            addLog(`💩 Amendement de ${plants.join(' & ')} (+1💰, -1💩, -${s.costAmenderTemps}h).`, pId); 
-            sync(); 
+            me.time-=s.costAmenderTemps; me.compost--; z.slots.forEach(c => { c.amd = (c.amd || 0) + 1; });
+            addLog(`💩 Amendement Z${z.id===14?'PO':z.num} (-1💩).`, pId); sync(); 
         } 
     }
 
     function actComposter(zId = localSelectedId) {
         const pId = state.turn; const me = state['p'+pId], z = me.zones[zId], s=state.settings; 
-        const hasComp = me.zones.some(x => x.batiment === 'COMPOSTEUR');
-        if(!hasComp) return alert("Il vous faut un Composteur !");
         if(!z || !z.slots || z.slots.length === 0 || me.time < s.costComposterTemps) return;
-
         me.time -= s.costComposterTemps; 
-        let hasArbre = z.slots.some(c => c.cat === 'A');
-        
-        if(hasArbre) {
-            z.slots.forEach(c => { if(c.cat === 'A') { c.eCur = c.e; c.sCur = c.s; c.amd = 0; }});
-            addLog(`♻️ Entretien de l'arbre sur Z${z.num} (-${s.costComposterTemps}h).`, pId);
-        } else {
-            let nb = z.slots.length;
-            me.compost = (me.compost || 0) + (2 * nb); 
-            addLog(`♻️ Compostage de ${nb} culture(s) (+${2*nb}💩, -${s.costComposterTemps}h).`, pId); 
-            z.slots = [];
-        }
+        if(z.slots.some(c => c.cat === 'A')) { z.slots.forEach(c => { if(c.cat === 'A') { c.eCur = c.e; c.sCur = c.s; c.amd = 0; }}); addLog(`♻️ Entretien Arbre.`, pId); } 
+        else { let nb = z.slots.length; me.compost = (me.compost || 0) + (2 * nb); addLog(`♻️ Compostage (+${2*nb}💩).`, pId); z.slots = []; }
         sync();
     }
     
     function upgr(i) { 
         const pId = state.turn; const me = state['p'+pId], s = state.settings; 
-        const costH = me.upgrades[i]===1 ? s.costUp2Temps : s.costUp3Temps; 
-        const costM = me.upgrades[i]===1 ? s.costUp2Or : s.costUp3Or; 
+        const costH = me.upgrades[i]===1 ? s.costUp2Temps : s.costUp3Temps; const costM = me.upgrades[i]===1 ? s.costUp2Or : s.costUp3Or; 
         if(me.time < costH || me.money < costM) return;
         me.time -= costH; me.money -= costM; me.upgrades[i]++; if(i===1) me.timeMax += 4; 
-        addLog(`⚙️ Amélioration ${UP_NAMES[i]} au niveau ${me.upgrades[i]} (-${costM}💰, -${costH}h).`, pId); sync(); 
+        addLog(`⚙️ UP ${UP_NAMES[i]} L${me.upgrades[i]}.`, pId); sync(); 
     }
     
     function actionRecolter(id, slotIdx) { 
         const pId = state.turn; const me = state['p'+pId], z = me.zones[id], s=state.settings; 
         if(me.time < s.costRecolterTemps) return;
+        const c = z.slots[slotIdx]; me.time -= s.costRecolterTemps; 
+        const moneyGained = c.g + (me.upgrades[3]-1) + (c.amd||0); me.money += moneyGained; 
         
-        const c = z.slots[slotIdx];
-        me.time -= s.costRecolterTemps; 
-        const moneyGained = c.g + (me.upgrades[3]-1) + (c.amd||0);
-        me.money += moneyGained; 
-        
-        let msg = `🧺 Récolte de ${c.nom} ! Gain : +${moneyGained}💰 (-${s.costRecolterTemps}h).`;
-        
-        if(c.cat === 'A') { 
-            c.eCur = c.e; c.sCur = c.s; c.amd = 0; 
-        } else { 
-            z.slots.splice(slotIdx, 1); 
-        }
-        addLog(msg, pId); sync(); 
+        // MAJ DES STATS POUR LE CONCOURS
+        if(!me.stats) me.stats = { maxHarvest: 0, harvestCount: 0 };
+        me.stats.harvestCount++;
+        if(moneyGained > me.stats.maxHarvest) me.stats.maxHarvest = moneyGained;
+
+        if(c.cat === 'A') { c.eCur = c.e; c.sCur = c.s; c.amd = 0; } else { z.slots.splice(slotIdx, 1); }
+        addLog(`🧺 Récolte ${c.nom} (+${moneyGained}💰).`, pId); sync(); 
     }
 
     function playC(idx, zId = localSelectedId) { 
         const pId = state.turn; const me = state['p'+pId], c = me.hand[idx], z = me.zones[zId];
         const cost = Math.max(0, (c.t||1)-(me.upgrades[2]-1));
         
-        const listPetitsFruits = ["Fraise", "Melon", "Pastèque"]; 
-        const listGrimpantes = ["Haricot", "Pois", "Concombre", "Cornichon", "Chayotte", "Vigne"];
-        const listCompagnes = ["Ail", "Aneth", "Agastache", "Basilic", "Bleuet", "Bourrache", "Capucine", "Cébette", "Cerfeuil", "Ciboulette", "Coriandre", "Cosmos", "Echalote", "Épinard", "Estragon", "Lin", "Marguerite", "Mélilot Blanc", "Mélisse", "Menthe", "Moutarde", "Oignon", "Origan", "Oeillet d'Inde", "Persil", "Romarin", "Sarriette", "Sauge", "Serpolet", "Souci", "Tanaisie", "Thym", "Tournesol"];
-
         if(c.cat === 'X' || (c.cat === 'S' && !listCompagnes.includes(c.nom) && !c.nom.includes("Fumier") && !c.nom.includes("Ortie") && !c.nom.includes("Paillage") && !c.nom.includes("Corne"))) { 
-            if(me.time < cost) return;
-            me.time-=cost; 
-            if(!me.auxActifs) me.auxActifs=[]; 
-            me.auxActifs.push(c.cat==='X' ? c.prot : c.nom); 
-            me.hand.splice(idx,1); 
-            addLog(`🛠️ Matériel/Auxiliaire déployé : ${c.nom} (-${cost}h).`, pId);
-            sync(); return;
+            if(me.time < cost) return; me.time-=cost; if(!me.auxActifs) me.auxActifs=[]; me.auxActifs.push(c.cat==='X' ? c.prot : c.nom); 
+            me.hand.splice(idx,1); addLog(`🛠️ Déploiement : ${c.nom}.`, pId); sync(); return;
         } 
         
         if(c.cat === 'S') { 
-            if(me.time < cost) return;
-            if(!z || !z.slots || z.slots.length === 0) return alert("Il faut des plantes sur cette zone pour utiliser ce soutien/compagne !");
-            
-            if(listCompagnes.includes(c.nom)) {
-                let slotLibre = z.slots.find(pl => !pl.compagne);
-                if(!slotLibre) return alert("Toutes les cultures de cette zone ont déjà une plante compagne !");
-                me.time-=cost;
-                slotLibre.compagne = c.nom; 
-                addLog(`✨ Plante compagne ${c.nom} associée à ${slotLibre.nom} (-${cost}h).`, pId);
-            }
-            else {
-                me.time-=cost;
-                if(c.nom.includes("Fumier")) { me.compost=(me.compost||0)+2; addLog(`✨ Soutien : ${c.nom} (+2💩, -${cost}h).`, pId); }
-                else if(c.nom.includes("Ortie")) { z.slots.forEach(pl => pl.eCur = Math.max(0, pl.eCur-4)); addLog(`✨ Soutien : ${c.nom} (-4💧, -${cost}h).`, pId); }
-                else if(c.nom.includes("Paillage")) { z.slots.forEach(pl => { pl.eCur = Math.max(0, pl.eCur-2); pl.sCur = Math.max(0, pl.sCur-1); }); addLog(`✨ Soutien : ${c.nom} (-2💧 -1☀️, -${cost}h).`, pId); }
-                else if(c.nom.includes("Corne")) { z.slots.forEach(pl => pl.amd = (pl.amd||0)+2); addLog(`✨ Soutien : ${c.nom} (+2💰 rendement, -${cost}h).`, pId); }
-            }
+            if(me.time < cost) return; if(!z || !z.slots || z.slots.length === 0) return alert("Zone vide !");
+            if(listCompagnes.includes(c.nom)) { let slotLibre = z.slots.find(pl => !pl.compagne); if(!slotLibre) return alert("Plantes déjà accompagnées !"); me.time-=cost; slotLibre.compagne = c.nom; addLog(`✨ Compagne ${c.nom}.`, pId); }
+            else { me.time-=cost; if(c.nom.includes("Fumier")) { me.compost=(me.compost||0)+2; } else if(c.nom.includes("Ortie")) { z.slots.forEach(pl => pl.eCur = Math.max(0, pl.eCur-4)); } else if(c.nom.includes("Paillage")) { z.slots.forEach(pl => { pl.eCur = Math.max(0, pl.eCur-2); pl.sCur = Math.max(0, pl.sCur-1); }); } else if(c.nom.includes("Corne")) { z.slots.forEach(pl => pl.amd = (pl.amd||0)+2); } }
             me.hand.splice(idx,1); sync(); return;
         } 
         
-        if(me.time < cost) return;
-        if(!z || !z.type) return alert("Sélectionnez une zone aménagée !");
+        if(me.time < cost) return; if(!z || !z.type) return alert("Sélectionnez une zone !");
         
         let isPetitFruit = listPetitsFruits.some(pf => c.nom.includes(pf));
-        if(c.cat==='L' && z.type!=='POTAGER' && !(z.type==='VERGER' && isPetitFruit)) {
-            return alert("Ce légume doit aller dans un Potager ! (Seuls les petits fruits sont tolérés au Verger).");
-        }
-        if(c.cat==='A' && z.type!=='VERGER') return alert("Les arbres vont exclusivement dans un Verger.");
+        if(c.cat==='L' && z.type!=='POTAGER' && !(z.type==='VERGER' && isPetitFruit)) return alert("Ce légume va au Potager ! (Ou Petit fruit au Verger).");
+        if(c.cat==='A' && z.type!=='VERGER') return alert("Arbre = Verger.");
         
-        let maxSlots = z.type === 'POTAGER' ? 2 : 1;
-        let isGrimpante = listGrimpantes.some(g => c.nom.includes(g));
+        let maxSlots = z.type === 'POTAGER' ? 2 : 1; let isGrimpante = listGrimpantes.some(g => c.nom.includes(g));
         let hasTuteur = (me.auxActifs || []).some(a => a.includes("Tuteur") || a.includes("Treillage"));
         
-        if(!z.slots) z.slots = [];
-        
-        let occupied = 0;
-        z.slots.forEach(pl => {
-            let plIsGrimpante = listGrimpantes.some(g => pl.nom.includes(g));
-            if (!(plIsGrimpante && hasTuteur)) occupied++;
-        });
+        if(!z.slots) z.slots = []; let occupied = 0; z.slots.forEach(pl => { if (!(listGrimpantes.some(g => pl.nom.includes(g)) && hasTuteur)) occupied++; });
 
         if(!(isGrimpante && hasTuteur) && occupied >= maxSlots) {
-            if(isGrimpante && !hasTuteur) return alert("Ce potager est plein ! Il vous faut un Tuteur ou un Treillage pour faire grimper cette plante sans prendre de place.");
-            return alert(`Capacité maximale atteinte pour ce ${z.type} (${maxSlots} emplacement(s)).`);
+            if(isGrimpante && !hasTuteur) return alert("Zone pleine ! Il faut un Tuteur pour cette grimpante.");
+            return alert(`Capacité max atteinte.`);
         }
 
-        let curS = ALL_SEASONS[state.saisonIdx];
-        let smValid = z.batiment === 'SERRE' ? (c.sm||[]).map(se => ALL_SEASONS[(ALL_SEASONS.indexOf(se)+3)%4]).concat(c.sm||[]) : (c.sm||[]);
-        if(!smValid.includes(curS)) return alert("Ce n'est pas la bonne saison pour semer cela !");
+        let curS = ALL_SEASONS[state.saisonIdx]; let smValid = z.batiment === 'SERRE' ? (c.sm||[]).map(se => ALL_SEASONS[(ALL_SEASONS.indexOf(se)+3)%4]).concat(c.sm||[]) : (c.sm||[]);
+        if(!smValid.includes(curS)) return alert("Mauvaise saison de semis !");
         
-        me.time-=cost; 
-        z.slots.push({...c, eCur:c.e, sCur:c.s, amd:0, compagne: null}); 
-        me.hand.splice(idx,1); 
-        
-        let msgLog = `🌱 Semis de ${c.nom}`;
-        if(isGrimpante && hasTuteur) msgLog += " (Grimpante avec Tuteur)";
-        addLog(`${msgLog} sur Z${z.id===14 ? 'PO 1,2' : z.num} (-${cost}h).`, pId);
-        
-        sync(); 
+        me.time-=cost; z.slots.push({...c, eCur:c.e, sCur:c.s, amd:0, compagne: null}); me.hand.splice(idx,1); 
+        addLog(`🌱 Semis ${c.nom} ${isGrimpante&&hasTuteur?'(Grimpante)':''}.`, pId); sync(); 
     }
 
     function resolveSeason() {
-        let curS = ALL_SEASONS[state.saisonIdx];
-        let pBase = Math.floor(Math.random()*3)+1; 
-        let sBase = Math.floor(Math.random()*2)+1;
+        let curS = ALL_SEASONS[state.saisonIdx]; let pBase = Math.floor(Math.random()*3)+1; let sBase = Math.floor(Math.random()*2)+1;
         state.currentMeteo = {p: pBase, s: sBase};
-
-        let ravPool = state.ravPool || [];
-        if(ravPool.length > 0 && Math.random() < 0.3) { state.currentRav = ravPool[Math.floor(Math.random()*ravPool.length)]; } else { state.currentRav = null; }
+        if(state.ravPool && state.ravPool.length > 0 && Math.random() < 0.3) { state.currentRav = state.ravPool[Math.floor(Math.random()*state.ravPool.length)]; } else { state.currentRav = null; }
 
         let isFinalTurn = (state.saisonIdx === 3 && state.annee === 3);
 
@@ -656,13 +558,8 @@
             pData.zones.forEach(z => { 
                 if(z && z.slots && z.slots.length > 0) { 
                     z.slots.forEach(c => {
-                        c.eCur = Math.max(0, c.eCur - (pBase + bClimat)); 
-                        c.sCur = Math.max(0, c.sCur - (sBase + bClimat)); 
-                        if (isFinalTurn && c.eCur === 0 && c.sCur === 0) {
-                            const mGain = (c.g + (pData.upgrades[3]-1) + (c.amd||0));
-                            pData.money += mGain; 
-                            c.toRemove = true; 
-                        }
+                        c.eCur = Math.max(0, c.eCur - (pBase + bClimat)); c.sCur = Math.max(0, c.sCur - (sBase + bClimat)); 
+                        if (isFinalTurn && c.eCur === 0 && c.sCur === 0) { const mGain = (c.g + (pData.upgrades[3]-1) + (c.amd||0)); pData.money += mGain; c.toRemove = true; }
                     });
                     z.slots = z.slots.filter(c => !c.toRemove);
                 } 
@@ -671,13 +568,27 @@
             pData.time = pData.timeMax; 
         });
 
+        // RESOLUTION HIVER -> CONCOURS
+        if(state.saisonIdx === 3) {
+            let s1 = state.p1.stats || {maxHarvest:0, harvestCount:0}; let s2 = state.p2.stats || {maxHarvest:0, harvestCount:0};
+            
+            // PV Grosse Récolte
+            if(s1.maxHarvest > s2.maxHarvest) { state.p1.pv += 5; addLog("🏆 Concours Grosse Récolte remporté ! (+5 PV)", 1); }
+            else if(s2.maxHarvest > s1.maxHarvest) { state.p2.pv += 5; addLog("🏆 Concours Grosse Récolte remporté ! (+5 PV)", 2); }
+            
+            // PV Nb Récoltes
+            if(s1.harvestCount > s2.harvestCount) { state.p1.pv += 5; addLog("🏆 Concours Nb Récoltes remporté ! (+5 PV)", 1); }
+            else if(s2.harvestCount > s1.harvestCount) { state.p2.pv += 5; addLog("🏆 Concours Nb Récoltes remporté ! (+5 PV)", 2); }
+
+            // Reset Stats et Foire
+            state.p1.stats = {maxHarvest:0, harvestCount:0}; state.p2.stats = {maxHarvest:0, harvestCount:0};
+            state.foire = { camelot: 0, conseiller: 0 };
+        }
+
         state.saisonIdx++; if(state.saisonIdx > 3) { state.saisonIdx = 0; state.annee++; }
 
         if(state.annee > 3) {
-            state.gameOver = true; addLog("🏁 Fin des 3 années de jeu.", myId);
-            addLog(`🏆 SCORE FINAL J1 : ${state.p1.money}💰 | ${state.p1.compost||0}💩`, 1);
-            if(state.mode !== 'SOLO' && state.mode !== 'IA_SOLO') addLog(`🏆 SCORE FINAL J2 : ${state.p2.money}💰 | ${state.p2.compost||0}💩`, 2);
-            sync(); return;
+            state.gameOver = true; addLog("🏁 Fin des 3 années de jeu.", myId); sync(); return;
         }
 
         let newSeason = ALL_SEASONS[state.saisonIdx];
@@ -686,16 +597,10 @@
             pData.zones.forEach(z => { 
                 if(z && z.slots && z.slots.length > 0) { 
                     z.slots.forEach(c => {
-                        let rc = c.rc || []; let sm = c.sm || [];
-                        let survie = z.batiment === 'SERRE' ? rc.map(se => ALL_SEASONS[(ALL_SEASONS.indexOf(se)+3)%4]).concat(rc).concat(sm) : rc.concat(sm);
+                        let rc = c.rc || []; let sm = c.sm || []; let survie = z.batiment === 'SERRE' ? rc.map(se => ALL_SEASONS[(ALL_SEASONS.indexOf(se)+3)%4]).concat(rc).concat(sm) : rc.concat(sm);
                         if(!survie.includes(newSeason)) {
-                            if(c.cat === 'A') { c.eCur = c.e; c.sCur = c.s; c.amd = 0; addLog(`🍂 L'arbre ${c.nom} se repose.`, pid); } 
-                            else {
-                                let msg = `🥀 Mort de ${c.nom} sur Z${z.id===14 ? 'PO' : z.num}.`; 
-                                c.dead = true;
-                                if(pData.zones.some(x => x.batiment === 'COMPOSTEUR')) { pData.compost = (pData.compost||0) + 2; msg += " Recyclé (+2💩)."; }
-                                addLog(msg, pid);
-                            }
+                            if(c.cat === 'A') { c.eCur = c.e; c.sCur = c.s; c.amd = 0; addLog(`🍂 Repos de l'arbre.`, pid); } 
+                            else { let msg = `🥀 Mort de ${c.nom}.`; c.dead = true; if(pData.zones.some(x => x.batiment === 'COMPOSTEUR')) { pData.compost = (pData.compost||0) + 2; msg += " Recyclé (+2💩)."; } addLog(msg, pid); }
                         }
                     });
                     z.slots = z.slots.filter(c => !c.dead);
@@ -703,7 +608,7 @@
             });
         });
 
-        state.turn = 1; addLog(`💤 Résolution de la saison. Météo: 🌧️${pBase} ☀️${sBase}.`, state.mode === 'SOLO' || state.mode === 'IA_SOLO' ? 1 : 2); sync();
+        state.turn = 1; addLog(`💤 Résolution saison.`, state.mode === 'SOLO' || state.mode === 'IA_SOLO' ? 1 : 2); sync();
     }
 
     function actFin() { if(state.mode === 'SOLO' || state.mode === 'IA_SOLO') resolveSeason(); else { if(state.turn === 1) { state.turn = 2; addLog(`⏭️ Fin de tour.`, 1); sync(); } else resolveSeason(); } }
