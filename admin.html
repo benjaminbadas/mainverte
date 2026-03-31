@@ -6,14 +6,14 @@
     <script src="https://www.gstatic.com/firebasejs/9.17.1/firebase-app-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/9.17.1/firebase-database-compat.js"></script>
     <style>
-        body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; background: #eceff1; padding: 20px; color: #263238; }
-        .container { max-width: 1200px; margin: 0 auto; background: white; padding: 20px; border-radius: 12px; box-shadow: 0 5px 20px rgba(0,0,0,0.1); }
+        body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; background: #eceff1; padding: 20px; color: #263238; margin: 0;}
+        .container { max-width: 1300px; margin: 0 auto; background: white; padding: 20px; border-radius: 12px; box-shadow: 0 5px 20px rgba(0,0,0,0.1); }
         h1 { color: #2e7d32; text-align: center; font-size: 2.5em; margin-bottom: 5px; }
         p.subtitle { text-align: center; color: #546e7a; margin-bottom: 20px; }
         
         /* SYSTÈME D'ONGLETS */
-        .tabs { display: flex; border-bottom: 2px solid #2e7d32; margin-bottom: 20px; }
-        .tab { padding: 10px 20px; cursor: pointer; font-weight: bold; background: #e8f5e9; border: 1px solid transparent; border-bottom: none; border-radius: 8px 8px 0 0; margin-right: 5px; color: #2e7d32; transition: 0.2s; }
+        .tabs { display: flex; border-bottom: 2px solid #2e7d32; margin-bottom: 20px; flex-wrap: wrap; gap: 5px;}
+        .tab { padding: 10px 20px; cursor: pointer; font-weight: bold; background: #e8f5e9; border: 1px solid transparent; border-bottom: none; border-radius: 8px 8px 0 0; color: #2e7d32; transition: 0.2s; }
         .tab:hover { background: #c8e6c9; }
         .tab.active { background: #2e7d32; color: white; border-color: #2e7d32; }
         .tab-content { display: none; }
@@ -21,12 +21,12 @@
 
         /* TABLEAUX */
         table { width: 100%; border-collapse: collapse; font-size: 0.9em; }
-        th { background: #37474f; color: white; padding: 10px; text-align: left; position: sticky; top: 0; }
+        th { background: #37474f; color: white; padding: 10px; text-align: left; position: sticky; top: 0; white-space: nowrap;}
         td { padding: 8px; border-bottom: 1px solid #cfd8dc; }
         tr:hover { background: #f5f5f5; }
-        input[type="text"], input[type="number"] { width: 100%; padding: 6px; box-sizing: border-box; border: 1px solid #b0bec5; border-radius: 4px; }
-        input[type="number"] { width: 60px; text-align: center; }
-        .input-large { width: 250px !important; }
+        input[type="text"], input[type="number"] { width: 100%; padding: 6px; box-sizing: border-box; border: 1px solid #b0bec5; border-radius: 4px; font-family: inherit;}
+        input[type="number"] { width: 70px; text-align: center; }
+        .input-large { min-width: 300px !important; }
 
         .btn-save { display: block; width: 100%; background: #ff9800; color: white; border: none; padding: 15px; font-size: 1.5em; font-weight: bold; border-radius: 8px; cursor: pointer; margin-top: 30px; transition: 0.3s; box-shadow: 0 4px 10px rgba(255,152,0,0.4); }
         .btn-save:hover { background: #f57c00; transform: scale(1.02); }
@@ -36,10 +36,10 @@
 
 <div class="container">
     <h1>🗄️ Base de Données des Cartes</h1>
-    <p class="subtitle">Modifiez les statistiques du jeu. Saisons valides : P, E, A, H (séparées par des virgules).</p>
+    <p class="subtitle">Modifiez les statistiques officielles. Saisons valides : P (Printemps), E (Été), A (Automne), H (Hiver) séparées par des virgules.</p>
 
     <div class="tabs">
-        <div class="tab active" onclick="switchTab('legumes')">🍅 Légumes</div>
+        <div class="tab active" onclick="switchTab('legumes')">🍅 Légumes & Petits fruits</div>
         <div class="tab" onclick="switchTab('arbres')">🍎 Arbres Fruitiers</div>
         <div class="tab" onclick="switchTab('compagnes')">🌼 Compagnes</div>
         <div class="tab" onclick="switchTab('soutien')">🛠️ Soutiens</div>
@@ -54,7 +54,7 @@
     <div id="auxiliaires" class="tab-content"><table id="table-auxiliaires"></table></div>
     <div id="events" class="tab-content"><table id="table-events"></table></div>
 
-    <button class="btn-save" onclick="saveToFirebase()">💾 Sauvegarder toute la base dans Firebase</button>
+    <button class="btn-save" onclick="saveToFirebase()">💾 Sauvegarder et écraser la base Firebase</button>
 </div>
 
 <script>
@@ -69,67 +69,66 @@
     firebase.initializeApp(firebaseConfig);
     const dbConfig = firebase.database().ref("game-config/decks");
 
-    // --- DONNÉES PAR DÉFAUT (Extraites de ta liste) ---
+    // --- DONNÉES PAR DÉFAUT EXHAUSTIVES ---
     const dataLegumes = [
-        { nom: "Artichaut", p: 1, t: 1, g: 5, e: 12, s: 4, sm: "P,E", rc: "A,H", qte: 2 },
-        { nom: "Aubergine", p: 1, t: 1, g: 3, e: 5, s: 2, sm: "P", rc: "E,A", qte: 2 },
-        { nom: "Betterave", p: 1, t: 1, g: 5, e: 5, s: 2, sm: "P,E", rc: "A,H", qte: 2 },
-        { nom: "Carotte", p: 1, t: 1, g: 5, e: 4, s: 2, sm: "P,E,A,H", rc: "P,E,A", qte: 2 },
-        { nom: "Chou Brocoli", p: 1, t: 0, g: 4, e: 9, s: 3, sm: "E,A", rc: "H,P", qte: 2 },
-        { nom: "Concombre", p: 1, t: 1, g: 5, e: 4, s: 2, sm: "P,E", rc: "E,A", qte: 2 },
-        { nom: "Courge", p: 1, t: 1, g: 6, e: 4, s: 2, sm: "P", rc: "A", qte: 2 },
+        { nom: "Artichaut", p: 1, t: 1, g: 6, e: 7, s: 3, sm: "P", rc: "A,H", qte: 2 },
+        { nom: "Aubergine", p: 1, t: 1, g: 4, e: 5, s: 2, sm: "P,E", rc: "A", qte: 2 },
+        { nom: "Betterave", p: 1, t: 1, g: 5, e: 4, s: 2, sm: "P,E", rc: "A,H", qte: 2 },
+        { nom: "Brocoli", p: 1, t: 1, g: 4, e: 4, s: 1, sm: "E", rc: "A,H", qte: 2 },
+        { nom: "Carotte", p: 1, t: 1, g: 5, e: 4, s: 2, sm: "P,E,A", rc: "P,E,A,H", qte: 2 },
+        { nom: "Courge", p: 1, t: 1, g: 5, e: 4, s: 2, sm: "P", rc: "A,H", qte: 2 },
+        { nom: "Courgette", p: 1, t: 1, g: 5, e: 5, s: 2, sm: "P", rc: "E,A", qte: 2 },
+        { nom: "Tomate", p: 1, t: 1, g: 5, e: 5, s: 2, sm: "P", rc: "E,A", qte: 2 },
+        { nom: "Fraisier", p: 1, t: 1, g: 3, e: 3, s: 2, sm: "P,A", rc: "E", qte: 2 },
         { nom: "Haricot Nain", p: 1, t: 1, g: 3, e: 3, s: 2, sm: "P,E", rc: "A", qte: 2 },
-        { nom: "Laitue", p: 1, t: 2, g: 6, e: 4, s: 2, sm: "P,E,A", rc: "H,P,E,A", qte: 2 },
-        { nom: "Mâche", p: 1, t: 1, g: 5, e: 4, s: 2, sm: "E,A", rc: "H,P", qte: 2 },
-        { nom: "Maïs", p: 1, t: 2, g: 5, e: 4, s: 2, sm: "P,E", rc: "E,A", qte: 2 },
-        { nom: "Patate Douce", p: 1, t: 2, g: 5, e: 5, s: 2, sm: "P", rc: "A", qte: 2 },
-        { nom: "Poireau", p: 1, t: 1, g: 4, e: 4, s: 2, sm: "P", rc: "H,A", qte: 2 },
+        { nom: "Laitue", p: 1, t: 1, g: 6, e: 4, s: 2, sm: "P,E,A", rc: "P,E,A,H", qte: 2 },
+        { nom: "Mâche", p: 1, t: 1, g: 5, e: 4, s: 2, sm: "E,A", rc: "P,H", qte: 2 },
+        { nom: "Maïs", p: 1, t: 1, g: 5, e: 4, s: 2, sm: "P,E", rc: "E,A", qte: 2 },
+        { nom: "Patate Douce", p: 1, t: 1, g: 5, e: 5, s: 2, sm: "P", rc: "A", qte: 2 },
+        { nom: "Poireau", p: 1, t: 1, g: 4, e: 4, s: 2, sm: "P", rc: "A,H", qte: 2 },
         { nom: "Pomme de Terre", p: 1, t: 1, g: 3, e: 5, s: 2, sm: "P", rc: "E", qte: 2 },
-        { nom: "Radis", p: 1, t: 1, g: 4, e: 1, s: 1, sm: "P,E,A,H", rc: "P,E,A,H", qte: 3 },
-        { nom: "Tomate", p: 1, t: 1, g: 3, e: 5, s: 2, sm: "P,E", rc: "E,A", qte: 2 }
+        { nom: "Radis", p: 1, t: 1, g: 4, e: 1, s: 1, sm: "P,E,A,H", rc: "P,E,A,H", qte: 3 }
     ];
 
     const dataArbres = [
-        { nom: "Abricotier", p: 3, t: 3, g: 10, e: 9, s: 4, sm: "E", qte: 1 },
-        { nom: "Amandier", p: 3, t: 3, g: 10, e: 9, s: 4, sm: "E", qte: 1 },
-        { nom: "Cerisier", p: 3, t: 3, g: 9, e: 11, s: 4, sm: "E", qte: 1 },
-        { nom: "Citronnier", p: 3, t: 3, g: 9, e: 8, s: 3, sm: "A", qte: 1 },
-        { nom: "Figuier", p: 3, t: 3, g: 9, e: 11, s: 4, sm: "E", qte: 1 },
-        { nom: "Noyer", p: 3, t: 3, g: 10, e: 9, s: 4, sm: "P", qte: 1 },
-        { nom: "Pêcher", p: 3, t: 3, g: 10, e: 8, s: 3, sm: "E", qte: 1 },
-        { nom: "Pommier", p: 3, t: 3, g: 9, e: 11, s: 4, sm: "A", qte: 1 },
-        { nom: "Prunier", p: 3, t: 3, g: 10, e: 11, s: 4, sm: "E", qte: 1 }
+        { nom: "Abricotier", p: 3, t: 3, g: 10, e: 9, s: 4, sm: "A", rc: "E", qte: 1 },
+        { nom: "Cerisier", p: 3, t: 3, g: 9, e: 11, s: 4, sm: "A", rc: "P,E", qte: 1 },
+        { nom: "Pommier", p: 3, t: 3, g: 10, e: 11, s: 4, sm: "A", rc: "E,A", qte: 1 },
+        { nom: "Poirier", p: 3, t: 3, g: 9, e: 11, s: 4, sm: "A", rc: "E,A", qte: 1 }
     ];
 
     const dataCompagnes = [
-        { nom: "Ail", p: 1, t: 1, e: 5, s: 2, desc: "+1 rendement pour Légume ou Fruit", qte: 2 },
-        { nom: "Aneth", p: 1, t: 1, e: 4, s: 2, desc: "+1 besoin comblé pour culture", qte: 2 },
-        { nom: "Basilic", p: 1, t: 1, e: 4, s: 2, desc: "+1 besoin comblé pour culture", qte: 2 },
-        { nom: "Bourrache", p: 1, t: 1, e: 4, s: 2, desc: "+1 besoin comblé pour culture", qte: 2 },
-        { nom: "Capucine", p: 1, t: 1, e: 4, s: 2, desc: "+1 besoin comblé pour culture", qte: 2 },
-        { nom: "Ciboulette", p: 1, t: 1, e: 4, s: 2, desc: "+1 besoin comblé pour culture", qte: 2 },
-        { nom: "Épinard", p: 1, t: 1, e: 3, s: 2, desc: "+1 besoin comblé pour culture", qte: 2 },
-        { nom: "Menthe", p: 1, t: 1, e: 4, s: 2, desc: "+1 besoin comblé pour culture", qte: 2 },
-        { nom: "Souci", p: 1, t: 1, e: 4, s: 2, desc: "+1 besoin comblé pour culture", qte: 2 }
+        { nom: "Ail", p: 1, t: 1, e: 4, s: 2, sm: "P,A", rc: "E", desc: "+1 rendement pour Légume ou Fruit", qte: 2 },
+        { nom: "Échalote", p: 1, t: 1, e: 4, s: 2, sm: "P,A", rc: "E", desc: "+1 rendement pour Légume ou Fruit", qte: 2 },
+        { nom: "Basilic", p: 1, t: 1, e: 3, s: 2, sm: "P", rc: "E,A", desc: "Réduit besoins ou engrais vert", qte: 2 },
+        { nom: "Thym", p: 1, t: 1, e: 3, s: 2, sm: "P", rc: "E,A", desc: "Réduit besoins ou engrais vert", qte: 2 },
+        { nom: "Romarin", p: 1, t: 1, e: 3, s: 2, sm: "P", rc: "E,A", desc: "Réduit besoins ou engrais vert", qte: 2 },
+        { nom: "Menthe", p: 1, t: 1, e: 3, s: 2, sm: "P", rc: "E,A", desc: "Réduit besoins ou engrais vert", qte: 2 }
     ];
 
     const dataSoutien = [
-        { nom: "Arrosoir 10L", p: 2, t: 1, desc: "+2 Eau lors d'un arrosage", qte: 2 },
-        { nom: "Brouette", p: 2, t: 1, desc: "-1 Temps pour 2 pts d'amendement (req. Local)", qte: 2 },
-        { nom: "Serre", p: 3, t: 4, desc: "Avance le semis d'1 saison, prolonge la récolte d'1 saison", qte: 3 },
-        { nom: "Tuteur", p: 1, t: 1, desc: "Permet de cultiver des plantes grimpantes sans prendre de place", qte: 3 },
-        { nom: "Récupérateur d'eau", p: 3, t: 2, desc: "Stocke jusqu'à 7 unités d'Eau", qte: 1 },
-        { nom: "Poules", p: 2, t: 1, desc: "-1 Temps => +1 Rendement (req. Clôture + Prairie)", qte: 2 },
-        { nom: "Moutons", p: 3, t: 1, desc: "-2 Temps => +2 Rendement (req. Clôture + Prairie)", qte: 1 },
-        { nom: "Cheval", p: 4, t: 1, desc: "-2 Temps => +3 Rendement. Annule blessure. (req. Clôture + Prairie)", qte: 1 }
+        { nom: "Arrosoir 10L", p: 1, t: 1, desc: "+2 Eau lors d'un arrosage", qte: 2 },
+        { nom: "Brouette", p: 1, t: 1, desc: "Action amendement : 1 temps permet d'utiliser 2 compost", qte: 2 },
+        { nom: "Poules", p: 3, t: 1, desc: "Produit rendement (+1) et protège certains ravageurs", qte: 2 },
+        { nom: "Moutons", p: 2, t: 1, desc: "1x/saison : -2 temps pour +2 rendement répartis", qte: 1 },
+        { nom: "Chèvres", p: 2, t: 1, desc: "1x/saison : -2 temps pour +2 rendement répartis", qte: 1 },
+        { nom: "Clôture", p: 3, t: 1, desc: "Indispensable pour animaux ; protège du sanglier", qte: 3 },
+        { nom: "Formations", p: 7, t: 1, desc: "Bonus permanent de +4 sous lors de chaque récolte", qte: 1 },
+        { nom: "Tuteur / Treillage", p: 2, t: 1, desc: "Permet de cultiver plantes grimpantes sans prendre de place", qte: 3 },
+        { nom: "Serre", p: 3, t: 4, desc: "Avance le semis d'1 saison, prolonge la récolte d'1 saison", qte: 3 }
     ];
 
     const dataAuxiliaires = [
-        { nom: "Hérisson", p: 2, t: 1, prereq: "Haie", prot: "Limaces", qte: 2 },
-        { nom: "Grenouille", p: 2, t: 1, prereq: "Mare", prot: "Mouches", qte: 2 },
-        { nom: "Coccinelle", p: 1, t: 1, prereq: "Prairie", prot: "Pucerons", qte: 3 },
-        { nom: "Rapace", p: 3, t: 1, prereq: "Forêt", prot: "Campagnols", qte: 1 },
-        { nom: "Chauve-souris", p: 2, t: 1, prereq: "Forêt", prot: "Carpocapse", qte: 2 }
+        { nom: "Coccinelle", p: 1, t: 1, prereq: "Prairie, Forêt", prot: "Pucerons", qte: 2 },
+        { nom: "Syrphe", p: 1, t: 1, prereq: "Prairie, Forêt", prot: "Pucerons", qte: 2 },
+        { nom: "Chrysope", p: 1, t: 1, prereq: "Prairie, Forêt", prot: "Pucerons", qte: 2 },
+        { nom: "Hérisson", p: 2, t: 1, prereq: "Haie, Mare, Prairie", prot: "Limaces, escargots", qte: 2 },
+        { nom: "Crapaud", p: 2, t: 1, prereq: "Haie, Mare, Prairie", prot: "Limaces, escargots", qte: 2 },
+        { nom: "Carabe", p: 2, t: 1, prereq: "Haie, Mare, Prairie", prot: "Limaces, escargots", qte: 2 },
+        { nom: "Chauve-souris", p: 2, t: 1, prereq: "Forêt", prot: "Carpocapse", qte: 2 },
+        { nom: "Passereaux", p: 2, t: 1, prereq: "Forêt", prot: "Mineuse", qte: 2 },
+        { nom: "Chat", p: 3, t: 1, prereq: "-", prot: "Campagnols", qte: 1 },
+        { nom: "Rapace", p: 3, t: 1, prereq: "Forêt", prot: "Lapins", qte: 1 }
     ];
 
     const dataEvents = [
@@ -138,7 +137,7 @@
         { nom: "Aide de la région", type: "Positif", desc: "Gain immédiat de 2 sous", qte: 1 },
         { nom: "Grêle", type: "Négatif", desc: "Serres indisponibles, -2 rendement sur fruitiers", qte: 1 },
         { nom: "Sécheresse", type: "Négatif", desc: "Lancez 1 dé précipitation en moins", qte: 1 },
-        { nom: "Blessure", type: "Négatif", desc: "Un jardinier en moins cette saison", qte: 1 }
+        { nom: "Blessure", type: "Négatif", desc: "Un jardinier (temps) en moins cette saison", qte: 1 }
     ];
 
     // --- GÉNÉRATION DES TABLEAUX UI ---
@@ -173,11 +172,13 @@
         renderTable("table-arbres", dataArbres, [
             {label: "Nom", key: "nom", type: "text"}, {label: "Achat(💰)", key: "p", type: "number"}, {label: "Temps(⏳)", key: "t", type: "number"},
             {label: "Gain(💰)", key: "g", type: "number"}, {label: "Eau(💧)", key: "e", type: "number"}, {label: "Soleil(☀️)", key: "s", type: "number"},
-            {label: "Plantation", key: "sm", type: "text"}, {label: "Qté Deck", key: "qte", type: "number"}
+            {label: "Plantation", key: "sm", type: "text"}, {label: "Récolte", key: "rc", type: "text"}, {label: "Qté Deck", key: "qte", type: "number"}
         ]);
         renderTable("table-compagnes", dataCompagnes, [
             {label: "Nom", key: "nom", type: "text"}, {label: "Achat(💰)", key: "p", type: "number"}, {label: "Temps(⏳)", key: "t", type: "number"},
-            {label: "Eau(💧)", key: "e", type: "number"}, {label: "Soleil(☀️)", key: "s", type: "number"}, {label: "Effet", key: "desc", type: "large"}, {label: "Qté Deck", key: "qte", type: "number"}
+            {label: "Eau(💧)", key: "e", type: "number"}, {label: "Soleil(☀️)", key: "s", type: "number"}, 
+            {label: "Semis", key: "sm", type: "text"}, {label: "Récolte", key: "rc", type: "text"},
+            {label: "Effet", key: "desc", type: "large"}, {label: "Qté Deck", key: "qte", type: "number"}
         ]);
         renderTable("table-soutien", dataSoutien, [
             {label: "Nom", key: "nom", type: "text"}, {label: "Achat(💰)", key: "p", type: "number"}, {label: "Temps(⏳)", key: "t", type: "number"},
@@ -224,8 +225,9 @@
 
         // Parsing Légumes (C) et ajout du tag 'cat'
         extractData('table-legumes', dataLegumes).forEach(c => finalDecks.C.push({...c, cat: 'L'}));
-        // Parsing Arbres (C)
-        extractData('table-arbres', dataArbres).forEach(c => finalDecks.C.push({...c, cat: 'A', rc: c.sm})); // Récolte = Semis par défaut pour l'arbre
+        
+        // Parsing Arbres (C) 
+        extractData('table-arbres', dataArbres).forEach(c => finalDecks.C.push({...c, cat: 'A'})); 
         
         // Parsing Soutien & Compagnes (S)
         extractData('table-compagnes', dataCompagnes).forEach(c => finalDecks.S.push({...c, cat: 'S'}));
@@ -239,7 +241,7 @@
 
         // Envoi
         dbConfig.set(finalDecks).then(() => {
-            alert("✅ Base de données mise à jour avec succès dans Firebase !");
+            alert("✅ Base de données mise à jour avec succès dans Firebase ! Vos nouvelles cartes seront disponibles à la prochaine partie.");
         }).catch(err => {
             console.error(err);
             alert("❌ Erreur lors de la sauvegarde.");
