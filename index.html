@@ -2,7 +2,7 @@
 <html lang="fr">
 <head>
     <meta charset="UTF-8">
-    <title>La Main Verte - V37 (Objectifs et Foire)</title>
+    <title>La Main Verte - V38 (Décompte Final & PV)</title>
     <script src="https://www.gstatic.com/firebasejs/9.17.1/firebase-app-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/9.17.1/firebase-database-compat.js"></script>
     <style>
@@ -14,9 +14,12 @@
         .btn-lobby:hover { filter: brightness(1.2); transform: scale(1.05); }
 
         #game-over-screen { position: fixed; top:0; left:0; width:100%; height:100%; background:rgba(0,0,0,0.85); z-index: 3000; display: none; flex-direction: column; align-items: center; justify-content: center; color: white; }
-        .score-box { background: white; color: #263238; padding: 40px; border-radius: 12px; text-align: center; box-shadow: 0 10px 40px rgba(0,0,0,0.5); min-width: 400px; }
-        .score-row { display: flex; justify-content: space-between; font-size: 1.5em; margin: 15px 0; padding: 10px; background: #f0f4f7; border-radius: 8px; font-weight: bold; }
-        .score-winner { color: var(--p1); font-size: 2em; margin-bottom: 20px; }
+        .score-box { background: white; color: #263238; padding: 40px; border-radius: 12px; text-align: center; box-shadow: 0 10px 40px rgba(0,0,0,0.5); min-width: 500px; }
+        .score-table { width: 100%; border-collapse: collapse; margin: 20px 0; font-size: 1.1em; text-align: left; }
+        .score-table th, .score-table td { padding: 10px; border-bottom: 1px solid #cfd8dc; }
+        .score-table th { background: #eceff1; color: #37474f; }
+        .score-table .total-row { font-weight: bold; font-size: 1.3em; background: #e8f5e9; color: var(--p1); border-top: 2px solid var(--p1); }
+        .score-winner { color: var(--p1); font-size: 2em; margin-bottom: 10px; font-weight:bold; }
 
         .main-game { flex: 1; display: flex; flex-direction: column; padding: 10px; overflow-y: auto; }
         .sidebar { width: 440px; background: white; border-left: 2px solid #ddd; padding: 10px; display: flex; flex-direction: column; overflow-y: auto;}
@@ -85,7 +88,7 @@
 <body>
 
 <div id="lobby">
-    <h1 style="font-size: 3em; margin-bottom: 10px;">🌱 La Main Verte <span style="font-size:0.4em; color:#a5d6a7; vertical-align: middle;">V37</span></h1>
+    <h1 style="font-size: 3em; margin-bottom: 10px;">🌱 La Main Verte <span style="font-size:0.4em; color:#a5d6a7; vertical-align: middle;">V38</span></h1>
     <p style="font-size: 1.2em; margin-bottom: 30px;">Choisissez un mode de jeu :</p>
     <button class="btn-lobby" onclick="startNewGame('SOLO')">👤 Jouer en Solo</button>
     <button class="btn-lobby" style="background:#8e24aa" onclick="startNewGame('IA_SOLO')">🤖 Mode Spectateur (IA Solo)</button>
@@ -99,13 +102,27 @@
 
 <div id="game-over-screen">
     <div class="score-box">
-        <h1 style="margin-top:0;">🏁 Fin de la Partie !</h1>
-        <div id="winner-text" class="score-winner"></div>
-        <div class="score-row"><span>Joueur 1 :</span> <span id="final-score-1">0 🏆</span></div>
-        <div class="score-row" id="score-row-2"><span>Joueur 2 :</span> <span id="final-score-2">0 🏆</span></div>
-        <div style="display:flex; gap:10px; justify-content:center; margin-top:30px;">
-            <button class="btn-lobby" onclick="document.getElementById('lobby').style.display='flex'">Menu Principal</button>
-            <button class="btn-lobby" style="background:#607d8b" onclick="document.getElementById('game-over-screen').style.display='none'">🔍 Voir Plateau</button>
+        <div id="winner-text" class="score-winner">🏁 Bilan de l'Exploitation</div>
+        <table class="score-table">
+            <thead>
+                <tr>
+                    <th>Catégorie de Points</th>
+                    <th>Joueur 1</th>
+                    <th id="th-j2">Joueur 2</th>
+                </tr>
+            </thead>
+            <tbody>
+                <tr><td>🏆 PV Acquis (Concours, Coop)</td><td id="b1-base">0</td><td id="b2-base">0</td></tr>
+                <tr><td>💰 Oseille (1 PV / 3 sous)</td><td id="b1-m">0</td><td id="b2-m">0</td></tr>
+                <tr><td>🗺️ Zones Complétées</td><td id="b1-z">0</td><td id="b2-z">0</td></tr>
+                <tr><td>⚙️ Améliorations</td><td id="b1-u">0</td><td id="b2-u">0</td></tr>
+                <tr><td>🎯 Objectifs & Personnages</td><td id="b1-o">0</td><td id="b2-o">0</td></tr>
+                <tr class="total-row"><td>TOTAL</td><td id="b1-tot">0</td><td id="b2-tot">0</td></tr>
+            </tbody>
+        </table>
+        <div style="display:flex; gap:10px; justify-content:center; margin-top:20px;">
+            <button class="btn-lobby" style="width:auto; font-size:0.9em;" onclick="document.getElementById('lobby').style.display='flex'">Menu Principal</button>
+            <button class="btn-lobby" style="background:#607d8b; width:auto; font-size:0.9em;" onclick="document.getElementById('game-over-screen').style.display='none'">🔍 Voir Plateau</button>
         </div>
     </div>
 </div>
@@ -118,7 +135,7 @@
     <div id="turn-banner" class="turn-banner">Veuillez patienter...</div>
     <div class="hud" id="my-hud">
         <div id="season-display">📅 Saison...</div>
-        <div>💰 <span id="res-money">0</span> | ⏳ <span id="res-time">0</span>/<span id="res-timemax">10</span>h | <span class="res-pv" title="Points de Victoire">🏆 <span id="res-pv">0</span></span></div>
+        <div title="1 PV = 3 sous en fin de partie">💰 <span id="res-money">0</span> | ⏳ <span id="res-time">0</span>/<span id="res-timemax">10</span>h | <span class="res-pv" title="Points de Victoire (Base)">🏆 <span id="res-pv">0</span></span></div>
         <div title="Compost">💩 <span id="res-compost" class="res-pill">0</span></div>
         <div id="meteo-display" style="background:#e3f2fd; padding:3px 10px; border-radius:10px;">🎲 --</div>
         <button id="champion-btn" onclick="playChampion()" style="background:#fbc02d; color:#333; border:none; border-radius:4px; padding:4px 8px; cursor:pointer;">🏆 Jouer Champion</button>
@@ -211,6 +228,7 @@
     function generatePlayer() {
         return { 
             pv: 0, fences: 0, objectives: [], stats: { maxHarvest: 0, harvestCount: 0 }, coopDons: 0,
+            scoreDetails: { base: 0, mPV: 0, zPV: 0, uPV: 0, objPV: 0, finalScore: 0 },
             money: 10, time: 10, timeMax: 10, compost: 0, amenagementMode: false,
             upgrades: Array(8).fill(1), hand: [], auxActifs: [], 
             zones: zoneNumbersMap.map((num, i) => ({ id: i, num: num, type: num === 0 ? "LIFE" : (i === 14 ? "POTAGER" : null), slots: [], batiment: null })) 
@@ -259,7 +277,6 @@
             const snapConf = await dbConfig.once("value"); let config = snapConf.val() || {};
             let decks = { C: [], S: [], A: [], O: [] };
             
-            // Si la base d'objectifs est vide, on injecte des objectifs par défaut pour éviter un plantage
             let fallbackObjectives = [
                 {nom: "Diversité", desc: "Avoir 4 types de légumes différents. (5 PV)", qte: 2, cat: 'O'},
                 {nom: "Monoculture", desc: "Avoir 4 légumes identiques. (5 PV)", qte: 1, cat: 'O'},
@@ -298,14 +315,26 @@
 
     function showGameOver() {
         document.getElementById('game-over-screen').style.display = 'flex';
-        document.getElementById('final-score-1').innerText = (state.p1.pv + Math.floor(state.p1.money/10)) + " 🏆";
+        
+        let p1 = state.p1.scoreDetails || {base:0, mPV:0, zPV:0, uPV:0, objPV:0, finalScore:0};
+        let p2 = state.p2.scoreDetails || {base:0, mPV:0, zPV:0, uPV:0, objPV:0, finalScore:0};
+
+        const setTD = (id, val) => document.getElementById(id).innerText = val;
+        
+        setTD('b1-base', p1.base); setTD('b2-base', p2.base);
+        setTD('b1-m', p1.mPV); setTD('b2-m', p2.mPV);
+        setTD('b1-z', p1.zPV); setTD('b2-z', p2.zPV);
+        setTD('b1-u', p1.uPV); setTD('b2-u', p2.uPV);
+        setTD('b1-o', p1.objPV); setTD('b2-o', p2.objPV);
+        setTD('b1-tot', p1.finalScore + " 🏆"); setTD('b2-tot', p2.finalScore + " 🏆");
+
         if(state.mode === 'SOLO' || state.mode === 'IA_SOLO') {
-            document.getElementById('score-row-2').style.display = 'none'; document.getElementById('winner-text').innerText = "🎉 Ferme terminée !";
+            document.getElementById('th-j2').style.display = 'none';
+            document.querySelectorAll('#game-over-screen td:nth-child(3)').forEach(el => el.style.display='none');
+            document.getElementById('winner-text').innerText = "🎉 Bilan de votre Ferme !";
         } else {
-            document.getElementById('score-row-2').style.display = 'flex'; 
-            let s1 = state.p1.pv + Math.floor(state.p1.money/10); let s2 = state.p2.pv + Math.floor(state.p2.money/10);
-            document.getElementById('final-score-2').innerText = s2 + " 🏆";
-            document.getElementById('winner-text').innerText = s1 > s2 ? "🏆 Le Joueur 1 Gagne !" : (s2 > s1 ? "🏆 Le Joueur 2 Gagne !" : "Égalité !");
+            let winTxt = p1.finalScore > p2.finalScore ? "🏆 Le Joueur 1 Gagne !" : (p2.finalScore > p1.finalScore ? "🏆 Le Joueur 2 Gagne !" : "Égalité !");
+            document.getElementById('winner-text').innerText = winTxt;
         }
     }
 
@@ -383,7 +412,6 @@
             grid.appendChild(d);
         });
 
-        // AFFICHAGE DES OBJECTIFS DU JOUEUR
         const oDiv = document.getElementById('player-objectives'); oDiv.innerHTML = "";
         (me.objectives || []).forEach((o) => {
             oDiv.innerHTML += `<div class="card" style="border-left-color: #2196f3; background:#e3f2fd;"><b>🎯 ${o.nom}</b><br><span style="font-size:0.85em; color:#1565c0;">${o.desc || ''}</span></div>`;
@@ -508,7 +536,7 @@
         const costCam = 2 + (state.foire.camelot || 0); const costCons = 2 + (state.foire.conseiller || 0);
         let html = `<div style="display:flex;justify-content:space-between; align-items:center;"><h2>🎪 Foire Agricole</h2><button onclick="localFoireOpen=false;render()">Fermer</button></div>`;
         html += `<div style="display:grid; grid-template-columns: 1fr 1fr 1fr; gap:15px; margin-top:20px;">`;
-        html += `<div style="background:#e8eaf6; padding:15px; border-radius:8px; border:2px solid #fbc02d;"><h3>🛍️ Le Stand</h3><p>Vendez des cartes de votre main pour 1💰. (Coût : 1h/carte).</p><hr>`;
+        html += `<div style="background:#e8eaf6; padding:15px; border-radius:8px; border:2px solid #fbc02d;"><h3>🛍️ Le Stand</h3><p>Vendez des cartes pour 1💰. (Coût : 1h/carte).</p><hr>`;
         (me.hand||[]).forEach((c, idx) => { html += `<button style="width:100%; margin-bottom:5px; cursor:pointer;" onclick="actFoireStand(${idx})" ${me.time<1?'disabled':''}>Vendre ${c.nom} (+1💰, -1h)</button>`; });
         html += `</div>`;
         html += `<div style="background:#e8f5e9; padding:15px; border-radius:8px; border:2px solid #4caf50;"><h3>🚧 Le Camelot</h3><p>Achetez des clôtures.<br><b>File :</b> +${state.foire.camelot||0}h</p>
@@ -521,10 +549,8 @@
     function actFoireStand(idx) { const me = state['p'+state.turn]; if(me.time<1) return; me.time--; me.money++; me.hand.splice(idx,1); addLog(`🎪 Vente au stand (+1💰, -1h).`, state.turn); sync(); }
     function actFoireCamelot() { const me = state['p'+state.turn]; const cost = 2 + (state.foire.camelot||0); if(me.time<cost || me.money<3) return; me.time-=cost; me.money-=3; me.fences=(me.fences||0)+1; state.foire.camelot=(state.foire.camelot||0)+1; addLog(`🎪 Achat Clôture (-3💰, -${cost}h).`, state.turn); sync(); }
     
-    // GESTION DES OBJECTIFS CORRIGÉE
     function actFoireConseiller() {
         const me = state['p'+state.turn]; const cost = 2 + (state.foire.conseiller||0); if(me.time<cost) return;
-        
         if(!state.decks.O || state.decks.O.length === 0) return alert("La pioche d'objectifs est vide !");
         
         let obj1 = draw('O'); let obj2 = draw('O'); 
@@ -532,17 +558,13 @@
         
         let choice = 1; 
         if(obj1 && obj2) {
-            let info1 = obj1.desc || obj1.effet || "Objectif inconnu";
-            let info2 = obj2.desc || obj2.effet || "Objectif inconnu";
+            let info1 = obj1.desc || obj1.effet || "Objectif inconnu"; let info2 = obj2.desc || obj2.effet || "Objectif inconnu";
             choice = parseInt(prompt(`Choisissez un objectif (tapez 1 ou 2):\n\n1) ${obj1.nom} : ${info1}\n\n2) ${obj2.nom} : ${info2}`)) === 2 ? 2 : 1;
         }
         
-        me.time-=cost; state.foire.conseiller=(state.foire.conseiller||0)+1; 
-        if(!me.objectives) me.objectives=[];
-        
+        me.time-=cost; state.foire.conseiller=(state.foire.conseiller||0)+1; if(!me.objectives) me.objectives=[];
         if(choice === 1 && obj1) { me.objectives.push(obj1); if(obj2) state.decks.O.push(obj2); } 
         else if(obj2) { me.objectives.push(obj2); if(obj1) state.decks.O.push(obj1); }
-        
         addLog(`🎪 Objectif récupéré (-${cost}h).`, state.turn); localFoireOpen=false; sync();
     }
 
@@ -561,9 +583,7 @@
         const zoneCible = me.zones[zId];
         let nomZ = zId === 14 ? 'PO 1,2' : (zId === 0 ? 'Maison' : 'Z'+zoneCible.num);
 
-        if(zoneCible.type) {
-            return alert(`L'emplacement sélectionné (${nomZ}) est déjà aménagé en ${zoneCible.type} ! Veuillez cliquer sur une zone vide.`);
-        }
+        if(zoneCible.type) return alert(`L'emplacement sélectionné (${nomZ}) est déjà aménagé en ${zoneCible.type} ! Veuillez cliquer sur une zone vide.`);
 
         let num = zoneCible.num != null ? Number(zoneCible.num) : null;
 
@@ -580,8 +600,7 @@
 
         let costO = 0; let costH = 0;
         if(t === 'POTAGER' || t === 'VERGER') {
-            costO = Math.max(0, s.costAmenagerPotagerOr - (me.upgrades[5] >= 2 ? (me.upgrades[5]===3 ? 2 : 1) : 0));
-            costH = s.costAmenagerPotagerTemps; 
+            costO = Math.max(0, s.costAmenagerPotagerOr - (me.upgrades[5] >= 2 ? (me.upgrades[5]===3 ? 2 : 1) : 0)); costH = s.costAmenagerPotagerTemps; 
         } else {
             if(!me.amenagementMode) return alert("Bouton invalide. Utilisez le mode Biodiversité.");
             costO = (t === 'MARE') ? 4 : 3; costH = 0; 
@@ -592,8 +611,7 @@
         
         me.money -= costO; me.time -= costH; zoneCible.type = t; 
         addLog(`🏗️ ${t} sur Z${zId===14 ? 'PO' : num} (-${costO}💰${costH>0?`, -${costH}h`:''}).`, pId); 
-        localSelectedId = null; 
-        sync(); 
+        localSelectedId = null; sync(); 
     }
 
     function actB(zId = localSelectedId) { 
@@ -795,8 +813,38 @@
 
         state.saisonIdx++; if(state.saisonIdx > 3) { state.saisonIdx = 0; state.annee++; }
 
-        if(state.annee > 3) {
-            state.gameOver = true; addLog("🏁 Fin des 3 années de jeu.", myId); sync(); return;
+        if(state.annee > 3 && !state.gameOver) {
+            // DÉCOMPTE FINAL DES POINTS
+            [1, 2].forEach(pid => {
+                let pData = state['p'+pid];
+                
+                let objPV = 0;
+                if(!botEnabled || pid === 1) { 
+                    let input = prompt(`Joueur ${pid} : Combien de PV supplémentaires rapportent vos cartes Objectifs et Personnages ?`, "0");
+                    objPV = parseInt(input) || 0;
+                } else {
+                    objPV = Math.floor(Math.random() * 10); 
+                }
+
+                let mPV = Math.floor(pData.money / 3);
+                
+                let zonesComplete = 0;
+                for(let n=1; n<=5; n++) {
+                    let hexes = pData.zones.filter(z => z.num === n);
+                    if(hexes.length > 0 && hexes.every(z => z.type !== null)) zonesComplete++;
+                }
+                let zPV = zonesComplete === 5 ? 15 : (zonesComplete === 4 ? 7 : (zonesComplete >= 3 ? 3 : 0));
+                
+                let uPV = pData.upgrades.reduce((sum, lvl) => sum + (lvl === 3 ? 5 : (lvl === 2 ? 2 : 0)), 0);
+
+                pData.scoreDetails = { base: pData.pv, mPV: mPV, zPV: zPV, uPV: uPV, objPV: objPV, finalScore: (pData.pv + mPV + zPV + uPV + objPV) };
+                pData.finalScore = pData.scoreDetails.finalScore; // Fallback
+            });
+
+            state.gameOver = true; 
+            addLog("🏁 Fin des 3 années de jeu. Décompte final !", myId); 
+            sync(); 
+            return;
         }
 
         let newSeason = ALL_SEASONS[state.saisonIdx];
