@@ -2,7 +2,7 @@
 <html lang="fr">
 <head>
     <meta charset="UTF-8">
-    <title>La Main Verte - V26 (Plateau Hexagonal & Potager Départ)</title>
+    <title>La Main Verte - V27 (Interface Ultime)</title>
     <script src="https://www.gstatic.com/firebasejs/9.17.1/firebase-app-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/9.17.1/firebase-database-compat.js"></script>
     <style>
@@ -76,7 +76,6 @@
         .zone-id-11 { top: 190px; left: 340px; } 
         .zone-id-12 { top: 190px; left: 450px; } 
         .zone-id-13 { top: 280px; left: 450px; } 
-        /* Correction : Pas de couleur forcée pour laisser le vert "Potager" s'afficher */
         .zone-id-14 { top: 190px; left: 10px; } 
 
         .card { border: 1px solid #ddd; border-radius: 6px; padding: 6px; margin-bottom: 4px; background: white; font-size: 0.75em; border-left: 4px solid var(--p1); cursor: help; position: relative;}
@@ -223,7 +222,6 @@
             upgrades: Array(8).fill(1), hand: [], auxActifs: [], 
             zones: zoneNumbersMap.map((num, i) => ({ 
                 id: i, num: num, 
-                // CORRECTION : L'hexagone 14 (PO 1,2) est un POTAGER dès le début !
                 type: num === 0 ? "LIFE" : (i === 14 ? "POTAGER" : null), 
                 culture: null, batiment: null 
             })) 
@@ -358,7 +356,6 @@
             d.style.opacity = acc ? "1" : "0.3";
             d.onclick = () => { if(acc && isMyTurn && !botEnabled && !state.gameOver) { localSelectedId = z.id; render(); } };
             
-            // CORRECTION DE L'AFFICHAGE DU TEXTE
             let zoneName = z.id === 14 ? "PO 1,2" : `Z${z.num}`;
 
             if(z.id === 0) { d.innerHTML = `🏠 MAISON<br>Zone 0`; }
@@ -385,7 +382,12 @@
         (me.hand || []).forEach((c, i) => {
             const cost = Math.max(0, (c.t||1) - (me.upgrades[2]-1));
             const card = document.createElement('div'); card.className = "card";
-            let details = c.cat==='S' ? c.desc : (c.cat==='X' ? c.prot : `💧${c.e} ☀️${c.s}<br>🌱 ${(c.sm||[]).join(',')} | 🧺 ${(c.rc||[]).join(',')}`);
+            
+            let details = "";
+            if (c.cat === 'S') details = `✨ <b>Effet :</b> ${c.desc}`;
+            else if (c.cat === 'X') details = `🛡️ <b>Protège :</b> Anti-${c.prot}`;
+            else details = `📈 <b>Gain : +${c.g}💰</b><br>💧${c.e} ☀️${c.s}<br>🌱 ${(c.sm||[]).join(',')} | 🧺 ${(c.rc||[]).join(',')}`;
+            
             card.innerHTML = `<b>${c.nom}</b><br><span style="font-size:0.9em;">${details}</span><br><button onclick="playC(${i})" title="Déployer cette carte sur le plateau. Coût : ${cost}h" style="width:100%; margin-top:4px; padding:4px; cursor:pointer;" ${!isMyTurn || me.time<cost || botEnabled || state.gameOver ? 'disabled':''}>Jouer (-${cost}h)</button>`;
             hDiv.appendChild(card);
         });
@@ -449,7 +451,12 @@
             (state.market[cat] || []).forEach((c, idx) => {
                 const can = me.money >= c.p;
                 const d = document.createElement('div'); d.className = "jard-card"; d.style.opacity = can?"1":"0.4";
-                let details = c.cat==='S' ? c.desc : (c.cat==='X' ? c.prot : `💧${c.e} ☀️${c.s}<br>🌱 ${(c.sm||[]).join(',')} | 🧺 ${(c.rc||[]).join(',')}`);
+                
+                let details = "";
+                if (c.cat === 'S') details = `✨ <b>Effet :</b> ${c.desc}`;
+                else if (c.cat === 'X') details = `🛡️ <b>Protège :</b> Anti-${c.prot}`;
+                else details = `📈 <b>Gain : +${c.g}💰</b><br>💧${c.e} ☀️${c.s}<br>🌱 ${(c.sm||[]).join(',')} | 🧺 ${(c.rc||[]).join(',')}`;
+                
                 d.innerHTML = `<div class="price-tag">${c.p}💰</div><b>${c.nom}</b><br><small>${details}</small>`;
                 d.onclick = () => { if(can) { me.money-=c.p; if(!me.hand) me.hand=[]; me.hand.push(c); state.market[cat].splice(idx,1); if(!state.market[cat]) state.market[cat] = []; if(me.upgrades[6]>=3) { let nc = draw(cat); if(nc) state.market[cat].push(nc); } addLog(`🛒 Achat au marché : ${c.nom} (-${c.p}💰).`, state.turn); consm(); } };
                 r.appendChild(d);
