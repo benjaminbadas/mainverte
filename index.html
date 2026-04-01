@@ -269,14 +269,19 @@
     // ============================================================================
 
     window.discardCard = function(c) {
-        if (!state.discards) state.discards = { C: [], S: [], A: [], O: [] };
+        // Firebase supprime automatiquement les objets/tableaux vides. 
+        // Il faut s'assurer que l'arborescence est recréée à chaque fois avant de push.
+        if (!state.discards) state.discards = {};
+        if (!state.discards.C) state.discards.C = [];
+        if (!state.discards.S) state.discards.S = [];
+        if (!state.discards.A) state.discards.A = [];
+        if (!state.discards.O) state.discards.O = [];
         
         let targetDeck = 'C';
         if (c.cat === 'S') targetDeck = 'S';
         else if (c.cat === 'A' || c.cat === 'X') targetDeck = 'A';
         else if (!c.cat) targetDeck = 'O';
 
-        // On nettoie la carte des variables "en jeu" avant de la remettre dans la défausse
         let cleanC = { ...c };
         delete cleanC.eCur; delete cleanC.sCur; delete cleanC.amd; 
         delete cleanC.compagne; delete cleanC.dead; delete cleanC.toRemove;
@@ -287,7 +292,6 @@
     window.draw = function(deckType) {
         if (!state.decks[deckType]) state.decks[deckType] = [];
         
-        // Si la pioche est vide, on remélange la défausse
         if (state.decks[deckType].length === 0) {
             if (state.discards && state.discards[deckType] && state.discards[deckType].length > 0) {
                 state.decks[deckType] = state.discards[deckType];
@@ -295,7 +299,7 @@
                 let nomPioche = deckType === 'C' ? 'Cultures' : (deckType === 'S' ? 'Soutiens' : (deckType === 'A' ? 'Auxiliaires' : 'Objectifs'));
                 addLog(`🔀 La pioche ${nomPioche} a été mélangée !`, state.turn);
             } else {
-                return null; // Défausse ET pioche vides
+                return null;
             }
         }
         
@@ -610,9 +614,10 @@
                     addLog(`🤖 Le bot achète ${bestCard.nom}.`, pId);
                     
                     let maxCards = (state.coop?.unlocks?.market3) ? 3 : 2;
-                    while(state.market[targetCat].length < maxCards && state.decks[targetCat].length > 0) { 
+                    while(state.market[targetCat].length < maxCards) { 
                         let newC = draw(targetCat);
                         if(newC) state.market[targetCat].push(newC); 
+                        else break;
                     }
                     sync(); return;
                 }
@@ -620,7 +625,7 @@
         }
 
         let costCons = 2 + (state.foire.conseiller || 0);
-        if (state.annee >= 2 && me.time >= costCons && state.decks.O && state.decks.O.length > 0) {
+        if (state.annee >= 2 && me.time >= costCons) {
             me.time -= costCons; state.foire.conseiller = (state.foire.conseiller || 0) + 1;
             let obj = draw('O');
             if(obj) {
@@ -1060,12 +1065,12 @@
                     consm(); 
                 } 
             } else { 
-                safeAlert(`Fonds insuffisants.`); 
+                safeAlert(`Fonds insuffisants pour ${c.nom} (${c.p}💰).`); 
                 discardCard(c);
                 consm(); 
             } 
         } else {
-            safeAlert("Pioche vide !"); 
+            safeAlert("La pioche ET la défausse sont vides !"); 
         }
     }
 
@@ -1172,7 +1177,7 @@
         } else if(obj2) { 
             me.objectives.push(obj2); 
             if(obj1) discardCard(obj1); 
-        } else if(obj1) { // Au cas où on aurait pioché qu'une seule carte
+        } else if(obj1) { 
             me.objectives.push(obj1);
         }
         addLog(`🎪 Objectif récupéré (-${cost}h).`, state.turn); 
@@ -1443,6 +1448,7 @@
                     ['C','S','A'].forEach(ct => { 
                         while(state.market[ct].length < 3) { 
                             let nv = draw(ct); if(nv) state.market[ct].push(nv); 
+                            else break;
                         } 
                     }); 
                 }
@@ -1673,11 +1679,11 @@
     }
 
     // ============================================================================
-    // INITIALISATION, PIOCHE ET AFFICHAGE FIN DE PARTIE (MODIFIÉ POUR ADMIN)
+    // INITIALISATION, PIOCHE ET AFFICHAGE FIN DE PARTIE
     // ============================================================================
 
     window.startNewGame = function(mode) {
-        myId = 1; // Hôte
+        myId = 1; 
         
         dbConfig.once('value').then((snap) => {
             let adminData = snap.val();
@@ -1705,24 +1711,16 @@
                 decksToUse = {
                     C: [
                         { nom: "Tomates", cat: 'L', p: 2, g: 4, e: 2, s: 2, t: 1, sm: ["P"], rc: ["E", "A"] },
-                        { nom: "Carottes", cat: 'L', p: 1, g: 3, e: 1, s: 1, t: 1, sm: ["P", "E"], rc: ["E", "A", "H"] },
-                        { nom: "Salade", cat: 'L', p: 1, g: 2, e: 2, s: 1, t: 1, sm: ["P", "A"], rc: ["E", "H"] },
-                        { nom: "Fraise", cat: 'L', p: 3, g: 4, e: 2, s: 2, t: 1, sm: ["P"], rc: ["E"] },
-                        { nom: "Haricot", cat: 'L', p: 2, g: 3, e: 2, s: 2, t: 1, sm: ["P", "E"], rc: ["E", "A"] }
+                        { nom: "Carottes", cat: 'L', p: 1, g: 3, e: 1, s: 1, t: 1, sm: ["P", "E"], rc: ["E", "A", "H"] }
                     ],
                     S: [
-                        { nom: "Arrosoir", cat: 'S', p: 3, t: 1, desc: "Outil : Permet d'arroser plus." },
-                        { nom: "Basilic", cat: 'S', p: 1, t: 1, desc: "Compagne : Protège la plante." },
-                        { nom: "Fumier", cat: 'S', p: 2, t: 1, desc: "À composter pour obtenir 2💩." },
-                        { nom: "Tuteur", cat: 'S', p: 2, t: 1, desc: "Outil : Permet de planter des grimpantes." }
+                        { nom: "Arrosoir", cat: 'S', p: 3, t: 1, desc: "Outil : Permet d'arroser plus." }
                     ],
                     A: [
-                        { nom: "Pommier", cat: 'A', p: 4, g: 6, e: 3, s: 3, t: 1, sm: ["H", "P"], rc: ["A"] },
-                        { nom: "Coccinelle", cat: 'X', prot: "Pucerons", p: 3, t: 1, desc: "Protège contre les pucerons" }
+                        { nom: "Pommier", cat: 'A', p: 4, g: 6, e: 3, s: 3, t: 1, sm: ["H", "P"], rc: ["A"] }
                     ],
                     O: [
-                        { nom: "Ferme Autonome", desc: "Avoir Serre, Local et Composteur (7 PV)" },
-                        { nom: "Grande Diversité", desc: "Avoir 4 légumes différents (5 PV)" }
+                        { nom: "Ferme Autonome", desc: "Avoir Serre, Local et Composteur (7 PV)" }
                     ]
                 };
             }
@@ -1750,8 +1748,12 @@
                 settings: settingsToUse
             };
 
+            // Remplissage initial propre sans passer par jardR() pour éviter la défausse immédiate
             ['C', 'S', 'A'].forEach(cat => {
-                if(state.decks[cat] && state.decks[cat].length > 0) jardR(cat);
+                for(let i=0; i<2; i++) {
+                    let newC = draw(cat);
+                    if(newC) state.market[cat].push(newC);
+                }
             });
 
             document.getElementById('lobby').style.display = 'none';
