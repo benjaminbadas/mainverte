@@ -552,8 +552,16 @@
 
 
     // ============================================================================
-    // VÉRIFICATION CONTINUE DES OBJECTIFS (Génère des PV en direct)
+    // VÉRIFICATION CONTINUE DES OBJECTIFS ET SYNCHRONISATION (CORRIGÉ)
     // ============================================================================
+    
+    // On définit d'abord la fonction de synchronisation de base avec Firebase
+    window.sync = function() {
+        if (state && typeof db !== 'undefined') {
+            db.set(state);
+        }
+    };
+    
     function checkObjectives(pid) {
         let pData = state['p'+pid];
         if (!pData || !pData.objectives) return;
@@ -605,9 +613,9 @@
         });
     }
 
-    // On s'assure que checkObjectives est appelé avant CHAQUE synchronisation
-    const originalSync = sync;
-    sync = function() {
+    // On surcharge sync pour qu'elle vérifie les objectifs avant d'envoyer à Firebase
+    const originalSync = window.sync;
+    window.sync = function() {
         if(state && !state.gameOver) {
             if(state.p1) checkObjectives(1);
             if(state.p2) checkObjectives(2);
@@ -1596,7 +1604,119 @@
         state.turn = 1; addLog(`💤 Résolution saison. Météo: 🌧️${pBase} ☀️${sBase}`, state.mode === 'SOLO' || state.mode === 'IA_SOLO' ? 1 : 2); sync();
     }
 
-    function actFin() { if(state.mode === 'SOLO' || state.mode === 'IA_SOLO') resolveSeason(); else { if(state.turn === 1) { state.turn = 2; addLog(`⏭️ Fin de tour.`, 1); sync(); } else resolveSeason(); } }
+    function actFin() { 
+        if(state.mode === 'SOLO' || state.mode === 'IA_SOLO') resolveSeason(); 
+        else { 
+            if(state.turn === 1) { 
+                state.turn = 2; addLog(`⏭️ Fin de tour.`, 1); sync(); 
+            } else resolveSeason(); 
+        } 
+    }
+
+    // ============================================================================
+    // INITIALISATION, PIOCHE ET AFFICHAGE FIN DE PARTIE
+    // ============================================================================
+
+    window.startNewGame = function(mode) {
+        myId = 1; // Le créateur est toujours le joueur 1
+        
+        // Initialisation des zones
+        let initZones = () => {
+            let z = [];
+            for(let i=0; i<15; i++) z.push({id: i, num: zoneNumbersMap[i], type: null, slots: [], batiment: null});
+            return z;
+        };
+        
+        // Initialisation des joueurs
+        let initP = () => ({
+            money: 10, time: 10, timeMax: 10, water: 0, waterMax: 0, compost: 0, pv: 0,
+            hand: [], upgrades: Array(8).fill(1), zones: initZones(), auxActifs: [], objectives: []
+        });
+
+        state = {
+            mode: mode, turn: 1, annee: 1, saisonIdx: 0, gameOver: false,
+            gameLogs: ["🌱 Nouvelle partie démarrée !"],
+            p1: initP(), p2: initP(),
+            // /!\ Attention: Tes decks sont vides ici ! Il faudra que tu rajoutes le code 
+            // qui liste toutes tes cartes ("Tomates", "Carottes", etc.) si tu ne l'as pas ailleurs.
+            market: { C:[], S:[], A:[] }, 
+            decks: { C:[], S:[], A:[], O:[] },
+            currentMeteo: {p:1, s:1}, currentRav: null,
+            coop: { level: 0, unlocks: {} }, foire: { camelot: 0, conseiller: 0 },
+            settings: { 
+                costArroserTemps: 1, costAmenderTemps: 1, costRecolterTemps: 1, costComposterTemps: 1,
+                costAmenagerPotagerOr: 3, costAmenagerPotagerTemps: 3,
+                costSerreOr: 8, costComposteurOr: 5, costLocalOr: 5,
+                costUp2Or: 4, costUp2Temps: 3, costUp3Or: 8, costUp3Temps: 5,
+                jardSlot1Temps: 1, jardSlot1Pioches: 1, jardSlot2Temps: 2, jardSlot2Pioches: 2,
+                jardSlot3Temps: 3, jardSlot3Pioches: 3, jardSlot4Temps: 4, jardSlot4Pioches: 4
+            }
+        };
+
+        // Remplir le marché initial avec 2 cartes par rayon si tes decks ne sont pas vides
+        ['C', 'S', 'A'].forEach(cat => {
+            if(state.decks[cat] && state.decks[cat].length > 0) jardR(cat);
+        });
+
+        document.getElementById('lobby').style.display = 'none';
+        sync();
+        render();
+    };
+
+    window.draw = function(deckType) {
+        if (!state.decks[deckType] || state.decks[deckType].length === 0) return null;
+        let randomIndex = Math.floor(Math.random() * state.decks[deckType].length);
+        return state.decks[deckType].splice(randomIndex, 1)[0];
+    };
+
+    window.showGameOver = function() {
+        document.getElementById('game-over-screen').style.display = 'flex';
+
+        [1, 2].forEach(pid => {
+            let pData = state['p'+pid];
+            if(pData && pData.scoreDetails) {
+                document.getElementById(`b${pid}-base`).innerText = pData.scoreDetails.base + pData.scoreDetails.objPV;
+                document.getElementById(`b${pid}-m`).innerText = pData.scoreDetails.mPV;
+                document.getElementById(`b${pid}-z`).innerText = pData.scoreDetails.zPV;
+                document.getElementById(`b${pid}-u`).innerText = pData.scoreDetails.uPV;
+                document.getElementById(`b${pid}-tot`).innerText = pData.scoreDetails.finalScore;
+            }
+        });
+
+        let s1 = state.p1.scoreDetails ? state.p1.scoreDetails.finalScore : 0;
+        let s2 = state.p2.scoreDetails ? state.p2.scoreDetails.finalScore : 0;
+        let winText = "⚖️ Égalité parfaite !";
+        if(s1 > s2) winText = "🏆 Le Joueur 1 a la meilleure ferme !";
+        else if(s2 > s1) winText = "🏆 Le Joueur 2 a la meilleure ferme !";
+
+        if(state.mode === 'SOLO' || state.mode === 'IA_SOLO') {
+            document.getElementById('th-j2').style.display = 'none';
+            document.getElementById('b2-base').style.display = 'none';
+            document.getElementById('b2-m').style.display = 'none';
+            document.getElementById('b2-z').style.display = 'none';
+            document.getElementById('b2-u').style.display = 'none';
+            document.getElementById('b2-tot').style.display = 'none';
+            winText = "🏁 Bilan de votre Exploitation";
+        }
+
+        document.getElementById('winner-text').innerText = winText;
+    };
+
+    window.confirmReset = function(global = false) {
+        if (confirm("Voulez-vous vraiment réinitialiser la partie ?")) {
+            if(global) db.remove().then(() => location.reload());
+            else startNewGame(state.mode || 'SOLO');
+        }
+    };
+
+    // Écoute des changements depuis la base de données
+    db.on('value', snap => {
+        let val = snap.val();
+        if(val) {
+            state = val;
+            if(myId) render();
+        }
+    });
 
 </script>
 </body>
