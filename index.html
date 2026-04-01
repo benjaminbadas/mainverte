@@ -2,7 +2,7 @@
 <html lang="fr">
 <head>
     <meta charset="UTF-8">
-    <title>La Main Verte - V57 (Météo & Mare exactes)</title>
+    <title>La Main Verte - V58 (Objectifs en Temps Réel)</title>
     <script src="https://www.gstatic.com/firebasejs/9.17.1/firebase-app-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/9.17.1/firebase-database-compat.js"></script>
     <style>
@@ -105,7 +105,7 @@
 <body>
 
 <div id="lobby">
-    <h1 style="font-size: 3em; margin-bottom: 10px;">🌱 La Main Verte <span style="font-size:0.4em; color:#a5d6a7; vertical-align: middle;">V57</span></h1>
+    <h1 style="font-size: 3em; margin-bottom: 10px;">🌱 La Main Verte <span style="font-size:0.4em; color:#a5d6a7; vertical-align: middle;">V58</span></h1>
     <p style="font-size: 1.2em; margin-bottom: 30px;">Choisissez un mode de jeu :</p>
     <button class="btn-lobby" onclick="startNewGame('SOLO')">👤 Jouer en Solo</button>
     <button class="btn-lobby" style="background:#8e24aa" onclick="startNewGame('IA_SOLO')">🤖 Mode Spectateur (IA Solo)</button>
@@ -129,12 +129,11 @@
                 </tr>
             </thead>
             <tbody>
-                <tr><td>🏆 PV Acquis (Concours, Coop)</td><td id="b1-base">0</td><td id="b2-base">0</td></tr>
+                <tr><td>🏆 PV Acquis (Base, Coop, Objectifs)</td><td id="b1-base">0</td><td id="b2-base">0</td></tr>
                 <tr><td>💰 Oseille (1 PV / 3 sous)</td><td id="b1-m">0</td><td id="b2-m">0</td></tr>
                 <tr><td>🗺️ Zones Complétées</td><td id="b1-z">0</td><td id="b2-z">0</td></tr>
                 <tr><td>⚙️ Améliorations</td><td id="b1-u">0</td><td id="b2-u">0</td></tr>
-                <tr><td>🎯 Objectifs (Calcul Auto)</td><td id="b1-o">0</td><td id="b2-o">0</td></tr>
-                <tr class="total-row"><td>TOTAL</td><td id="b1-tot">0</td><td id="b2-tot">0</td></tr>
+                <tr class="total-row"><td>TOTAL FINAL</td><td id="b1-tot">0</td><td id="b2-tot">0</td></tr>
             </tbody>
         </table>
         <div style="display:flex; gap:10px; justify-content:center; margin-top:20px;">
@@ -553,162 +552,76 @@
 
 
     // ============================================================================
+    // VÉRIFICATION CONTINUE DES OBJECTIFS (Génère des PV en direct)
+    // ============================================================================
+    function checkObjectives(pid) {
+        let pData = state['p'+pid];
+        if (!pData || !pData.objectives) return;
+        
+        let vegNames = []; let treeCount = 0; let hasSerre = false, hasComposteur = false, hasLocal = false;
+        pData.zones.forEach(z => {
+            if(z.batiment === 'SERRE') hasSerre = true; 
+            if(z.type === 'COMPOSTEUR' || z.batiment === 'COMPOSTEUR') hasComposteur = true; 
+            if(z.type === 'LOCAL OUTILS' || z.batiment === 'LOCAL OUTILS') hasLocal = true;
+            if(z.slots) { 
+                z.slots.forEach(c => { 
+                    if(c.cat === 'L') vegNames.push(c.nom); 
+                    if(c.cat === 'A') treeCount++; 
+                }); 
+            }
+        });
+
+        let uniqueVeg = new Set(vegNames).size; 
+        let vegCounts = {}; 
+        vegNames.forEach(n => vegCounts[n] = (vegCounts[n] || 0) + 1);
+        let maxSameVeg = vegNames.length > 0 ? Math.max(...Object.values(vegCounts)) : 0;
+
+        pData.objectives.forEach(o => {
+            if(o.achieved) return; 
+
+            let points = 0; 
+            let match = o.desc ? o.desc.match(/(\d+)\s*PV/i) : null; 
+            if(match) points = parseInt(match[1]);
+            if(points === 0) { 
+                if(o.nom.includes("Diversité")) points = 5; 
+                if(o.nom.includes("Monoculture")) points = 5; 
+                if(o.nom.toLowerCase().includes("verger")) points = 6; 
+                if(o.nom.includes("Ferme")) points = 7; 
+            }
+
+            let achieved = false; 
+            let nomLower = o.nom.toLowerCase();
+            
+            if(nomLower.includes("diversité") && uniqueVeg >= 4) achieved = true;
+            else if(nomLower.includes("monoculture") && maxSameVeg >= 4) achieved = true;
+            else if(nomLower.includes("verger") && treeCount >= 3) achieved = true;
+            else if(nomLower.includes("autonome") && hasSerre && hasComposteur && hasLocal) achieved = true;
+            
+            if(achieved) {
+                o.achieved = true;
+                pData.pv = (pData.pv || 0) + points;
+                addLog(`🎯 Objectif accompli : ${o.nom} (+${points} 🏆) !`, pid);
+            }
+        });
+    }
+
+    // On s'assure que checkObjectives est appelé avant CHAQUE synchronisation
+    const originalSync = sync;
+    sync = function() {
+        if(state && !state.gameOver) {
+            if(state.p1) checkObjectives(1);
+            if(state.p2) checkObjectives(2);
+        }
+        originalSync();
+    };
+
+
+    // ============================================================================
     // MOTEUR PRINCIPAL DU JEU ET UI
     // ============================================================================
 
-    function startNewGame(mode) {
-        myId = 1; 
-        document.getElementById('lobby').style.display = 'none'; 
-        document.getElementById('my-hud').style.borderTopColor = 'var(--p1)';
-        botEnabled = (mode === 'IA_SOLO' || mode === 'IA_VS_IA' || mode === 'VS_IA');
-        initNewGame(1, mode);
-    }
-
-    function joinGame(id) {
-        myId = id; 
-        document.getElementById('lobby').style.display = 'none'; 
-        document.getElementById('my-hud').style.borderTopColor = id === 1 ? 'var(--p1)' : 'var(--p2)';
-        if(state) render();
-    }
-
-    function generatePlayer() {
-        return { 
-            pv: 0, fences: 0, objectives: [], stats: { maxHarvest: 0, harvestCount: 0 }, coopDons: 0,
-            scoreDetails: { base: 0, mPV: 0, zPV: 0, uPV: 0, objPV: 0, finalScore: 0 },
-            money: 10, time: 10, timeMax: 10, compost: 0, water: 0, waterMax: 0, amenagementMode: false,
-            upgrades: Array(8).fill(1), hand: [], auxActifs: [], 
-            zones: zoneNumbersMap.map((num, i) => ({ id: i, num: num, type: num === 0 ? "LIFE" : (i === 14 ? "POTAGER" : null), slots: [], batiment: null })) 
-        };
-    }
-
-    async function initNewGame(creatorId = null, mode = 'MULTI') {
-        if(isInitializing) return; 
-        isInitializing = true;
-        try {
-            const snapConf = await dbConfig.once("value"); 
-            let config = snapConf.val() || {};
-            let decks = { C: [], S: [], A: [], O: [] };
-            
-            let fallbackObjectives = [
-                {nom: "Diversité", desc: "Avoir 4 types de légumes différents. (5 PV)", qte: 2, cat: 'O'},
-                {nom: "Monoculture", desc: "Avoir 4 légumes identiques. (5 PV)", qte: 1, cat: 'O'},
-                {nom: "Le grand verger", desc: "Avoir 3 arbres fruitiers. (6 PV)", qte: 2, cat: 'O'},
-                {nom: "Ferme autonome", desc: "Posséder Serre, Composteur et Local. (7 PV)", qte: 1, cat: 'O'}
-            ];
-            
-            if(!config.decks) config.decks = {};
-            if(!config.decks.O || config.decks.O.length === 0) config.decks.O = fallbackObjectives;
-
-            ['C','S','A','O'].forEach(cat => { 
-                (config.decks[cat] || []).forEach(c => { 
-                    let q = c.qte || 1; 
-                    for(let i=0; i<q; i++) decks[cat].push({...c}); 
-                }); 
-            });
-            
-            let defaultSet = { 
-                costAmenagerPotagerOr:2, costAmenagerPotagerTemps:3, costAmenagerNatureOr:3, costAmenagerNatureTemps:3, 
-                costSerreOr:3, costSerreTemps:4, costComposteurOr:4, costComposteurTemps:4, costLocalOr:5, costLocalTemps:4, 
-                costArroserTemps:1, costAmenderTemps:1, costComposterTemps:1, costRecolterTemps:2, 
-                costUp2Or:2, costUp2Temps:3, costUp3Or:4, costUp3Temps:5, 
-                jardSlot1Temps:3, jardSlot1Pioches:5, jardSlot2Temps:2, jardSlot2Pioches:3, 
-                jardSlot3Temps:2, jardSlot3Pioches:2, jardSlot4Temps:1, jardSlot4Pioches:1 
-            };
-            
-            let loadedSettings = config.settings || defaultSet; 
-            for(let k in defaultSet) {
-                if(loadedSettings[k]===undefined) loadedSettings[k]=defaultSet[k];
-            }
-
-            state = { 
-                mode: mode, turn: 1, annee: 1, saisonIdx: 0, gameOver: false, settings: loadedSettings, 
-                decks: decks, ravPool: config.ravageurs||[], market: { C: [], S: [], A: [] }, 
-                foire: { camelot: 0, conseiller: 0 }, coop: { level: 0, unlocks: {} },
-                currentMeteo: {p:0, s:0}, currentRav: null, p1: generatePlayer(), p2: generatePlayer(), 
-                gameLogs: [creatorId ? `> 🧹 Partie (Mode: ${mode}) initialisée.` : "> Nouvelle partie initialisée."] 
-            };
-            
-            ['C','S','A'].forEach(cat => { 
-                for(let i=0; i<2; i++) { 
-                    let d = draw(cat); 
-                    if(d) state.market[cat].push(d); 
-                } 
-            });
-            
-            document.getElementById('game-over-screen').style.display = 'none'; 
-            await db.set(state);
-            localSelectedId = null;
-        } catch(e) { 
-            console.error(e); 
-        } finally { 
-            isInitializing = false; 
-        } 
-    }
-
-    async function confirmReset(force = false) { 
-        if(force === true || confirm("⚠️ Réinitialiser complètement le serveur ?")) { 
-            let currentMode = state ? state.mode : 'MULTI'; 
-            await initNewGame(myId || "Serveur", currentMode); 
-        } 
-    }
-
-    db.on("value", snap => {
-        const val = snap.val();
-        if(val && val.p1) {
-            if(!val.coop) val.coop = { level: 0, unlocks: {} }; 
-            if(!val.coop.unlocks) val.coop.unlocks = {}; 
-            if(!val.foire) val.foire = { camelot: 0, conseiller: 0 };
-            
-            if (state && (state.saisonIdx !== val.saisonIdx || state.annee !== val.annee) && !val.gameOver) { 
-                playSeasonAnimation(val.saisonIdx, val.annee); 
-            }
-            state = val; 
-            render(); 
-        }
-    });
-
-    function sync() { if(state) db.set(state); }
-    
-    function draw(cat) { 
-        if(!state.decks[cat] || state.decks[cat].length === 0) return null; 
-        return state.decks[cat].splice(Math.floor(Math.random()*state.decks[cat].length), 1)[0]; 
-    }
-
-    function playSeasonAnimation(sIdx, annee) {
-        if(state.gameOver) return;
-        const overlay = document.getElementById('season-anim-overlay');
-        document.getElementById('anim-title').innerText = SAISON_NOMS[sIdx]; 
-        document.getElementById('anim-subtitle').innerText = "Année " + annee;
-        overlay.style.display = 'flex'; 
-        setTimeout(() => { overlay.style.opacity = '1'; document.getElementById('anim-box').style.transform = 'scale(1)'; }, 50);
-        setTimeout(() => { overlay.style.opacity = '0'; document.getElementById('anim-box').style.transform = 'scale(0.8)'; setTimeout(() => overlay.style.display = 'none', 500); }, 2500);
-    }
-
-    function showGameOver() {
-        document.getElementById('game-over-screen').style.display = 'flex';
-        
-        let p1 = state.p1.scoreDetails || {base:0, mPV:0, zPV:0, uPV:0, objPV:0, finalScore:0};
-        let p2 = state.p2.scoreDetails || {base:0, mPV:0, zPV:0, uPV:0, objPV:0, finalScore:0};
-
-        setTD('b1-base', p1.base); setTD('b2-base', p2.base);
-        setTD('b1-m', p1.mPV); setTD('b2-m', p2.mPV);
-        setTD('b1-z', p1.zPV); setTD('b2-z', p2.zPV);
-        setTD('b1-u', p1.uPV); setTD('b2-u', p2.uPV);
-        setTD('b1-o', p1.objPV); setTD('b2-o', p2.objPV);
-        setTD('b1-tot', p1.finalScore + " 🏆"); setTD('b2-tot', p2.finalScore + " 🏆");
-
-        if(state.mode === 'SOLO' || state.mode === 'IA_SOLO') {
-            document.getElementById('th-j2').style.display = 'none';
-            document.querySelectorAll('#game-over-screen td:nth-child(3)').forEach(el => el.style.display='none');
-            document.getElementById('winner-text').innerText = "🎉 Bilan de votre Ferme !";
-        } else {
-            let winTxt = p1.finalScore > p2.finalScore ? "🏆 Le Joueur 1 Gagne !" : (p2.finalScore > p1.finalScore ? "🏆 Le Joueur 2 Gagne !" : "Égalité !");
-            document.getElementById('winner-text').innerText = winTxt;
-        }
-    }
-
-    function setTD(id, val) { const el = document.getElementById(id); if(el) el.innerText = val; }
     function setTxt(id, txt) { const el = document.getElementById(id); if(el) el.innerHTML = txt; }
+    function setTD(id, val) { const el = document.getElementById(id); if(el) el.innerText = val; }
 
     function addLog(msg, pid = myId) {
         if(!state.gameLogs) state.gameLogs = []; 
@@ -891,26 +804,29 @@
             let status = ""; 
             let borderCol = "#2196f3"; 
             let bgCol = "#e3f2fd";
-            if (state.gameOver) {
-                if (o.achieved) {
-                    let points = 0; 
-                    let match = o.desc ? o.desc.match(/(\d+)\s*PV/i) : null; 
-                    if(match) points = parseInt(match[1]);
-                    if(points === 0) { 
-                        if(o.nom.includes("Diversité")) points = 5; 
-                        if(o.nom.includes("Monoculture")) points = 5; 
-                        if(o.nom.toLowerCase().includes("verger")) points = 6; 
-                        if(o.nom.includes("Ferme")) points = 7; 
-                    }
-                    status = ` <span style='color:#2e7d32; font-weight:bold; float:right;'>✅ +${points}🏆</span>`; 
-                    borderCol = "#4caf50"; 
-                    bgCol = "#e8f5e9";
-                } else {
-                    status = " <span style='color:#d32f2f; font-weight:bold; float:right;'>❌ Raté</span>"; 
-                    borderCol = "#f44336"; 
-                    bgCol = "#ffebee";
-                }
+            
+            let points = 0; 
+            let match = o.desc ? o.desc.match(/(\d+)\s*PV/i) : null; 
+            if(match) points = parseInt(match[1]);
+            if(points === 0) { 
+                if(o.nom.includes("Diversité")) points = 5; 
+                if(o.nom.includes("Monoculture")) points = 5; 
+                if(o.nom.toLowerCase().includes("verger")) points = 6; 
+                if(o.nom.includes("Ferme")) points = 7; 
             }
+
+            if (o.achieved) {
+                status = ` <span style='color:#2e7d32; font-weight:bold; float:right;'>✅ +${points}🏆</span>`; 
+                borderCol = "#4caf50"; 
+                bgCol = "#e8f5e9";
+            } else if (state.gameOver) {
+                status = " <span style='color:#d32f2f; font-weight:bold; float:right;'>❌ Raté</span>"; 
+                borderCol = "#f44336"; 
+                bgCol = "#ffebee";
+            } else {
+                status = ` <span style='color:#1565c0; font-weight:bold; float:right;'>⏳ En cours</span>`; 
+            }
+
             oDiv.innerHTML += `<div class="card" style="border-left-color: ${borderCol}; background:${bgCol};"><b>🎯 ${o.nom}</b>${status}<br><span style="font-size:0.85em; color:#1565c0;">${o.desc || ''}</span></div>`;
         });
 
@@ -1570,32 +1486,6 @@
         addLog(`🌱 Semis ${c.nom} ${isGrimpante&&hasTuteur?'(Grimpante)':''}.`, pId); sync(); 
     }
 
-    function evalObjectives(pData) {
-        let vegNames = []; let treeCount = 0; let hasSerre = false, hasComposteur = false, hasLocal = false;
-        pData.zones.forEach(z => {
-            if(z.batiment === 'SERRE') hasSerre = true; 
-            if(z.type === 'COMPOSTEUR' || z.batiment === 'COMPOSTEUR') hasComposteur = true; 
-            if(z.type === 'LOCAL OUTILS' || z.batiment === 'LOCAL OUTILS') hasLocal = true;
-            if(z.slots) { z.slots.forEach(c => { if(c.cat === 'L') vegNames.push(c.nom); if(c.cat === 'A') treeCount++; }); }
-        });
-
-        let uniqueVeg = new Set(vegNames).size; let vegCounts = {}; vegNames.forEach(n => vegCounts[n] = (vegCounts[n] || 0) + 1);
-        let maxSameVeg = vegNames.length > 0 ? Math.max(...Object.values(vegCounts)) : 0;
-        let totalObjPV = 0;
-
-        (pData.objectives || []).forEach(o => {
-            let points = 0; let match = o.desc ? o.desc.match(/(\d+)\s*PV/i) : null; if(match) points = parseInt(match[1]);
-            if(points === 0) { if(o.nom.includes("Diversité")) points = 5; if(o.nom.includes("Monoculture")) points = 5; if(o.nom.toLowerCase().includes("verger")) points = 6; if(o.nom.includes("Ferme")) points = 7; }
-            let achieved = false; let nomLower = o.nom.toLowerCase();
-            if(nomLower.includes("diversité") && uniqueVeg >= 4) achieved = true;
-            else if(nomLower.includes("monoculture") && maxSameVeg >= 4) achieved = true;
-            else if(nomLower.includes("verger") && treeCount >= 3) achieved = true;
-            else if(nomLower.includes("autonome") && hasSerre && hasComposteur && hasLocal) achieved = true;
-            o.achieved = achieved; if(achieved) totalObjPV += points;
-        });
-        return totalObjPV;
-    }
-
     function resolveSeason() {
         let curS = ALL_SEASONS[state.saisonIdx]; let pBase = Math.floor(Math.random()*3)+1; let sBase = Math.floor(Math.random()*2)+1;
         state.currentMeteo = {p: pBase, s: sBase};
@@ -1651,14 +1541,25 @@
         if(state.annee > 3 && !state.gameOver) {
             [1, 2].forEach(pid => {
                 let pData = state['p'+pid];
-                let objPV = evalObjectives(pData);
+                
+                let objPV = 0;
+                (pData.objectives || []).forEach(o => {
+                    if(o.achieved) {
+                        let points = 0; let match = o.desc ? o.desc.match(/(\d+)\s*PV/i) : null; if(match) points = parseInt(match[1]);
+                        if(points === 0) { if(o.nom.includes("Diversité")) points = 5; if(o.nom.includes("Monoculture")) points = 5; if(o.nom.toLowerCase().includes("verger")) points = 6; if(o.nom.includes("Ferme")) points = 7; }
+                        objPV += points;
+                    }
+                });
+
                 let mPV = Math.floor(pData.money / 3);
                 let zonesComplete = 0;
                 for(let n=1; n<=5; n++) { let hexes = pData.zones.filter(z => z.num === n); if(hexes.length > 0 && hexes.every(z => z.type !== null)) zonesComplete++; }
                 let zPV = zonesComplete === 5 ? 15 : (zonesComplete === 4 ? 7 : (zonesComplete >= 3 ? 3 : 0));
                 let uPV = pData.upgrades.reduce((sum, lvl) => sum + (lvl === 3 ? 5 : (lvl === 2 ? 2 : 0)), 0);
 
-                pData.scoreDetails = { base: pData.pv, mPV: mPV, zPV: zPV, uPV: uPV, objPV: objPV, finalScore: (pData.pv + mPV + zPV + uPV + objPV) };
+                let basePV = pData.pv - objPV; 
+
+                pData.scoreDetails = { base: basePV, mPV: mPV, zPV: zPV, uPV: uPV, objPV: objPV, finalScore: (basePV + mPV + zPV + uPV + objPV) };
                 pData.finalScore = pData.scoreDetails.finalScore; 
             });
 
@@ -1696,6 +1597,7 @@
     }
 
     function actFin() { if(state.mode === 'SOLO' || state.mode === 'IA_SOLO') resolveSeason(); else { if(state.turn === 1) { state.turn = 2; addLog(`⏭️ Fin de tour.`, 1); sync(); } else resolveSeason(); } }
+
 </script>
 </body>
 </html>
