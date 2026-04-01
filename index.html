@@ -2,7 +2,7 @@
 <html lang="fr">
 <head>
     <meta charset="UTF-8">
-    <title>La Main Verte - V59 (Objectifs en Temps Réel)</title>
+    <title>La Main Verte - V58 (Objectifs en Temps Réel)</title>
     <script src="https://www.gstatic.com/firebasejs/9.17.1/firebase-app-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/9.17.1/firebase-database-compat.js"></script>
     
@@ -102,7 +102,6 @@
         .turn-banner { background: #ff9800; color: white; text-align: center; padding: 5px; font-weight: bold; display: none; border-radius: 4px; margin-bottom: 5px;}
         .turn-banner.active { display: block; background: #4caf50; }
 
-        /* Style spécifique pour l'aperçu du marché dans la sidebar */
         .market-preview-box { background: #f9f9f9; padding: 8px; border-radius: 6px; border: 1px solid #e0e0e0; margin-bottom: 8px; }
     </style>
 </head>
@@ -940,7 +939,7 @@
             previewCont.innerHTML += catRow;
         });
 
-        // Boutons de la Jardinerie existants
+        // Boutons de la Jardinerie existants avec tes nouveaux coûts et pioches
         const jCont = document.getElementById('jard-buttons-container'); 
         jCont.innerHTML = ""; 
         const redJ = me.upgrades[6]>=2?1:0;
@@ -969,7 +968,15 @@
             // 1. Titre du rayon
             r.innerHTML = `<h3>${cat==='C'?'🌾 Cultures':(cat==='S'?'🛠️ Soutiens':'🦊 Auxiliaires')}</h3>`;
             
-            // 2. Affichage des cartes (Aperçu visuel)
+            // 2. Boutons d'action inversés et placés au DESSUS des cartes
+            const btnContainer = document.createElement('div');
+            btnContainer.innerHTML = `
+            <button class="btn-jard-action" onclick="jardP('${cat}')">🎲 Pioche à l'aveugle</button>
+            <button class="btn-jard-action" onclick="jardR('${cat}')">🔄 Renouveler le Rayon</button>
+            <hr style="margin-top:10px; margin-bottom:10px;">`;
+            r.appendChild(btnContainer);
+
+            // 3. Affichage des cartes (Aperçu visuel)
             (state.market[cat] || []).forEach((c, idx) => {
                 const can = me.money >= c.p; 
                 const d = document.createElement('div'); 
@@ -995,13 +1002,6 @@
                 };
                 r.appendChild(d);
             });
-            
-            // 3. Les boutons d'action s'affichent EN DESSOUS
-            const btnContainer = document.createElement('div');
-            btnContainer.innerHTML = `<hr style="margin-top:10px; margin-bottom:10px;">
-            <button class="btn-jard-action" onclick="jardP('${cat}')">🎲 Pioche à l'aveugle</button>
-            <button class="btn-jard-action" onclick="jardR('${cat}')">🔄 Renouveler le Rayon</button>`;
-            r.appendChild(btnContainer);
             
             inner.querySelector('#rg').appendChild(r);
         });
@@ -1681,8 +1681,10 @@
                 costAmenagerPotagerOr: 3, costAmenagerPotagerTemps: 3,
                 costSerreOr: 8, costComposteurOr: 5, costLocalOr: 5,
                 costUp2Or: 4, costUp2Temps: 3, costUp3Or: 8, costUp3Temps: 5,
-                jardSlot1Temps: 1, jardSlot1Pioches: 1, jardSlot2Temps: 2, jardSlot2Pioches: 2,
-                jardSlot3Temps: 3, jardSlot3Pioches: 3, jardSlot4Temps: 4, jardSlot4Pioches: 4
+                jardSlot1Temps: 3, jardSlot1Pioches: 5,
+                jardSlot2Temps: 2, jardSlot2Pioches: 3,
+                jardSlot3Temps: 2, jardSlot3Pioches: 2,
+                jardSlot4Temps: 1, jardSlot4Pioches: 1
             };
 
             state = {
