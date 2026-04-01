@@ -2,7 +2,7 @@
 <html lang="fr">
 <head>
     <meta charset="UTF-8">
-    <title>La Main Verte - v61 (Événements Saisonniers)</title>
+    <title>La Main Verte - v62 (Animaux & Clôtures)</title>
     <script src="https://www.gstatic.com/firebasejs/9.17.1/firebase-app-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/9.17.1/firebase-database-compat.js"></script>
     
@@ -109,7 +109,7 @@
 <body>
 
 <div id="lobby">
-    <h1 style="font-size: 3em; margin-bottom: 10px;">🌱 La Main Verte <span style="font-size:0.4em; color:#a5d6a7; vertical-align: middle;">v61</span></h1>
+    <h1 style="font-size: 3em; margin-bottom: 10px;">🌱 La Main Verte <span style="font-size:0.4em; color:#a5d6a7; vertical-align: middle;">v62</span></h1>
     <p style="font-size: 1.2em; margin-bottom: 30px;">Choisissez un mode de jeu :</p>
     <button class="btn-lobby" onclick="startNewGame('SOLO')">👤 Jouer en Solo</button>
     <button class="btn-lobby" style="background:#8e24aa" onclick="startNewGame('IA_SOLO')">🤖 Mode Spectateur (IA Solo)</button>
@@ -160,6 +160,7 @@
         <div id="season-display">📅 Saison...</div>
         <div title="1 PV = 3 sous en fin de partie">💰 <span id="res-money">0</span> | ⏳ <span id="res-time">0</span>/<span id="res-timemax">10</span>h | <span class="res-pv" title="Points de Victoire (Base)">🏆 <span id="res-pv">0</span></span></div>
         <div>
+            <span title="Clôtures" class="res-pill" style="color:#795548; border-color:#795548; background:#efebe9;">🚧 <span id="res-fences">0</span></span>
             <span title="Eau stockée" class="res-pill" style="color:#0288d1; border-color:#0288d1; background:#e1f5fe;">💧 <span id="res-water">0</span>/<span id="res-watermax">0</span>L</span>
             <span title="Compost" class="res-pill">💩 <span id="res-compost">0</span></span>
         </div>
@@ -240,6 +241,7 @@
     var listCompagnes = ["Ail", "Aneth", "Agastache", "Basilic", "Bleuet", "Bourrache", "Capucine", "Cébette", "Cerfeuil", "Ciboulette", "Coriandre", "Cosmos", "Echalote", "Épinard", "Estragon", "Lin", "Marguerite", "Mélilot Blanc", "Mélisse", "Menthe", "Moutarde", "Oignon", "Origan", "Oeillet d'Inde", "Persil", "Romarin", "Sarriette", "Sauge", "Serpolet", "Souci", "Tanaisie", "Thym", "Tournesol"];
     var listOutils = ["Arrosoir", "Tuyau", "Enrouleur", "Brouette", "Sécateur", "Cagette", "Tuteur", "Treillage", "Barrière", "Gants", "Ceinture", "Outil"];
     var listCompost = ["Fumier", "Bois mort", "Carton", "Épluchures"];
+    var listAnimaux = ["Poules", "Moutons", "Chèvres", "Cheval", "Vache", "Cochon"];
 
     var COOP_TRACK = [
         { cost: 1, type: 'none', desc: "Étape de base" }, 
@@ -461,11 +463,14 @@
         if (!me.zones) me.zones = [];
         if (!me.auxActifs) me.auxActifs = [];
         if (!me.upgrades) me.upgrades = Array(8).fill(1);
+        if (me.fences === undefined) me.fences = 0;
 
         const curS = ALL_SEASONS[state.saisonIdx];
         const hasTuteur = me.auxActifs.some(a => a && (a.includes("Tuteur") || a.includes("Treillage")));
         const hasComposteur = me.zones.some(z => z.type === 'COMPOSTEUR' || z.batiment === 'COMPOSTEUR');
         const hasLocal = me.zones.some(z => z.type === 'LOCAL OUTILS' || z.batiment === 'LOCAL OUTILS');
+        const hasFence = (me.fences > 0) || me.auxActifs.some(a => a && a.includes("Barrière"));
+        const hasPrairie = me.zones.some(z => z.type === 'PRAIRIE');
         
         let hasArrosoir = me.auxActifs.some(a => a && a.includes("Arrosoir"));
         let hasTuyau = me.auxActifs.some(a => a && (a.includes("Tuyau") || a.includes("Enrouleur")));
@@ -515,12 +520,25 @@
             if (zToAmend) { localSelectedId = zToAmend.id; actAmd(zToAmend.id); return; }
         }
 
+        // Jouer un Animal
+        for (let i = 0; i < me.hand.length; i++) {
+            let c = me.hand[i];
+            let cost = Math.max(0, (c.t || 1) - (me.upgrades[2] - 1));
+            let isAnimal = listAnimaux.some(a => c.nom.includes(a));
+            if (isAnimal && me.time >= cost) {
+                if (hasFence && (c.nom.includes("Poules") || hasPrairie)) {
+                     playC(i, null); return;
+                }
+            }
+        }
+
         for (let i = 0; i < me.hand.length; i++) {
             let c = me.hand[i];
             let cost = Math.max(0, (c.t || 1) - (me.upgrades[2] - 1));
             let isOutil = listOutils.some(o => c.nom.includes(o));
+            let isAnimal = listAnimaux.some(a => c.nom.includes(a));
             
-            if (me.time >= cost) {
+            if (me.time >= cost && !isAnimal) {
                 if (c.cat === 'X' || (c.cat === 'S' && !listCompagnes.includes(c.nom) && !listCompost.some(k=>c.nom.includes(k)) && !c.nom.includes("Corne"))) {
                     if(isOutil && !hasLocal) continue; playC(i, null); return;
                 }
@@ -629,7 +647,7 @@
         }
 
         let costCons = 2 + (state.foire.conseiller || 0);
-        if (state.annee >= 2 && me.time >= costCons) {
+        if (state.annee >= 2 && me.time >= costCons && state.decks.O && state.decks.O.length > 0) {
             me.time -= costCons; state.foire.conseiller = (state.foire.conseiller || 0) + 1;
             let obj = draw('O');
             if(obj) {
@@ -708,6 +726,7 @@
         setTxt('res-timemax', me.timeMax); 
         setTxt('res-compost', me.compost); 
         setTxt('res-pv', me.pv || 0);
+        setTxt('res-fences', me.fences || 0);
         
         let waterMax = 0; 
         me.zones.forEach(z => { if(z.type === 'MARE') waterMax += 7; });
@@ -746,7 +765,6 @@
             logBox.innerHTML = state.gameLogs.map(l => `<div>${l}</div>`).join('');
         }
         
-        // AFFICHAGE ÉVÉNEMENT SAISONNIER
         const eventZone = document.getElementById('event-zone');
         if(state.currentEvent) {
             eventZone.innerText = `⚡ ÉVÉNEMENT : ${state.currentEvent.nom} (${state.currentEvent.desc})`;
@@ -766,7 +784,7 @@
         const tray = document.getElementById('aux-tray');
         if(me.auxActifs && me.auxActifs.length > 0) { 
             tray.style.display="flex"; 
-            tray.innerHTML = '<b>🛡️ Boucliers/Outils : </b> ' + me.auxActifs.map(a => `<span style="background:white; padding:2px; border-radius:4px; margin-left:4px;">🦊 ${a}</span>`).join(''); 
+            tray.innerHTML = '<b>🛡️ Boucliers/Actifs : </b> ' + me.auxActifs.map(a => `<span style="background:white; padding:2px; border-radius:4px; margin-left:4px;">🦊 ${a}</span>`).join(''); 
         } else {
             tray.style.display="none";
         }
@@ -913,6 +931,25 @@
         }
     }
 
+    // --- NOUVELLE ACTION : ANIMAUX ---
+    window.actAnimaux = function() {
+        const pId = state.turn; const me = state['p'+pId];
+        if(me.time < 2) return safeAlert("Il vous faut 2h pour vous occuper des animaux !");
+        if(localSelectedId === null || localSelectedId === undefined) return safeAlert("Sélectionnez la zone de culture à fertiliser sur le plateau !");
+        let z = me.zones[localSelectedId];
+        if(!z || !z.slots || z.slots.length === 0) return safeAlert("La zone sélectionnée ne contient aucune culture !");
+        
+        me.time -= 2;
+        // On répartit +2 rendement
+        if(z.slots.length === 1) {
+            z.slots[0].amd = (z.slots[0].amd || 0) + 2;
+        } else {
+            z.slots.forEach(c => { c.amd = (c.amd || 0) + 1; });
+        }
+        addLog(`🐾 Action Animaux sur Z${z.id===14?'PO':z.num} (+2 Rendement, -2h).`, pId);
+        sync();
+    }
+
     function toggleAmenagement() {
         const me = state['p'+state.turn];
         me.amenagementMode = !me.amenagementMode;
@@ -925,6 +962,7 @@
         const dis = !isMyTurn || state.gameOver || (state.mode === 'IA_VS_IA' || state.mode === 'IA_SOLO'); 
         const hasComposteur = me.zones.some(z => z.type === 'COMPOSTEUR' || z.batiment === 'COMPOSTEUR');
         const canWater = (me.water >= 2) || (me.auxActifs||[]).some(a => a && (a.includes("Arrosoir") || a.includes("Tuyau") || a.includes("Enrouleur")));
+        let hasAnimal = (me.auxActifs || []).some(a => listAnimaux.some(ani => a && a.includes(ani)));
 
         const btnCont = document.getElementById('action-buttons-container');
         let selectionText = "Aucune zone sélectionnée";
@@ -948,12 +986,13 @@
             htmlBtns += `
                 <button class="btn-action" style="background:#4caf50" onclick="actT('POTAGER')" ${dis||me.time<s.costAmenagerPotagerTemps||me.money<costP_Or?'disabled':''}>🏗️ Potager (-${costP_Or}💰, -3h)</button>
                 <button class="btn-action" style="background:#fbc02d;color:#333" onclick="actT('VERGER')" ${dis||me.time<s.costAmenagerPotagerTemps||me.money<costP_Or?'disabled':''}>🏗️ Verger (-${costP_Or}💰, -3h)</button>
-                <button class="btn-action" style="background:#ff5722" onclick="toggleAmenagement()" ${dis?'disabled':''}>🌳 Mode Biodiversité</button>
+                <button class="btn-action" style="background:#ff5722" onclick="toggleAmenagement()" ${dis?'disabled':''}>🌳 Biodiversité</button>
                 <button class="btn-action" style="background:#607d8b" onclick="actB()" ${dis||me.time<4?'disabled':''}>🏠 Bâtiment (-4h)</button>
                 <button class="btn-action" style="background:#2196f3" onclick="actArr()" ${dis||me.time<s.costArroserTemps||!canWater?'disabled':''}>💧 Arroser Zone (-1h)</button>
                 <button class="btn-action" style="background:#795548" onclick="actAmd()" ${dis||me.time<s.costAmenderTemps||me.compost<1||!hasComposteur?'disabled':''}>💩 Amender Zone</button>
+                <button class="btn-action" style="background:#8d6e63" onclick="actAnimaux()" ${dis||me.time<2||!hasAnimal?'disabled':''}>🐾 Animaux (-2h)</button>
                 <button class="btn-action" style="background:#9c27b0" onclick="openFoire()" ${dis?'disabled':''}>🎪 FOIRE AGRICOLE</button>
-                <button class="btn-action" style="background:#e53935; font-size:1em;" onclick="actFin()" ${dis?'disabled':''}>💤 Fin de Saison</button>
+                <button class="btn-action" style="background:#e53935; font-size:1em; grid-column: span 4;" onclick="actFin()" ${dis?'disabled':''}>💤 Fin de Saison</button>
             `;
         }
         
@@ -1134,7 +1173,7 @@
         });
         html += `</div>`;
         
-        html += `<div style="background:#e8f5e9; padding:15px; border-radius:8px; border:2px solid #4caf50;"><h3>🚧 Le Camelot</h3><p>Achetez des clôtures.<br><b>File :</b> +${state.foire.camelot||0}h</p>
+        html += `<div style="background:#e8f5e9; padding:15px; border-radius:8px; border:2px solid #4caf50;"><h3>🚧 Le Camelot</h3><p>Achetez des clôtures (Vous en avez ${me.fences || 0}).<br><b>File :</b> +${state.foire.camelot||0}h</p>
         <button style="width:100%; padding:10px; background:#4caf50; color:white; font-weight:bold; cursor:pointer;" onclick="actFoireCamelot()" ${me.time<costCam || me.money<3 ? 'disabled':''}>Acheter Clôture (-3💰, -${costCam}h)</button></div>`;
         
         html += `<div style="background:#e3f2fd; padding:15px; border-radius:8px; border:2px solid #2196f3;"><h3>📜 Conseiller en Dév.</h3><p>Piochez 2 Objectifs, gardez-en 1.<br><b>File :</b> +${state.foire.conseiller||0}h</p>
@@ -1274,7 +1313,7 @@
         
         let zNum = z.num != null ? Number(z.num) : null;
 
-        // EVENEMENT : Grêle (Bloque les serres)
+        // EVENEMENT : Grêle
         if(ch==="1" && state.currentEvent && state.currentEvent.nom === "Grêle") return safeAlert("Impossible de construire une Serre pendant la Grêle !");
 
         if(ch==="1") { 
@@ -1413,19 +1452,16 @@
         me.time -= s.costRecolterTemps; 
         let moneyGained = 0;
         
-        // EVENEMENT : Saison Exceptionnelle
         let eventBonus = (state.currentEvent && state.currentEvent.nom === "Saison exceptionnelle") ? 2 : 0;
         
         targets.forEach(t => {
             let gain = t.c.g + (me.upgrades[3]-1) + (t.c.amd||0);
-            // EVENEMENT : Grêle (Baisse rendement verger)
             if (t.c.cat === 'A' && state.currentEvent && state.currentEvent.nom === "Grêle") {
                 gain = Math.max(0, gain - 2);
             }
             moneyGained += gain;
         });
 
-        // Ajout du bonus d'événement saisonnier
         moneyGained += eventBonus;
 
         let currentLvl = state.coop.level; let maxAffordable = 0; let tempGain = moneyGained; let tempLvl = currentLvl;
@@ -1513,7 +1549,22 @@
 
         let isOutil = listOutils.some(o => c.nom.includes(o));
         let hasLocal = me.zones.some(zz => zz.type === 'LOCAL OUTILS' || zz.batiment === 'LOCAL OUTILS');
+        let hasFence = (me.fences > 0) || (me.auxActifs||[]).some(a => a && a.includes("Barrière"));
+        let hasPrairie = me.zones.some(zz => zz.type === 'PRAIRIE');
+        
+        let isAnimal = listAnimaux.some(a => c.nom.includes(a));
+
         if (isOutil && !hasLocal) return safeAlert("Vous devez construire un Local à outils pour jouer cette carte !");
+
+        if (isAnimal) {
+            if (!hasFence) return safeAlert("Vous devez posséder une Clôture ou une Barrière pour accueillir un animal !");
+            if (!c.nom.includes("Poules") && !hasPrairie) return safeAlert("Vos animaux (hors poules) ont besoin d'une Prairie sur votre exploitation !");
+            
+            if(me.time < cost) return safeAlert("Il vous manque du temps !");
+            me.time -= cost; 
+            if(!me.auxActifs) me.auxActifs=[]; me.auxActifs.push(c.nom); 
+            me.hand.splice(idx,1); addLog(`🐾 Animal accueilli : ${c.nom}.`, pId); sync(); return;
+        }
 
         if(c.cat === 'X' || (c.cat === 'S' && !listCompagnes.includes(c.nom) && !listCompost.some(k=>c.nom.includes(k)) && !c.nom.includes("Corne"))) { 
             if(me.time < cost) return; 
@@ -1576,7 +1627,6 @@
 
         let curS = ALL_SEASONS[state.saisonIdx]; 
         
-        // EVENEMENT : Grêle (Empêche l'utilisation de la serre pour passer outre les saisons)
         let isGrele = (state.currentEvent && state.currentEvent.nom === "Grêle");
         let smValid = (z.batiment === 'SERRE' && !isGrele) ? (c.sm||[]).map(se => ALL_SEASONS[(ALL_SEASONS.indexOf(se)+3)%4]).concat(c.sm||[]) : (c.sm||[]);
         if(!smValid.includes(curS)) return safeAlert("Mauvaise saison de semis !");
@@ -1588,7 +1638,6 @@
     function resolveSeason() {
         let curS = ALL_SEASONS[state.saisonIdx]; 
         
-        // EVENEMENT : Sécheresse (Modifie la météo)
         let maxPrecip = (state.currentEvent && state.currentEvent.nom === "Sécheresse") ? 2 : 3;
         let pBase = Math.floor(Math.random() * maxPrecip) + 1; 
         let sBase = Math.floor(Math.random() * 2) + 1;
@@ -1614,7 +1663,27 @@
                     });
                 } 
             });
-            if(state.currentRav && (!pData.auxActifs || !pData.auxActifs.includes(state.currentRav.n || state.currentRav.nom))) { pData.money = Math.max(0, pData.money - state.currentRav.d); }
+            
+            // --- RAVAGEURS & PROTECTIONS (Animaux & Clôtures) ---
+            if(state.currentRav) {
+                let ravName = state.currentRav.n || state.currentRav.nom;
+                let isProtected = false;
+                
+                // Protection de base (Auxiliaires)
+                if (pData.auxActifs && pData.auxActifs.includes(ravName)) isProtected = true;
+                
+                // Protection Clôture vs Sanglier
+                let hasFence = (pData.fences > 0) || (pData.auxActifs && pData.auxActifs.includes("Barrière"));
+                if (ravName === "Sanglier" && hasFence) isProtected = true;
+                
+                // Protection Poules vs Limaces/Insectes
+                let hasPoules = (pData.auxActifs && pData.auxActifs.includes("Poules"));
+                if (hasPoules && (ravName.includes("Limace") || ravName.includes("escargot") || ravName.includes("Chenille") || ravName.includes("Puceron"))) isProtected = true;
+
+                if (!isProtected) {
+                    pData.money = Math.max(0, pData.money - state.currentRav.d);
+                }
+            }
             
             let hasSecateur = (pData.auxActifs || []).some(a => a && a.includes("Sécateur"));
             let hasVergerOrHaie = pData.zones.some(z => z.type === 'VERGER' || z.type === 'HAIE');
@@ -1625,7 +1694,16 @@
                 addLog(`✂️ Sécateur : ${pData.time}h restantes ➔ +${pData.time}💩`, pid);
             }
 
-            pData.time = pData.timeMax; 
+            // Événements qui modifient le temps
+            let timeMod = 0;
+            if (state.currentEvent) {
+                if (state.currentEvent.nom === "Travail en musique") timeMod = 2;
+                if (state.currentEvent.nom === "Blessure") {
+                    let hasCheval = (pData.auxActifs && pData.auxActifs.includes("Cheval"));
+                    if (!hasCheval) timeMod = -2; // Le Cheval annule la blessure
+                }
+            }
+            pData.time = Math.max(0, pData.timeMax + timeMod); 
         });
 
         if(state.saisonIdx === 3) {
@@ -1676,30 +1754,18 @@
 
         let newSeason = ALL_SEASONS[state.saisonIdx];
         
-        // -------------------------------------------------------------
-        // NOUVEAUTÉ : GESTION DES ÉVÉNEMENTS SAISONNIERS
-        // -------------------------------------------------------------
-        
-        // On défausse l'ancien événement
         if (state.currentEvent) {
             discardCard(state.currentEvent);
             state.currentEvent = null;
         }
         
-        // Si on n'est PAS à la toute première saison du jeu (Année 1, Printemps)
         if (!(state.annee === 1 && state.saisonIdx === 0)) {
             state.currentEvent = draw('E');
-            
-            if (state.currentEvent) {
-                // Effet immédiat : Aide de la région
-                if (state.currentEvent.nom === "Aide de la région") {
-                    [1, 2].forEach(pid => state['p'+pid].money += 2);
-                    addLog("🏛️ Événement - Aide de la région : +2💰 pour tous !", 1);
-                }
+            if (state.currentEvent && state.currentEvent.nom === "Aide de la région") {
+                [1, 2].forEach(pid => state['p'+pid].money += 2);
+                addLog("🏛️ Événement - Aide de la région : +2💰 pour tous !", 1);
             }
         }
-
-        // -------------------------------------------------------------
 
         [1, 2].forEach(pid => {
             let pData = state['p'+pid];
@@ -1729,14 +1795,6 @@
                     });
                 }
             });
-            
-            // Événements qui modifient le temps maximum alloué pour la nouvelle saison
-            let timeMod = 0;
-            if (state.currentEvent) {
-                if (state.currentEvent.nom === "Travail en musique") timeMod = 2;
-                if (state.currentEvent.nom === "Blessure") timeMod = -2;
-            }
-            pData.time = Math.max(0, pData.timeMax + timeMod); 
         });
 
         state.turn = 1; addLog(`💤 Résolution saison. Météo: 🌧️${pBase} ☀️${sBase}`, state.mode === 'SOLO' || state.mode === 'IA_SOLO' ? 1 : 2); sync();
@@ -1771,7 +1829,7 @@
             };
             
             let initP = () => ({
-                money: 10, time: 10, timeMax: 10, water: 0, waterMax: 0, compost: 0, pv: 0,
+                money: 10, time: 10, timeMax: 10, water: 0, waterMax: 0, compost: 0, pv: 0, fences: 0,
                 hand: [], upgrades: Array(8).fill(1), zones: initZones(), auxActifs: [], objectives: []
             });
 
@@ -1787,7 +1845,9 @@
                         { nom: "Carottes", cat: 'L', p: 1, g: 3, e: 1, s: 1, t: 1, sm: ["P", "E"], rc: ["E", "A", "H"] }
                     ],
                     S: [
-                        { nom: "Arrosoir", cat: 'S', p: 3, t: 1, desc: "Outil : Permet d'arroser plus." }
+                        { nom: "Poules", cat: 'S', p: 3, t: 1, desc: "Action rendement et protection." },
+                        { nom: "Cheval", cat: 'S', p: 5, t: 1, desc: "Action rendement et protège blessures." },
+                        { nom: "Barrière", cat: 'S', p: 2, t: 1, desc: "Sert de Clôture." }
                     ],
                     A: [
                         { nom: "Pommier", cat: 'A', p: 4, g: 6, e: 3, s: 3, t: 1, sm: ["H", "P"], rc: ["A"] }
@@ -1797,10 +1857,6 @@
                     ],
                     E: [
                         { nom: "Saison exceptionnelle", type: "Positif", desc: "+2 sous à la récolte" },
-                        { nom: "Travail en musique", type: "Positif", desc: "+2 Temps disponible" },
-                        { nom: "Aide de la région", type: "Positif", desc: "Gain immédiat de 2 sous" },
-                        { nom: "Grêle", type: "Négatif", desc: "Serres indisponibles, -2 rendement sur fruitiers" },
-                        { nom: "Sécheresse", type: "Négatif", desc: "Lancez 1 dé précipitation en moins" },
                         { nom: "Blessure", type: "Négatif", desc: "Un jardinier (temps) en moins cette saison" }
                     ]
                 };
@@ -1829,7 +1885,6 @@
                 settings: settingsToUse
             };
 
-            // Remplissage initial de la jardinerie
             ['C', 'S', 'A'].forEach(cat => {
                 for(let i=0; i<2; i++) {
                     let newC = draw(cat);
