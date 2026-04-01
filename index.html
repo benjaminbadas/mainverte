@@ -2,7 +2,7 @@
 <html lang="fr">
 <head>
     <meta charset="UTF-8">
-    <title>La Main Verte - V43 (IA Stratégique Avancée)</title>
+    <title>La Main Verte - V44 (IA Maître Bâtisseur)</title>
     <script src="https://www.gstatic.com/firebasejs/9.17.1/firebase-app-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/9.17.1/firebase-database-compat.js"></script>
     <style>
@@ -88,7 +88,7 @@
 <body>
 
 <div id="lobby">
-    <h1 style="font-size: 3em; margin-bottom: 10px;">🌱 La Main Verte <span style="font-size:0.4em; color:#a5d6a7; vertical-align: middle;">V43</span></h1>
+    <h1 style="font-size: 3em; margin-bottom: 10px;">🌱 La Main Verte <span style="font-size:0.4em; color:#a5d6a7; vertical-align: middle;">V44</span></h1>
     <p style="font-size: 1.2em; margin-bottom: 30px;">Choisissez un mode de jeu :</p>
     <button class="btn-lobby" onclick="startNewGame('SOLO')">👤 Jouer en Solo</button>
     <button class="btn-lobby" style="background:#8e24aa" onclick="startNewGame('IA_SOLO')">🤖 Mode Spectateur (IA Solo)</button>
@@ -139,8 +139,8 @@
         <div title="Compost">💩 <span id="res-compost" class="res-pill">0</span></div>
         <div id="meteo-display" style="background:#e3f2fd; padding:3px 10px; border-radius:10px;">🎲 --</div>
         <button id="champion-btn" onclick="playChampion()" style="background:#fbc02d; color:#333; border:none; border-radius:4px; padding:4px 8px; cursor:pointer;">🏆 Jouer Champion</button>
-        <button id="auto-train-btn" onclick="toggleAutoTrain()" style="background:#009688; color:white; border:none; border-radius:4px; padding:4px 8px; cursor:pointer;">🧬 Auto-Train: OFF</button>
-        <button id="bot-btn" onclick="toggleBot()" style="background:#9c27b0; color:white; border:none; border-radius:4px; padding:4px 8px; cursor:pointer;">🤖 Bot: OFF</button>
+        <button id="auto-train-btn" onclick="if(typeof toggleAutoTrain === 'function') toggleAutoTrain(); else alert('Bot non disponible');" style="background:#009688; color:white; border:none; border-radius:4px; padding:4px 8px; cursor:pointer;">🧬 Auto-Train: OFF</button>
+        <button id="bot-btn" onclick="if(typeof toggleBot === 'function') toggleBot(); else alert('Bot non disponible');" style="background:#9c27b0; color:white; border:none; border-radius:4px; padding:4px 8px; cursor:pointer;">🤖 Bot: OFF</button>
         <button onclick="confirmReset()" style="background:#ff5252; color:white; border:none; border-radius:4px; padding:4px 8px; cursor:pointer;">🧹 Reset</button>
     </div>
     
@@ -184,7 +184,6 @@
 <div class="modal-overlay" id="foire-modal"><div class="modal-content" id="foire-content-inner"></div></div>
 
 <script>
-    // --- VARIABLES ET CONFIGURATION DE BASE ---
     const firebaseConfig = {
         apiKey: "AIzaSyA_OHv6TDiVsn4PwM9s25gij8lBwQH8xrg",
         authDomain: "main-verte-72483.firebaseapp.com",
@@ -226,7 +225,7 @@
 
     let state = null; let myId = null; let localSelectedId = null; let localModalOpen = false; let localFoireOpen = false; let localPicksLeft = 0; let isInitializing = false;
 
-    // --- LE CERVEAU DU BOT INTEGRE (V43) ---
+    // --- LE CERVEAU DU BOT INTEGRE (V44) ---
     let botEnabled = false;
     let autoTrain = false;
     let isBotThinking = false;
@@ -302,6 +301,7 @@
 
         const curS = ALL_SEASONS[state.saisonIdx];
         const hasTuteur = me.auxActifs.some(a => a && (a.includes("Tuteur") || a.includes("Treillage")));
+        const hasComposteur = me.zones.some(z => z.type === 'COMPOSTEUR' || z.batiment === 'COMPOSTEUR');
 
         function canPlant(c, z) {
             if (!z.type) return false;
@@ -341,7 +341,36 @@
             }
         }
 
-        // 3. PLANTER
+        // 3. AMENDER (Utiliser le compost pour booster les gains !)
+        if (hasComposteur && me.compost > 0 && me.time >= s.costAmenderTemps) {
+            let zToAmend = me.zones.find(z => z.slots && z.slots.length > 0); // On amende la première zone cultivée trouvée
+            if (zToAmend) {
+                localSelectedId = zToAmend.id; actAmd(zToAmend.id); return;
+            }
+        }
+
+        // 4. JOUER UN OUTIL / AUXILIAIRE / ENGRAIS
+        for (let i = 0; i < me.hand.length; i++) {
+            let c = me.hand[i];
+            let cost = Math.max(0, (c.t || 1) - (me.upgrades[2] - 1));
+            if (me.time >= cost) {
+                if (c.cat === 'X' || (c.cat === 'S' && !listCompagnes.includes(c.nom) && !c.nom.includes("Fumier") && !c.nom.includes("Ortie") && !c.nom.includes("Paillage") && !c.nom.includes("Corne"))) {
+                    playC(i, null); return;
+                }
+                else if (c.cat === 'S') {
+                    if(c.nom.includes("Fumier")) { playC(i, null); return; }
+                    else if(listCompagnes.includes(c.nom)) {
+                        let tz = me.zones.find(z => z.slots && z.slots.some(pl => !pl.compagne));
+                        if(tz) { localSelectedId = tz.id; playC(i, tz.id); return; }
+                    } else {
+                        let tz = me.zones.find(z => z.slots && z.slots.length > 0);
+                        if(tz) { localSelectedId = tz.id; playC(i, tz.id); return; }
+                    }
+                }
+            }
+        }
+
+        // 5. PLANTER UN LÉGUME / ARBRE
         for (let i = 0; i < me.hand.length; i++) {
             let c = me.hand[i];
             let cost = Math.max(0, (c.t || 1) - (me.upgrades[2] - 1));
@@ -352,23 +381,41 @@
             }
         }
 
-        // 4. AMENAGER (Si on a une plante valide dans la main mais pas de place)
-        let costP_Or = Math.max(0, s.costAmenagerPotagerOr - (me.upgrades[5] >= 2 ? (me.upgrades[5] === 3 ? 2 : 1) : 0));
-        if (me.time >= s.costAmenagerPotagerTemps && me.money >= costP_Or) {
-            let needsPotager = me.hand.some(c => c.cat === 'L' && (c.sm||[]).includes(curS));
-            let needsVerger = me.hand.some(c => c.cat === 'A' && (c.sm||[]).includes(curS));
-            if (needsPotager || needsVerger) {
-                let emptyAdj = me.zones.find(z => !z.type && (isAdjacent(me, z.id) || z.num == 1 || z.num == 2));
-                if (emptyAdj) {
-                    let num = parseInt(emptyAdj.num);
-                    localSelectedId = emptyAdj.id;
-                    if (needsPotager && (num === 1 || num === 2)) { actT('POTAGER', emptyAdj.id); return; } 
-                    else if (needsVerger && num >= 2 && num <= 5) { actT('VERGER', emptyAdj.id); return; }
+        // 6. CONSTRUIRE UN BÂTIMENT (Serre ou Composteur)
+        if (me.time >= 4 && me.money >= 6) { // 6 pièces pour garder une marge de sécurité
+            // A. Construire une Serre sur un Potager existant
+            if (me.money >= s.costSerreOr) {
+                let zPotager = me.zones.find(z => z.type === 'POTAGER' && z.batiment !== 'SERRE');
+                if (zPotager) {
+                    localSelectedId = zPotager.id; actB(zPotager.id, "1"); return;
+                }
+            }
+            // B. Construire un Composteur s'il n'y en a pas encore
+            if (!hasComposteur && me.money >= s.costComposteurOr) {
+                let zVide = me.zones.find(z => !z.type && (z.num == 1 || z.num == 2) && isAdjacent(me, z.id));
+                if (zVide) {
+                    localSelectedId = zVide.id; actB(zVide.id, "2"); return;
                 }
             }
         }
 
-        // 5. AMELIORATIONS (Moteur) -> Energie (1), Sol (3), Savoir (2), Outils (5)
+        // 7. AMÉNAGER UN TERRAIN (Potager/Verger)
+        let wantsPotager = me.hand.some(c => c.cat === 'L' && !listPetitsFruits.some(pf => c.nom.includes(pf)));
+        let wantsVerger = me.hand.some(c => c.cat === 'A' || listPetitsFruits.some(pf => c.nom.includes(pf)));
+        let costP_Or = Math.max(0, s.costAmenagerPotagerOr - (me.upgrades[5] >= 2 ? (me.upgrades[5] === 3 ? 2 : 1) : 0));
+
+        if (me.time >= s.costAmenagerPotagerTemps && me.money >= costP_Or) {
+            if (wantsPotager) {
+                let pz = me.zones.find(z => !z.type && (z.num == 1 || z.num == 2) && (typeof isAdjacent === 'function' && (isAdjacent(me, z.id) || z.num == 1 || z.num == 2)));
+                if (pz) { localSelectedId = pz.id; actT('POTAGER', pz.id); return; }
+            }
+            if (wantsVerger) {
+                let vz = me.zones.find(z => !z.type && z.num >= 2 && z.num <= 5 && (typeof isAdjacent === 'function' && (isAdjacent(me, z.id) || z.num == 1 || z.num == 2)));
+                if (vz) { localSelectedId = vz.id; actT('VERGER', vz.id); return; }
+            }
+        }
+
+        // 8. AMÉLIORATIONS (Moteur économique)
         if (me.money >= 4 && me.time >= 3) {
             let prioUpgrades = [1, 3, 2, 5, 0, 6, 4, 7];
             for(let i of prioUpgrades) {
@@ -382,7 +429,7 @@
             }
         }
 
-        // 6. JARDINERIE (Acheter des cultures si on n'en a pas)
+        // 9. JARDINERIE (Acheter des cultures si on n'en a pas)
         let redJ = me.upgrades[6] >= 2 ? 1 : 0;
         let costJ = Math.max(0, s.jardSlot3Temps - redJ);
         if (me.time >= costJ && me.money >= 2 && me.hand.length < 4) {
@@ -410,7 +457,7 @@
             }
         }
 
-        // 7. FOIRE (Objectifs - Année 2 et 3)
+        // 10. FOIRE (Objectifs - Année 2 et 3)
         let costCons = 2 + (state.foire.conseiller || 0);
         if (state.annee >= 2 && me.time >= costCons && state.decks.O && state.decks.O.length > 0) {
             me.time -= costCons; state.foire.conseiller = (state.foire.conseiller || 0) + 1;
@@ -419,24 +466,10 @@
             addLog(`🤖 Le bot a récupéré l'Objectif : ${obj.nom}`, pId); sync(); return;
         }
 
-        // 8. SOUTIEN / AUXILIAIRES
-        for (let i = 0; i < me.hand.length; i++) {
-            let c = me.hand[i];
-            let cost = Math.max(0, (c.t || 1) - (me.upgrades[2] - 1));
-            if (me.time >= cost && (c.cat === 'X' || c.cat === 'S')) {
-                if (c.cat === 'X' || (c.cat === 'S' && !listCompagnes.includes(c.nom) && !c.nom.includes("Fumier") && !c.nom.includes("Ortie") && !c.nom.includes("Paillage") && !c.nom.includes("Corne"))) {
-                    playC(i, null); return;
-                } else if (c.cat === 'S') {
-                    let tz = me.zones.find(z => z.slots && z.slots.length > 0);
-                    if(tz) { localSelectedId = tz.id; playC(i, tz.id); return; }
-                }
-            }
-        }
-
-        // 9. VENDRE AU STAND FOIRE
+        // 11. VENDRE AU STAND FOIRE (Si Main pleine ou plus de sous)
         if (me.time >= 1 && (me.hand.length >= 4 || (me.money < 2 && me.hand.length > 0))) { actFoireStand(0); return; }
 
-        // 10. FIN
+        // 12. FIN
         actFin();
     }
 
@@ -453,7 +486,9 @@
 
     function startNewGame(mode) {
         myId = 1; document.getElementById('lobby').style.display = 'none'; document.getElementById('my-hud').style.borderTopColor = 'var(--p1)';
-        if (mode === 'IA_SOLO' || mode === 'IA_VS_IA' || mode === 'VS_IA') { botEnabled = true; } else { botEnabled = false; }
+        if (typeof botEnabled !== 'undefined') {
+            if (mode === 'IA_SOLO' || mode === 'IA_VS_IA' || mode === 'VS_IA') { botEnabled = true; } else { botEnabled = false; }
+        }
         initNewGame(1, mode);
     }
 
@@ -651,9 +686,9 @@
         
         if(typeof triggerBot === "function") { 
             let shouldRunBot = false; 
-            if(state.turn === myId && botEnabled && !state.gameOver) shouldRunBot = true; 
+            if(state.turn === myId && typeof botEnabled !== 'undefined' && botEnabled && !state.gameOver) shouldRunBot = true; 
             if((state.mode === 'VS_IA' || state.mode === 'IA_VS_IA') && state.turn === 2 && myId === 1 && !state.gameOver) shouldRunBot = true; 
-            if(state.gameOver && botEnabled) shouldRunBot = true; 
+            if(state.gameOver && typeof botEnabled !== 'undefined' && botEnabled) shouldRunBot = true; 
             if(shouldRunBot && !localModalOpen && !localFoireOpen) {
                 setTimeout(() => triggerBot(state.turn), 50);
             }
@@ -817,7 +852,7 @@
 
         if(!isAdj) return safeAlert("La tuile doit être adjacente à la Maison (Zone 0) ou à une tuile déjà construite !");
 
-        if (t === 'POTAGER' && num !== 1 && num !== 2) return safeAlert("Un Potager ne peut être aménagé QUE sur les zones 1 ou 2 !");
+        if (t === 'POTAGER' && num !== 1 && num !== 2 && zId !== 14) return safeAlert("Un Potager ne peut être aménagé QUE sur les zones 1 ou 2 !");
         if (t === 'VERGER' && (num < 2 || num > 5)) return safeAlert("Un Verger ne peut être aménagé QUE sur les zones 2, 3, 4 ou 5 !");
         if ((t === 'HAIE' || t === 'FORÊT') && (num < 3 || num > 5)) return safeAlert(t + " = Uniquement sur Zones 3, 4 ou 5 !");
         if (t === 'PRAIRIE' && (num !== 4 && num !== 5)) return safeAlert("Prairie = Uniquement sur Zones 4 ou 5 !");
@@ -840,18 +875,19 @@
         sync(); 
     }
 
-    function actB(zId = localSelectedId) { 
+    function actB(zId = localSelectedId, botChoice = null) { 
         const pId = state.turn; const me = state['p'+pId], z=me.zones[zId], s=state.settings; 
         if(zId === null || zId === undefined) return safeAlert("Veuillez d'abord sélectionner une zone sur le plateau !");
         if(me.time < 4) return safeAlert("Construire un bâtiment coûte 4 unités de temps !");
         
-        let ch = "1";
-        if(!isBotTurn()) {
-            ch = prompt(`Bâtiments (Coût action: -4h) :\n1: Serre (${s.costSerreOr}💰 - Sur Potager existant)\n2: Composteur (${s.costComposteurOr}💰 - Sur Zone 1 ou 2 VIDE)\n3: Local (${s.costLocalOr}💰 - Sur zone VIDE)`);
-        } else {
-            ch = ["1", "2", "3"][Math.floor(Math.random() * 3)];
+        let ch = botChoice;
+        if(!ch) {
+            if(isBotTurn()) {
+                ch = ["1", "2", "3"][Math.floor(Math.random() * 3)];
+            } else {
+                ch = prompt(`Bâtiments (Coût action: -4h) :\n1: Serre (${s.costSerreOr}💰 - Sur Potager existant)\n2: Composteur (${s.costComposteurOr}💰 - Sur Zone 1 ou 2 VIDE)\n3: Local (${s.costLocalOr}💰 - Sur zone VIDE)`);
+            }
         }
-
         if(!ch) return;
         let zNum = z.num != null ? Number(z.num) : null;
 
@@ -1054,7 +1090,7 @@
             [1, 2].forEach(pid => {
                 let pData = state['p'+pid];
                 let objPV = 0;
-                if(botEnabled && (state.mode === 'IA_SOLO' || state.mode === 'IA_VS_IA' || (state.mode === 'VS_IA' && pid === 2))) { 
+                if(typeof botEnabled !== 'undefined' && botEnabled && (state.mode === 'IA_SOLO' || state.mode === 'IA_VS_IA' || (state.mode === 'VS_IA' && pid === 2))) { 
                     objPV = Math.floor(Math.random() * 10); 
                 } else {
                     let input = prompt(`Joueur ${pid} : Combien de PV supplémentaires rapportent vos cartes Objectifs et Personnages ?`, "0");
