@@ -5,6 +5,7 @@
     <title>La Main Verte - V58 (Objectifs en Temps Réel)</title>
     <script src="https://www.gstatic.com/firebasejs/9.17.1/firebase-app-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/9.17.1/firebase-database-compat.js"></script>
+    
     <style>
         :root { 
             --p1: #2e7d32; --p2: #1565c0; --bg: #f4f7f1; --potager: #81c784; 
@@ -259,6 +260,76 @@
     var botDelay = 800; 
 
     // ============================================================================
+    // VÉRIFICATION CONTINUE DES OBJECTIFS ET SYNCHRONISATION
+    // ============================================================================
+    
+    window.sync = function() {
+        if (state && typeof db !== 'undefined') {
+            db.set(state);
+        }
+    };
+    
+    function checkObjectives(pid) {
+        let pData = state['p'+pid];
+        if (!pData || !pData.objectives) return;
+        
+        let vegNames = []; let treeCount = 0; let hasSerre = false, hasComposteur = false, hasLocal = false;
+        pData.zones.forEach(z => {
+            if(z.batiment === 'SERRE') hasSerre = true; 
+            if(z.type === 'COMPOSTEUR' || z.batiment === 'COMPOSTEUR') hasComposteur = true; 
+            if(z.type === 'LOCAL OUTILS' || z.batiment === 'LOCAL OUTILS') hasLocal = true;
+            if(z.slots) { 
+                z.slots.forEach(c => { 
+                    if(c.cat === 'L') vegNames.push(c.nom); 
+                    if(c.cat === 'A') treeCount++; 
+                }); 
+            }
+        });
+
+        let uniqueVeg = new Set(vegNames).size; 
+        let vegCounts = {}; 
+        vegNames.forEach(n => vegCounts[n] = (vegCounts[n] || 0) + 1);
+        let maxSameVeg = vegNames.length > 0 ? Math.max(...Object.values(vegCounts)) : 0;
+
+        pData.objectives.forEach(o => {
+            if(o.achieved) return; 
+
+            let points = 0; 
+            let match = o.desc ? o.desc.match(/(\d+)\s*PV/i) : null; 
+            if(match) points = parseInt(match[1]);
+            if(points === 0) { 
+                if(o.nom.includes("Diversité")) points = 5; 
+                if(o.nom.includes("Monoculture")) points = 5; 
+                if(o.nom.toLowerCase().includes("verger")) points = 6; 
+                if(o.nom.includes("Ferme")) points = 7; 
+            }
+
+            let achieved = false; 
+            let nomLower = o.nom.toLowerCase();
+            
+            if(nomLower.includes("diversité") && uniqueVeg >= 4) achieved = true;
+            else if(nomLower.includes("monoculture") && maxSameVeg >= 4) achieved = true;
+            else if(nomLower.includes("verger") && treeCount >= 3) achieved = true;
+            else if(nomLower.includes("autonome") && hasSerre && hasComposteur && hasLocal) achieved = true;
+            
+            if(achieved) {
+                o.achieved = true;
+                pData.pv = (pData.pv || 0) + points;
+                addLog(`🎯 Objectif accompli : ${o.nom} (+${points} 🏆) !`, pid);
+            }
+        });
+    }
+
+    const originalSync = window.sync;
+    window.sync = function() {
+        if(state && !state.gameOver) {
+            if(state.p1) checkObjectives(1);
+            if(state.p2) checkObjectives(2);
+        }
+        originalSync();
+    };
+
+    // ============================================================================
     // FONCTIONS UTILITAIRES ET BOT
     // ============================================================================
     function isBotTurn() {
@@ -367,44 +438,31 @@
             return true;
         }
 
-        // 1. RECOLTER
+        // --- Logique du Bot simplifiée pour gagner de la place (identique à ton code) ---
         for (let i = 0; i < me.zones.length; i++) {
             let z = me.zones[i];
             if (z && z.slots) {
                 for (let j = 0; j < z.slots.length; j++) {
                     let c = z.slots[j];
                     if (c.eCur <= 0 && c.sCur <= 0 && me.time >= s.costRecolterTemps) {
-                        localSelectedId = z.id; 
-                        actionRecolter(z.id, j); 
-                        return;
+                        localSelectedId = z.id; actionRecolter(z.id, j); return;
                     }
                 }
             }
         }
 
-        // 2. ARROSER
         if (me.time >= s.costArroserTemps && canWater) {
             for (let i = 0; i < me.zones.length; i++) {
                 let z = me.zones[i];
-                if (z && z.slots && z.slots.some(c => c.eCur > 0)) { 
-                    localSelectedId = z.id; 
-                    actArr(z.id); 
-                    return; 
-                }
+                if (z && z.slots && z.slots.some(c => c.eCur > 0)) { localSelectedId = z.id; actArr(z.id); return; }
             }
         }
 
-        // 3. AMENDER
         if (hasComposteur && me.compost > 0 && me.time >= s.costAmenderTemps) {
             let zToAmend = me.zones.find(z => z.slots && z.slots.length > 0);
-            if (zToAmend) { 
-                localSelectedId = zToAmend.id; 
-                actAmd(zToAmend.id); 
-                return; 
-            }
+            if (zToAmend) { localSelectedId = zToAmend.id; actAmd(zToAmend.id); return; }
         }
 
-        // 4. JOUER OUTILS/COMPAGNES
         for (let i = 0; i < me.hand.length; i++) {
             let c = me.hand[i];
             let cost = Math.max(0, (c.t || 1) - (me.upgrades[2] - 1));
@@ -412,13 +470,10 @@
             
             if (me.time >= cost) {
                 if (c.cat === 'X' || (c.cat === 'S' && !listCompagnes.includes(c.nom) && !listCompost.some(k=>c.nom.includes(k)) && !c.nom.includes("Corne"))) {
-                    if(isOutil && !hasLocal) continue;
-                    playC(i, null); return;
+                    if(isOutil && !hasLocal) continue; playC(i, null); return;
                 }
                 else if (c.cat === 'S') {
-                    if(listCompost.some(k=>c.nom.includes(k))) { 
-                        if(hasComposteur) { playC(i, null); return; }
-                    }
+                    if(listCompost.some(k=>c.nom.includes(k))) { if(hasComposteur) { playC(i, null); return; } }
                     else if(listCompagnes.includes(c.nom)) {
                         let tz = me.zones.find(z => z.slots && z.slots.some(pl => !pl.compagne));
                         if(tz) { localSelectedId = tz.id; playC(i, tz.id); return; }
@@ -430,22 +485,16 @@
             }
         }
 
-        // 5. PLANTER
         for (let i = 0; i < me.hand.length; i++) {
             let c = me.hand[i];
             let cost = Math.max(0, (c.t || 1) - (me.upgrades[2] - 1));
             if (me.time >= cost && (c.cat === 'L' || c.cat === 'A')) {
                 for (let j = 0; j < me.zones.length; j++) {
-                    if (canPlant(c, me.zones[j])) { 
-                        localSelectedId = me.zones[j].id; 
-                        playC(i, me.zones[j].id); 
-                        return; 
-                    }
+                    if (canPlant(c, me.zones[j])) { localSelectedId = me.zones[j].id; playC(i, me.zones[j].id); return; }
                 }
             }
         }
 
-        // 6. CONSTRUIRE BÂTIMENT (et LOCAL si besoin)
         if (me.time >= 4 && me.money >= 6) { 
             let needsLocal = me.hand.some(c => listOutils.some(o => c.nom.includes(o)));
             if (needsLocal && !hasLocal && me.money >= s.costLocalOr) {
@@ -462,7 +511,6 @@
             }
         }
 
-        // 7. AMÉNAGER TERRAIN
         let wantsPotager = me.hand.some(c => c.cat === 'L' && !listPetitsFruits.some(pf => c.nom.includes(pf)));
         let wantsVerger = me.hand.some(c => c.cat === 'A' || listPetitsFruits.some(pf => c.nom.includes(pf)));
         let costP_Or = Math.max(0, s.costAmenagerPotagerOr - (me.upgrades[5] >= 2 ? (me.upgrades[5] === 3 ? 2 : 1) : 0));
@@ -478,17 +526,13 @@
             }
         }
 
-        if (!me.amenagementMode && me.waterMax < 7 && me.time >= 3 && me.money >= 4) {
-            toggleAmenagement(); return;
-        }
+        if (!me.amenagementMode && me.waterMax < 7 && me.time >= 3 && me.money >= 4) { toggleAmenagement(); return; }
         if (me.amenagementMode && me.time >= 0 && me.money >= 4) {
             let mz = me.zones.find(z => !z.type && z.num >= 2 && z.num <= 4 && (isAdjacent(me, z.id) || z.num == 1 || z.num == 2));
             if (mz) { localSelectedId = mz.id; actT('MARE', mz.id); return; }
-            toggleAmenagement(); 
-            return;
+            toggleAmenagement(); return;
         }
 
-        // 8. AMÉLIORATIONS
         if (me.money >= 4 && me.time >= 3) {
             let prioUpgrades = [1, 3, 2, 5, 0, 6, 4, 7];
             for(let i of prioUpgrades) {
@@ -502,7 +546,6 @@
             }
         }
 
-        // 9. JARDINERIE
         let redJ = me.upgrades[6] >= 2 ? 1 : 0;
         let costJ = Math.max(0, s.jardSlot3Temps - redJ);
         if (me.time >= costJ && me.money >= 2 && me.hand.length < 4) {
@@ -531,7 +574,6 @@
             }
         }
 
-        // 10. FOIRE OBJECTIFS
         let costCons = 2 + (state.foire.conseiller || 0);
         if (state.annee >= 2 && me.time >= costCons && state.decks.O && state.decks.O.length > 0) {
             me.time -= costCons; state.foire.conseiller = (state.foire.conseiller || 0) + 1;
@@ -540,89 +582,10 @@
             addLog(`🤖 Le bot a récupéré l'Objectif : ${obj.nom}`, pId); sync(); return;
         }
 
-        // 11. VENTE STAND
-        if (me.time >= 1 && (me.hand.length >= 4 || (me.money < 2 && me.hand.length > 0))) { 
-            actFoireStand(0); 
-            return; 
-        }
+        if (me.time >= 1 && (me.hand.length >= 4 || (me.money < 2 && me.hand.length > 0))) { actFoireStand(0); return; }
 
-        // 12. FIN DE TOUR
         actFin();
     }
-
-
-    // ============================================================================
-    // VÉRIFICATION CONTINUE DES OBJECTIFS ET SYNCHRONISATION (CORRIGÉ)
-    // ============================================================================
-    
-    // On définit d'abord la fonction de synchronisation de base avec Firebase
-    window.sync = function() {
-        if (state && typeof db !== 'undefined') {
-            db.set(state);
-        }
-    };
-    
-    function checkObjectives(pid) {
-        let pData = state['p'+pid];
-        if (!pData || !pData.objectives) return;
-        
-        let vegNames = []; let treeCount = 0; let hasSerre = false, hasComposteur = false, hasLocal = false;
-        pData.zones.forEach(z => {
-            if(z.batiment === 'SERRE') hasSerre = true; 
-            if(z.type === 'COMPOSTEUR' || z.batiment === 'COMPOSTEUR') hasComposteur = true; 
-            if(z.type === 'LOCAL OUTILS' || z.batiment === 'LOCAL OUTILS') hasLocal = true;
-            if(z.slots) { 
-                z.slots.forEach(c => { 
-                    if(c.cat === 'L') vegNames.push(c.nom); 
-                    if(c.cat === 'A') treeCount++; 
-                }); 
-            }
-        });
-
-        let uniqueVeg = new Set(vegNames).size; 
-        let vegCounts = {}; 
-        vegNames.forEach(n => vegCounts[n] = (vegCounts[n] || 0) + 1);
-        let maxSameVeg = vegNames.length > 0 ? Math.max(...Object.values(vegCounts)) : 0;
-
-        pData.objectives.forEach(o => {
-            if(o.achieved) return; 
-
-            let points = 0; 
-            let match = o.desc ? o.desc.match(/(\d+)\s*PV/i) : null; 
-            if(match) points = parseInt(match[1]);
-            if(points === 0) { 
-                if(o.nom.includes("Diversité")) points = 5; 
-                if(o.nom.includes("Monoculture")) points = 5; 
-                if(o.nom.toLowerCase().includes("verger")) points = 6; 
-                if(o.nom.includes("Ferme")) points = 7; 
-            }
-
-            let achieved = false; 
-            let nomLower = o.nom.toLowerCase();
-            
-            if(nomLower.includes("diversité") && uniqueVeg >= 4) achieved = true;
-            else if(nomLower.includes("monoculture") && maxSameVeg >= 4) achieved = true;
-            else if(nomLower.includes("verger") && treeCount >= 3) achieved = true;
-            else if(nomLower.includes("autonome") && hasSerre && hasComposteur && hasLocal) achieved = true;
-            
-            if(achieved) {
-                o.achieved = true;
-                pData.pv = (pData.pv || 0) + points;
-                addLog(`🎯 Objectif accompli : ${o.nom} (+${points} 🏆) !`, pid);
-            }
-        });
-    }
-
-    // On surcharge sync pour qu'elle vérifie les objectifs avant d'envoyer à Firebase
-    const originalSync = window.sync;
-    window.sync = function() {
-        if(state && !state.gameOver) {
-            if(state.p1) checkObjectives(1);
-            if(state.p2) checkObjectives(2);
-        }
-        originalSync();
-    };
-
 
     // ============================================================================
     // MOTEUR PRINCIPAL DU JEU ET UI
@@ -1614,53 +1577,98 @@
     }
 
     // ============================================================================
-    // INITIALISATION, PIOCHE ET AFFICHAGE FIN DE PARTIE
+    // INITIALISATION, PIOCHE ET AFFICHAGE FIN DE PARTIE (MODIFIÉ POUR ADMIN)
     // ============================================================================
 
     window.startNewGame = function(mode) {
-        myId = 1; // Le créateur est toujours le joueur 1
+        myId = 1; // Hôte
         
-        // Initialisation des zones
-        let initZones = () => {
-            let z = [];
-            for(let i=0; i<15; i++) z.push({id: i, num: zoneNumbersMap[i], type: null, slots: [], batiment: null});
-            return z;
-        };
-        
-        // Initialisation des joueurs
-        let initP = () => ({
-            money: 10, time: 10, timeMax: 10, water: 0, waterMax: 0, compost: 0, pv: 0,
-            hand: [], upgrades: Array(8).fill(1), zones: initZones(), auxActifs: [], objectives: []
-        });
+        // 1. Appel asynchrone pour lire "game-config" de Firebase (données Admin)
+        dbConfig.once('value').then((snap) => {
+            let adminData = snap.val();
 
-        state = {
-            mode: mode, turn: 1, annee: 1, saisonIdx: 0, gameOver: false,
-            gameLogs: ["🌱 Nouvelle partie démarrée !"],
-            p1: initP(), p2: initP(),
-            // /!\ Attention: Tes decks sont vides ici ! Il faudra que tu rajoutes le code 
-            // qui liste toutes tes cartes ("Tomates", "Carottes", etc.) si tu ne l'as pas ailleurs.
-            market: { C:[], S:[], A:[] }, 
-            decks: { C:[], S:[], A:[], O:[] },
-            currentMeteo: {p:1, s:1}, currentRav: null,
-            coop: { level: 0, unlocks: {} }, foire: { camelot: 0, conseiller: 0 },
-            settings: { 
+            // Initialisation des zones avec le Potager de départ
+            let initZones = () => {
+                let z = [];
+                for(let i=0; i<15; i++) {
+                    let defaultType = (i === 14) ? 'POTAGER' : null; 
+                    z.push({id: i, num: zoneNumbersMap[i], type: defaultType, slots: [], batiment: null});
+                }
+                return z;
+            };
+            
+            // Initialisation des joueurs
+            let initP = () => ({
+                money: 10, time: 10, timeMax: 10, water: 0, waterMax: 0, compost: 0, pv: 0,
+                hand: [], upgrades: Array(8).fill(1), zones: initZones(), auxActifs: [], objectives: []
+            });
+
+            // 2. CHOIX DU DECK : Firebase -> Local -> Secours
+            let decksToUse;
+            if (adminData && adminData.decks) {
+                // Cartes de la base de données Firebase
+                decksToUse = JSON.parse(JSON.stringify(adminData.decks));
+            } else if (typeof adminDecks !== 'undefined') {
+                // Cartes du fichier local "admin.js" s'il est utilisé
+                decksToUse = JSON.parse(JSON.stringify(adminDecks));
+            } else {
+                // Paquet de secours pour éviter que ça ne plante si la base est vide
+                decksToUse = {
+                    C: [
+                        { nom: "Tomates", cat: 'L', p: 2, g: 4, e: 2, s: 2, t: 1, sm: ["P"], rc: ["E", "A"] },
+                        { nom: "Carottes", cat: 'L', p: 1, g: 3, e: 1, s: 1, t: 1, sm: ["P", "E"], rc: ["E", "A"] },
+                        { nom: "Salade", cat: 'L', p: 1, g: 2, e: 2, s: 1, t: 1, sm: ["P", "A"], rc: ["E", "H"] },
+                        { nom: "Fraise", cat: 'L', p: 3, g: 4, e: 2, s: 2, t: 1, sm: ["P"], rc: ["E"] },
+                        { nom: "Haricot", cat: 'L', p: 2, g: 3, e: 2, s: 2, t: 1, sm: ["P", "E"], rc: ["E", "A"] }
+                    ],
+                    S: [
+                        { nom: "Arrosoir", cat: 'S', p: 3, t: 1, desc: "Outil : Permet d'arroser plus." },
+                        { nom: "Basilic", cat: 'S', p: 1, t: 1, desc: "Compagne : Protège la plante." },
+                        { nom: "Fumier", cat: 'S', p: 2, t: 1, desc: "À composter pour obtenir 2💩." },
+                        { nom: "Tuteur", cat: 'S', p: 2, t: 1, desc: "Outil : Permet de planter des grimpantes." }
+                    ],
+                    A: [
+                        { nom: "Pommier", cat: 'A', p: 4, g: 6, e: 3, s: 3, t: 1, sm: ["H", "P"], rc: ["A"] },
+                        { nom: "Coccinelle", cat: 'X', prot: "Pucerons", p: 3, t: 1, desc: "Protège contre les pucerons" }
+                    ],
+                    O: [
+                        { nom: "Ferme Autonome", desc: "Avoir Serre, Local et Composteur (7 PV)" },
+                        { nom: "Grande Diversité", desc: "Avoir 4 légumes différents (5 PV)" }
+                    ]
+                };
+            }
+
+            // 3. Choix des paramètres (Settings) : Firebase -> Secours
+            let settingsToUse = (adminData && adminData.settings) ? adminData.settings : { 
                 costArroserTemps: 1, costAmenderTemps: 1, costRecolterTemps: 1, costComposterTemps: 1,
                 costAmenagerPotagerOr: 3, costAmenagerPotagerTemps: 3,
                 costSerreOr: 8, costComposteurOr: 5, costLocalOr: 5,
                 costUp2Or: 4, costUp2Temps: 3, costUp3Or: 8, costUp3Temps: 5,
                 jardSlot1Temps: 1, jardSlot1Pioches: 1, jardSlot2Temps: 2, jardSlot2Pioches: 2,
                 jardSlot3Temps: 3, jardSlot3Pioches: 3, jardSlot4Temps: 4, jardSlot4Pioches: 4
-            }
-        };
+            };
 
-        // Remplir le marché initial avec 2 cartes par rayon si tes decks ne sont pas vides
-        ['C', 'S', 'A'].forEach(cat => {
-            if(state.decks[cat] && state.decks[cat].length > 0) jardR(cat);
+            // On crée l'état global avec les données récupérées
+            state = {
+                mode: mode, turn: 1, annee: 1, saisonIdx: 0, gameOver: false,
+                gameLogs: ["🌱 Nouvelle partie démarrée !"],
+                p1: initP(), p2: initP(),
+                market: { C:[], S:[], A:[] }, 
+                decks: decksToUse,
+                currentMeteo: {p:1, s:1}, currentRav: null,
+                coop: { level: 0, unlocks: {} }, foire: { camelot: 0, conseiller: 0 },
+                settings: settingsToUse
+            };
+
+            // Remplir la jardinerie
+            ['C', 'S', 'A'].forEach(cat => {
+                if(state.decks[cat] && state.decks[cat].length > 0) jardR(cat);
+            });
+
+            document.getElementById('lobby').style.display = 'none';
+            sync();
+            render();
         });
-
-        document.getElementById('lobby').style.display = 'none';
-        sync();
-        render();
     };
 
     window.draw = function(deckType) {
