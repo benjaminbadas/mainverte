@@ -2,7 +2,7 @@
 <html lang="fr">
 <head>
     <meta charset="UTF-8">
-    <title>La Main Verte - V56 (Code Intégral et Réparé)</title>
+    <title>La Main Verte - V57 (Météo & Mare exactes)</title>
     <script src="https://www.gstatic.com/firebasejs/9.17.1/firebase-app-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/9.17.1/firebase-database-compat.js"></script>
     <style>
@@ -105,7 +105,7 @@
 <body>
 
 <div id="lobby">
-    <h1 style="font-size: 3em; margin-bottom: 10px;">🌱 La Main Verte <span style="font-size:0.4em; color:#a5d6a7; vertical-align: middle;">V56</span></h1>
+    <h1 style="font-size: 3em; margin-bottom: 10px;">🌱 La Main Verte <span style="font-size:0.4em; color:#a5d6a7; vertical-align: middle;">V57</span></h1>
     <p style="font-size: 1.2em; margin-bottom: 30px;">Choisissez un mode de jeu :</p>
     <button class="btn-lobby" onclick="startNewGame('SOLO')">👤 Jouer en Solo</button>
     <button class="btn-lobby" style="background:#8e24aa" onclick="startNewGame('IA_SOLO')">🤖 Mode Spectateur (IA Solo)</button>
@@ -254,14 +254,14 @@
     var localPicksLeft = 0; 
     var isInitializing = false;
 
-    // ============================================================================
-    // FONCTIONNALITES DU BOT IA
-    // ============================================================================
     var botEnabled = false;
     var autoTrain = false;
     var isBotThinking = false;
     var botDelay = 800; 
 
+    // ============================================================================
+    // FONCTIONS UTILITAIRES ET BOT
+    // ============================================================================
     function isBotTurn() {
         if(!state) return false;
         if(botEnabled) {
@@ -479,12 +479,12 @@
             }
         }
 
-        if (!me.amenagementMode && me.waterMax < 4 && me.time >= 3 && me.money >= 4) {
+        if (!me.amenagementMode && me.waterMax < 7 && me.time >= 3 && me.money >= 4) {
             toggleAmenagement(); return;
         }
         if (me.amenagementMode && me.time >= 0 && me.money >= 4) {
             let mz = me.zones.find(z => !z.type && z.num >= 2 && z.num <= 4 && (isAdjacent(me, z.id) || z.num == 1 || z.num == 2));
-            if (mz) { localSelectedId = mz.id; actT('MARE', mz.id); toggleAmenagement(); return; }
+            if (mz) { localSelectedId = mz.id; actT('MARE', mz.id); return; }
             toggleAmenagement(); 
             return;
         }
@@ -553,8 +553,23 @@
 
 
     // ============================================================================
-    // MOTEUR PRINCIPAL ET FONCTIONS DE JEU
+    // MOTEUR PRINCIPAL DU JEU ET UI
     // ============================================================================
+
+    function startNewGame(mode) {
+        myId = 1; 
+        document.getElementById('lobby').style.display = 'none'; 
+        document.getElementById('my-hud').style.borderTopColor = 'var(--p1)';
+        botEnabled = (mode === 'IA_SOLO' || mode === 'IA_VS_IA' || mode === 'VS_IA');
+        initNewGame(1, mode);
+    }
+
+    function joinGame(id) {
+        myId = id; 
+        document.getElementById('lobby').style.display = 'none'; 
+        document.getElementById('my-hud').style.borderTopColor = id === 1 ? 'var(--p1)' : 'var(--p2)';
+        if(state) render();
+    }
 
     function generatePlayer() {
         return { 
@@ -628,21 +643,6 @@
         } finally { 
             isInitializing = false; 
         } 
-    }
-
-    function startNewGame(mode) {
-        myId = 1; 
-        document.getElementById('lobby').style.display = 'none'; 
-        document.getElementById('my-hud').style.borderTopColor = 'var(--p1)';
-        botEnabled = (mode === 'IA_SOLO' || mode === 'IA_VS_IA' || mode === 'VS_IA');
-        initNewGame(1, mode);
-    }
-
-    function joinGame(id) {
-        myId = id; 
-        document.getElementById('lobby').style.display = 'none'; 
-        document.getElementById('my-hud').style.borderTopColor = id === 1 ? 'var(--p1)' : 'var(--p2)';
-        if(state) render();
     }
 
     async function confirmReset(force = false) { 
@@ -770,7 +770,7 @@
         setTxt('res-pv', me.pv || 0);
         
         let waterMax = 0; 
-        me.zones.forEach(z => { if(z.type === 'MARE') waterMax += 4; });
+        me.zones.forEach(z => { if(z.type === 'MARE') waterMax += 7; });
         (me.auxActifs||[]).forEach(a => { if(a && a.includes("Récupérateur")) waterMax += 7; });
         me.waterMax = waterMax; 
         if ((me.water || 0) > me.waterMax) me.water = me.waterMax;
@@ -921,11 +921,11 @@
         (me.hand || []).forEach((c, i) => {
             const cost = Math.max(0, (c.t||1) - (me.upgrades[2]-1)); 
             const card = document.createElement('div'); 
-            card.className = "card";
             
             let isOutil = listOutils.some(o => c.nom.includes(o));
             let toolLocked = isOutil && !hasLocal;
 
+            card.className = "card";
             if(toolLocked) card.style.opacity = "0.6";
 
             let details = "";
@@ -1605,7 +1605,7 @@
 
         [1, 2].forEach(pid => {
             let pData = state['p'+pid]; let bClimat = pData.upgrades[4] > 1 ? 1 : 0; 
-            pData.water = Math.min(pData.waterMax || 0, (pData.water || 0) + pBase);
+            pData.water = Math.min(pData.waterMax || 0, (pData.water || 0) + pBase + bClimat);
 
             pData.zones.forEach(z => { 
                 if(z && z.slots && z.slots.length > 0) { 
