@@ -2,7 +2,7 @@
 <html lang="fr">
 <head>
     <meta charset="UTF-8">
-    <title>La Main Verte - V46 (IA Intégrée & Unifiée)</title>
+    <title>La Main Verte - V47 (Scoring Visuel)</title>
     <script src="https://www.gstatic.com/firebasejs/9.17.1/firebase-app-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/9.17.1/firebase-database-compat.js"></script>
     <style>
@@ -88,7 +88,7 @@
 <body>
 
 <div id="lobby">
-    <h1 style="font-size: 3em; margin-bottom: 10px;">🌱 La Main Verte <span style="font-size:0.4em; color:#a5d6a7; vertical-align: middle;">V46</span></h1>
+    <h1 style="font-size: 3em; margin-bottom: 10px;">🌱 La Main Verte <span style="font-size:0.4em; color:#a5d6a7; vertical-align: middle;">V47</span></h1>
     <p style="font-size: 1.2em; margin-bottom: 30px;">Choisissez un mode de jeu :</p>
     <button class="btn-lobby" onclick="startNewGame('SOLO')">👤 Jouer en Solo</button>
     <button class="btn-lobby" style="background:#8e24aa" onclick="startNewGame('IA_SOLO')">🤖 Mode Spectateur (IA Solo)</button>
@@ -139,8 +139,8 @@
         <div title="Compost">💩 <span id="res-compost" class="res-pill">0</span></div>
         <div id="meteo-display" style="background:#e3f2fd; padding:3px 10px; border-radius:10px;">🎲 --</div>
         <button id="champion-btn" onclick="playChampion()" style="background:#fbc02d; color:#333; border:none; border-radius:4px; padding:4px 8px; cursor:pointer;">🏆 Jouer Champion</button>
-        <button id="auto-train-btn" onclick="toggleAutoTrain()" style="background:#009688; color:white; border:none; border-radius:4px; padding:4px 8px; cursor:pointer;">🧬 Auto-Train: OFF</button>
-        <button id="bot-btn" onclick="toggleBot()" style="background:#9c27b0; color:white; border:none; border-radius:4px; padding:4px 8px; cursor:pointer;">🤖 Bot: OFF</button>
+        <button id="auto-train-btn" onclick="if(typeof toggleAutoTrain === 'function') toggleAutoTrain(); else alert('Bot non disponible');" style="background:#009688; color:white; border:none; border-radius:4px; padding:4px 8px; cursor:pointer;">🧬 Auto-Train: OFF</button>
+        <button id="bot-btn" onclick="if(typeof toggleBot === 'function') toggleBot(); else alert('Bot non disponible');" style="background:#9c27b0; color:white; border:none; border-radius:4px; padding:4px 8px; cursor:pointer;">🤖 Bot: OFF</button>
         <button onclick="confirmReset()" style="background:#ff5252; color:white; border:none; border-radius:4px; padding:4px 8px; cursor:pointer;">🧹 Reset</button>
     </div>
     
@@ -290,7 +290,7 @@
 
         isBotThinking = true;
         setTimeout(() => {
-            isBotThinking = false; // On libère le verrou AVANT l'action pour fluidifier Firebase
+            isBotThinking = false; 
             try { 
                 executeBestAction(pId); 
             } catch (error) { 
@@ -480,114 +480,7 @@
     // MOTEUR PRINCIPAL DU JEU
     // ============================================================================
 
-    function generatePlayer() {
-        return { 
-            pv: 0, fences: 0, objectives: [], stats: { maxHarvest: 0, harvestCount: 0 }, coopDons: 0,
-            scoreDetails: { base: 0, mPV: 0, zPV: 0, uPV: 0, objPV: 0, finalScore: 0 },
-            money: 10, time: 10, timeMax: 10, compost: 0, amenagementMode: false,
-            upgrades: Array(8).fill(1), hand: [], auxActifs: [], 
-            zones: zoneNumbersMap.map((num, i) => ({ id: i, num: num, type: num === 0 ? "LIFE" : (i === 14 ? "POTAGER" : null), slots: [], batiment: null })) 
-        };
-    }
-
-    function startNewGame(mode) {
-        myId = 1; document.getElementById('lobby').style.display = 'none'; document.getElementById('my-hud').style.borderTopColor = 'var(--p1)';
-        botEnabled = (mode === 'IA_SOLO' || mode === 'IA_VS_IA' || mode === 'VS_IA');
-        initNewGame(1, mode);
-    }
-
-    function joinGame(id) {
-        myId = id; document.getElementById('lobby').style.display = 'none'; document.getElementById('my-hud').style.borderTopColor = id === 1 ? 'var(--p1)' : 'var(--p2)';
-        if(state) render();
-    }
-
-    db.on("value", snap => {
-        const val = snap.val();
-        if(val && val.p1) {
-            if(!val.coop) val.coop = { level: 0, unlocks: {} }; if(!val.coop.unlocks) val.coop.unlocks = {}; if(!val.foire) val.foire = { camelot: 0, conseiller: 0 };
-            if(!val.p1.zones[0].slots) console.warn("⚠️ Ancienne BDD détectée ! Faites un Reset !");
-            if (state && (state.saisonIdx !== val.saisonIdx || state.annee !== val.annee) && !val.gameOver) { playSeasonAnimation(val.saisonIdx, val.annee); }
-            state = val; render(); 
-        }
-    });
-
-    function sync() { if(state) db.set(state); }
-
-    function addLog(msg, pid = myId) {
-        if(!state.gameLogs) state.gameLogs = []; let suffix = ""; 
-        if(state && state['p'+pid] && !msg.startsWith("🏆") && !msg.startsWith("> 🧹")) {
-            let p = state['p'+pid]; suffix = ` [💰${p.money} | ⏳${p.time} | 🏆${p.pv||0}]`;
-        }
-        state.gameLogs.unshift(`[J${pid}] ` + msg + suffix);
-        if(state.gameLogs.length > 250) state.gameLogs.pop(); 
-    }
-
-    async function initNewGame(creatorId = null, mode = 'MULTI') {
-        if(isInitializing) return; isInitializing = true;
-        try {
-            const snapConf = await dbConfig.once("value"); let config = snapConf.val() || {};
-            let decks = { C: [], S: [], A: [], O: [] };
-            
-            let fallbackObjectives = [
-                {nom: "Diversité", desc: "Avoir 4 types de légumes différents. (5 PV)", qte: 2, cat: 'O'},
-                {nom: "Monoculture", desc: "Avoir 4 légumes identiques. (5 PV)", qte: 1, cat: 'O'},
-                {nom: "Le grand verger", desc: "Avoir 3 arbres fruitiers. (6 PV)", qte: 2, cat: 'O'},
-                {nom: "Ferme autonome", desc: "Posséder Serre, Composteur et Local. (7 PV)", qte: 1, cat: 'O'}
-            ];
-            if(!config.decks) config.decks = {};
-            if(!config.decks.O || config.decks.O.length === 0) config.decks.O = fallbackObjectives;
-
-            ['C','S','A','O'].forEach(cat => { (config.decks[cat] || []).forEach(c => { let q = c.qte || 1; for(let i=0; i<q; i++) decks[cat].push({...c}); }); });
-            
-            let defaultSet = { costAmenagerPotagerOr:2, costAmenagerPotagerTemps:3, costAmenagerNatureOr:3, costAmenagerNatureTemps:3, costSerreOr:3, costSerreTemps:4, costComposteurOr:4, costComposteurTemps:4, costLocalOr:5, costLocalTemps:4, costArroserTemps:1, costAmenderTemps:1, costComposterTemps:1, costRecolterTemps:2, costUp2Or:2, costUp2Temps:3, costUp3Or:4, costUp3Temps:5, jardSlot1Temps:3, jardSlot1Pioches:5, jardSlot2Temps:2, jardSlot2Pioches:3, jardSlot3Temps:2, jardSlot3Pioches:2, jardSlot4Temps:1, jardSlot4Pioches:1 };
-            let loadedSettings = config.settings || defaultSet; for(let k in defaultSet) if(loadedSettings[k]===undefined) loadedSettings[k]=defaultSet[k];
-
-            state = { 
-                mode: mode, turn: 1, annee: 1, saisonIdx: 0, gameOver: false, settings: loadedSettings, 
-                decks: decks, ravPool: config.ravageurs||[], market: { C: [], S: [], A: [] }, 
-                foire: { camelot: 0, conseiller: 0 }, coop: { level: 0, unlocks: {} },
-                currentMeteo: {p:0, s:0}, currentRav: null, p1: generatePlayer(), p2: generatePlayer(), gameLogs: [creatorId ? `> 🧹 Partie (Mode: ${mode}) initialisée.` : "> Nouvelle partie initialisée."] 
-            };
-            ['C','S','A'].forEach(cat => { for(let i=0; i<2; i++) { let d = draw(cat); if(d) state.market[cat].push(d); } });
-            document.getElementById('game-over-screen').style.display = 'none'; await db.set(state);
-            localSelectedId = null;
-        } catch(e) { console.error(e); } finally { isInitializing = false; } 
-    }
-
-    function draw(cat) { if(!state.decks[cat] || state.decks[cat].length === 0) return null; return state.decks[cat].splice(Math.floor(Math.random()*state.decks[cat].length), 1)[0]; }
-
-    function playSeasonAnimation(sIdx, annee) {
-        if(state.gameOver) return;
-        const overlay = document.getElementById('season-anim-overlay');
-        document.getElementById('anim-title').innerText = SAISON_NOMS[sIdx]; document.getElementById('anim-subtitle').innerText = "Année " + annee;
-        overlay.style.display = 'flex'; setTimeout(() => { overlay.style.opacity = '1'; document.getElementById('anim-box').style.transform = 'scale(1)'; }, 50);
-        setTimeout(() => { overlay.style.opacity = '0'; document.getElementById('anim-box').style.transform = 'scale(0.8)'; setTimeout(() => overlay.style.display = 'none', 500); }, 2500);
-    }
-
-    function showGameOver() {
-        document.getElementById('game-over-screen').style.display = 'flex';
-        
-        let p1 = state.p1.scoreDetails || {base:0, mPV:0, zPV:0, uPV:0, objPV:0, finalScore:0};
-        let p2 = state.p2.scoreDetails || {base:0, mPV:0, zPV:0, uPV:0, objPV:0, finalScore:0};
-
-        const setTD = (id, val) => document.getElementById(id).innerText = val;
-        
-        setTD('b1-base', p1.base); setTD('b2-base', p2.base);
-        setTD('b1-m', p1.mPV); setTD('b2-m', p2.mPV);
-        setTD('b1-z', p1.zPV); setTD('b2-z', p2.zPV);
-        setTD('b1-u', p1.uPV); setTD('b2-u', p2.uPV);
-        setTD('b1-o', p1.objPV); setTD('b2-o', p2.objPV);
-        setTD('b1-tot', p1.finalScore + " 🏆"); setTD('b2-tot', p2.finalScore + " 🏆");
-
-        if(state.mode === 'SOLO' || state.mode === 'IA_SOLO') {
-            document.getElementById('th-j2').style.display = 'none';
-            document.querySelectorAll('#game-over-screen td:nth-child(3)').forEach(el => el.style.display='none');
-            document.getElementById('winner-text').innerText = "🎉 Bilan de votre Ferme !";
-        } else {
-            let winTxt = p1.finalScore > p2.finalScore ? "🏆 Le Joueur 1 Gagne !" : (p2.finalScore > p1.finalScore ? "🏆 Le Joueur 2 Gagne !" : "Égalité !");
-            document.getElementById('winner-text').innerText = winTxt;
-        }
-    }
+    function setTxt(id, txt) { const el = document.getElementById(id); if(el) el.innerHTML = txt; }
 
     function render() {
         if(!state || !myId) return; if(state.gameOver && document.getElementById('game-over-screen').style.display !== 'none') showGameOver();
@@ -599,10 +492,22 @@
         if(isMyTurn) { banner.innerText = "🎮 C'est à votre tour !"; banner.className = "turn-banner active"; }
         else { banner.innerText = `⏳ Veuillez patienter...`; banner.className = "turn-banner"; }
 
-        const setTxt = (id, txt) => { const el = document.getElementById(id); if(el) el.innerText = txt; };
-        setTxt('res-money', me.money); setTxt('res-time', me.time); setTxt('res-timemax', me.timeMax); setTxt('res-compost', me.compost); setTxt('res-pv', me.pv || 0);
+        // AFFICHAGE DES POINTS DE VICTOIRE EN FIN DE PARTIE DANS LE HUD (OSEILLE)
+        if (state.gameOver && me.scoreDetails) {
+            setTxt('res-money', `${me.money} <span style="color:#f57f17; font-size:0.9em;">(+${me.scoreDetails.mPV}🏆)</span>`);
+        } else {
+            setTxt('res-money', me.money);
+        }
+        
+        setTxt('res-time', me.time); setTxt('res-timemax', me.timeMax); setTxt('res-compost', me.compost); setTxt('res-pv', me.pv || 0);
         setTxt('season-display', `📅 ${SAISON_NOMS[state.saisonIdx]} - An ${state.annee}/3`); setTxt('meteo-display', `🌧️ ${state.currentMeteo.p} | ☀️ ${state.currentMeteo.s}`);
-        setTxt('opp-money', opp.money); setTxt('opp-time', opp.time); setTxt('opp-pv', opp.pv || 0);
+        
+        if (state.gameOver && opp.scoreDetails) {
+            setTxt('opp-money', `${opp.money} <span style="color:#f57f17; font-size:0.9em;">(+${opp.scoreDetails.mPV}🏆)</span>`);
+            setTxt('opp-pv', `${opp.scoreDetails.finalScore} (Final)`);
+        } else {
+            setTxt('opp-money', opp.money); setTxt('opp-pv', opp.pv || 0);
+        }
         
         let j1Stats = state.p1.stats || {maxHarvest:0, harvestCount:0}; let j2Stats = state.p2.stats || {maxHarvest:0, harvestCount:0};
         setTxt('concours-max', `J1: ${j1Stats.maxHarvest}💰 | J2: ${j2Stats.maxHarvest}💰`);
@@ -664,13 +569,40 @@
             grid.appendChild(d);
         });
 
+        // AFFICHAGE DES POINTS DE VICTOIRE EN FIN DE PARTIE SUR LE PLATEAU (ZONES COMPLÉTEES)
+        if (state.gameOver && me.scoreDetails && me.scoreDetails.zPV > 0) {
+            let zBonus = document.createElement('div');
+            zBonus.innerHTML = `🗺️ Bonus Zones Complètes : +${me.scoreDetails.zPV} 🏆`;
+            zBonus.style = "position:absolute; bottom:10px; left:50%; transform:translateX(-50%); background:rgba(255,215,0,0.95); padding:8px 20px; border-radius:20px; font-weight:bold; font-size:1.2em; z-index:100; box-shadow:0 4px 10px rgba(0,0,0,0.4); border:2px solid #f57f17; color:#263238;";
+            grid.appendChild(zBonus);
+        }
+
         const oDiv = document.getElementById('player-objectives'); oDiv.innerHTML = "";
         (me.objectives || []).forEach((o) => {
-            let status = ""; let borderCol = "#2196f3"; let bgCol = "#e3f2fd";
+            let status = "";
+            let borderCol = "#2196f3";
+            let bgCol = "#e3f2fd";
+            
+            // AFFICHAGE DES POINTS DE VICTOIRE EN FIN DE PARTIE SUR LES OBJECTIFS
             if (state.gameOver) {
-                if (o.achieved) { status = " <span style='color:green; font-weight:bold; float:right;'>✅ Validé</span>"; borderCol = "#4caf50"; bgCol = "#e8f5e9"; } 
-                else { status = " <span style='color:red; font-weight:bold; float:right;'>❌ Raté</span>"; borderCol = "#f44336"; bgCol = "#ffebee"; }
+                if (o.achieved) {
+                    let points = 0;
+                    let match = o.desc ? o.desc.match(/(\d+)\s*PV/i) : null;
+                    if(match) points = parseInt(match[1]);
+                    if(points === 0) {
+                        if(o.nom.includes("Diversité")) points = 5;
+                        if(o.nom.includes("Monoculture")) points = 5;
+                        if(o.nom.toLowerCase().includes("verger")) points = 6;
+                        if(o.nom.includes("Ferme")) points = 7;
+                    }
+                    status = ` <span style='color:#2e7d32; font-weight:bold; float:right;'>✅ +${points}🏆</span>`;
+                    borderCol = "#4caf50"; bgCol = "#e8f5e9";
+                } else {
+                    status = " <span style='color:#d32f2f; font-weight:bold; float:right;'>❌ Raté</span>";
+                    borderCol = "#f44336"; bgCol = "#ffebee";
+                }
             }
+
             oDiv.innerHTML += `<div class="card" style="border-left-color: ${borderCol}; background:${bgCol};"><b>🎯 ${o.nom}</b>${status}<br><span style="font-size:0.85em; color:#1565c0;">${o.desc || ''}</span></div>`;
         });
 
@@ -695,9 +627,9 @@
         
         if(typeof triggerBot === "function") { 
             let shouldRunBot = false; 
-            if(state.turn === myId && botEnabled && !state.gameOver) shouldRunBot = true; 
+            if(state.turn === myId && typeof botEnabled !== 'undefined' && botEnabled && !state.gameOver) shouldRunBot = true; 
             if((state.mode === 'VS_IA' || state.mode === 'IA_VS_IA') && state.turn === 2 && myId === 1 && !state.gameOver) shouldRunBot = true; 
-            if(state.gameOver && botEnabled) shouldRunBot = true; 
+            if(state.gameOver && typeof botEnabled !== 'undefined' && botEnabled) shouldRunBot = true; 
             if(shouldRunBot && !localModalOpen && !localFoireOpen) {
                 setTimeout(() => triggerBot(state.turn), 50);
             }
@@ -760,7 +692,17 @@
             const costH = me.upgrades[i]===1 ? s.costUp2Temps : s.costUp3Temps; const costM = me.upgrades[i]===1 ? s.costUp2Or : s.costUp3Or; 
             const isUpLocked = (me.upgrades[i] === 2 && (!state.coop || !state.coop.unlocks || !state.coop.unlocks.upgrades3));
             const lockText = isUpLocked ? " (🔒 N8)" : "";
-            upG.innerHTML += `<div style="font-size:0.7em; background:#fafafa; padding:4px; border:1px solid #ddd; border-radius:4px;"><b>${n}</b> L${me.upgrades[i]} <button onclick="upgr(${i})" style="float:right;" title="Coût : ${costM}💰 et ${costH}h" ${dis||me.upgrades[i]>=3||me.time<costH||me.money<costM||isUpLocked?'disabled':''}>UP${lockText}</button></div>`;
+            
+            // AFFICHAGE DES POINTS DE VICTOIRE EN FIN DE PARTIE SUR LES UPGRADES
+            let btnHtml = "";
+            if (state.gameOver) {
+                let uPV_local = me.upgrades[i] === 3 ? 5 : (me.upgrades[i] === 2 ? 2 : 0);
+                btnHtml = `<span style="float:right; color:#f57f17; font-weight:bold; font-size:1.1em;">${uPV_local > 0 ? '+'+uPV_local+'🏆' : ''}</span>`;
+            } else {
+                btnHtml = `<button onclick="upgr(${i})" style="float:right;" title="Coût : ${costM}💰 et ${costH}h" ${dis||me.upgrades[i]>=3||me.time<costH||me.money<costM||isUpLocked?'disabled':''}>UP${lockText}</button>`;
+            }
+
+            upG.innerHTML += `<div style="font-size:0.7em; background:#fafafa; padding:4px; border:1px solid #ddd; border-radius:4px;"><b>${n}</b> L${me.upgrades[i]} ${btnHtml}</div>`;
         });
 
         const jCont = document.getElementById('jard-buttons-container'); jCont.innerHTML = "";
@@ -1202,5 +1144,6 @@
     function actFin() { if(state.mode === 'SOLO' || state.mode === 'IA_SOLO') resolveSeason(); else { if(state.turn === 1) { state.turn = 2; addLog(`⏭️ Fin de tour.`, 1); sync(); } else resolveSeason(); } }
     async function confirmReset(force = false) { if(confirm("⚠️ Réinitialiser complètement le serveur ?")) { let currentMode = state ? state.mode : 'MULTI'; await initNewGame(myId || "Serveur", currentMode); } }
 </script>
+
 </body>
 </html>
