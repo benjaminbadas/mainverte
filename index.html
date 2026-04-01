@@ -2,10 +2,9 @@
 <html lang="fr">
 <head>
     <meta charset="UTF-8">
-    <title>La Main Verte - V42 (Sécurité & Stabilité)</title>
+    <title>La Main Verte - V43 (IA Stratégique Avancée)</title>
     <script src="https://www.gstatic.com/firebasejs/9.17.1/firebase-app-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/9.17.1/firebase-database-compat.js"></script>
-    <script src="bot.js"></script>
     <style>
         :root { --p1: #2e7d32; --p2: #1565c0; --bg: #f4f7f1; --potager: #81c784; --verger: #fff176; --amenag: #ffccbc; --batiment: #455a64; --dark: #263238; --gold: #ffd700; --serre: #e1f5fe; }
         body { font-family: 'Segoe UI', sans-serif; background: var(--bg); margin: 0; display: flex; height: 100vh; overflow: hidden; }
@@ -89,7 +88,7 @@
 <body>
 
 <div id="lobby">
-    <h1 style="font-size: 3em; margin-bottom: 10px;">🌱 La Main Verte <span style="font-size:0.4em; color:#a5d6a7; vertical-align: middle;">V42</span></h1>
+    <h1 style="font-size: 3em; margin-bottom: 10px;">🌱 La Main Verte <span style="font-size:0.4em; color:#a5d6a7; vertical-align: middle;">V43</span></h1>
     <p style="font-size: 1.2em; margin-bottom: 30px;">Choisissez un mode de jeu :</p>
     <button class="btn-lobby" onclick="startNewGame('SOLO')">👤 Jouer en Solo</button>
     <button class="btn-lobby" style="background:#8e24aa" onclick="startNewGame('IA_SOLO')">🤖 Mode Spectateur (IA Solo)</button>
@@ -140,8 +139,8 @@
         <div title="Compost">💩 <span id="res-compost" class="res-pill">0</span></div>
         <div id="meteo-display" style="background:#e3f2fd; padding:3px 10px; border-radius:10px;">🎲 --</div>
         <button id="champion-btn" onclick="playChampion()" style="background:#fbc02d; color:#333; border:none; border-radius:4px; padding:4px 8px; cursor:pointer;">🏆 Jouer Champion</button>
-        <button id="auto-train-btn" onclick="if(typeof toggleAutoTrain === 'function') toggleAutoTrain(); else alert('Bot non disponible');" style="background:#009688; color:white; border:none; border-radius:4px; padding:4px 8px; cursor:pointer;">🧬 Auto-Train: OFF</button>
-        <button id="bot-btn" onclick="if(typeof toggleBot === 'function') toggleBot(); else alert('Bot non disponible');" style="background:#9c27b0; color:white; border:none; border-radius:4px; padding:4px 8px; cursor:pointer;">🤖 Bot: OFF</button>
+        <button id="auto-train-btn" onclick="toggleAutoTrain()" style="background:#009688; color:white; border:none; border-radius:4px; padding:4px 8px; cursor:pointer;">🧬 Auto-Train: OFF</button>
+        <button id="bot-btn" onclick="toggleBot()" style="background:#9c27b0; color:white; border:none; border-radius:4px; padding:4px 8px; cursor:pointer;">🤖 Bot: OFF</button>
         <button onclick="confirmReset()" style="background:#ff5252; color:white; border:none; border-radius:4px; padding:4px 8px; cursor:pointer;">🧹 Reset</button>
     </div>
     
@@ -185,6 +184,7 @@
 <div class="modal-overlay" id="foire-modal"><div class="modal-content" id="foire-content-inner"></div></div>
 
 <script>
+    // --- VARIABLES ET CONFIGURATION DE BASE ---
     const firebaseConfig = {
         apiKey: "AIzaSyA_OHv6TDiVsn4PwM9s25gij8lBwQH8xrg",
         authDomain: "main-verte-72483.firebaseapp.com",
@@ -226,10 +226,15 @@
 
     let state = null; let myId = null; let localSelectedId = null; let localModalOpen = false; let localFoireOpen = false; let localPicksLeft = 0; let isInitializing = false;
 
-    // --- FONCTIONS SILENCIEUSES POUR LE BOT ---
+    // --- LE CERVEAU DU BOT INTEGRE (V43) ---
+    let botEnabled = false;
+    let autoTrain = false;
+    let isBotThinking = false;
+    let botDelay = 800; 
+
     function isBotTurn() {
         if(!state) return false;
-        if(typeof botEnabled !== 'undefined' && botEnabled) {
+        if(botEnabled) {
             if(state.mode === 'IA_SOLO' || state.mode === 'IA_VS_IA') return true;
             if(state.mode === 'VS_IA' && state.turn === 2) return true;
         }
@@ -241,6 +246,201 @@
         else alert(msg);
     }
 
+    function toggleBot() {
+        botEnabled = !botEnabled;
+        let btn = document.getElementById('bot-btn');
+        if(btn) {
+            btn.innerText = botEnabled ? "🤖 Bot: ON" : "🤖 Bot: OFF";
+            btn.style.background = botEnabled ? "#4caf50" : "#9c27b0";
+        }
+        if(botEnabled && state && state.turn === myId && !state.gameOver) triggerBot(state.turn);
+    }
+
+    function toggleAutoTrain() {
+        autoTrain = !autoTrain;
+        botDelay = autoTrain ? 100 : 800;
+        let btn = document.getElementById('auto-train-btn');
+        if(btn) {
+            btn.innerText = autoTrain ? "🧬 Auto-Train: ON" : "🧬 Auto-Train: OFF";
+            btn.style.background = autoTrain ? "#4caf50" : "#009688";
+        }
+        if(autoTrain && !botEnabled) toggleBot();
+    }
+
+    function playChampion() {
+        if(!state || state.gameOver) return;
+        triggerBot(state.turn, true);
+    }
+
+    function triggerBot(pId, force = false) {
+        if (isBotThinking || state.gameOver) {
+            if(state.gameOver && autoTrain) setTimeout(() => confirmReset(true), 2500);
+            return;
+        }
+        
+        let isIA = false;
+        if (state.mode === 'IA_SOLO' || state.mode === 'IA_VS_IA') isIA = true;
+        if (state.mode === 'VS_IA' && pId === 2) isIA = true;
+
+        if (!force && !isIA) return;
+
+        isBotThinking = true;
+        setTimeout(() => {
+            isBotThinking = false; // Libération du verrou pour la fluidité
+            try { executeBestAction(pId); } catch (error) { console.error(error); actFin(); }
+        }, botDelay);
+    }
+
+    function executeBestAction(pId) {
+        const me = state['p' + pId];
+        const s = state.settings;
+
+        if (!me.hand) me.hand = [];
+        if (!me.zones) me.zones = [];
+        if (!me.auxActifs) me.auxActifs = [];
+        if (!me.upgrades) me.upgrades = Array(8).fill(1);
+
+        const curS = ALL_SEASONS[state.saisonIdx];
+        const hasTuteur = me.auxActifs.some(a => a && (a.includes("Tuteur") || a.includes("Treillage")));
+
+        function canPlant(c, z) {
+            if (!z.type) return false;
+            let smValid = z.batiment === 'SERRE' ? (c.sm||[]).map(se => ALL_SEASONS[(ALL_SEASONS.indexOf(se)+3)%4]).concat(c.sm||[]) : (c.sm||[]);
+            if(!smValid.includes(curS)) return false;
+
+            let isPetitFruit = listPetitsFruits.some(pf => c.nom.includes(pf));
+            if (c.cat === 'L' && z.type !== 'POTAGER' && !(z.type === 'VERGER' && isPetitFruit)) return false; 
+            if (c.cat === 'A' && z.type !== 'VERGER') return false; 
+
+            let isGrimpante = listGrimpantes.some(g => c.nom.includes(g));
+            let maxSlots = z.type === 'POTAGER' ? 2 : 1;
+            let occupied = 0;
+            (z.slots || []).forEach(pl => { if (!(listGrimpantes.some(g => pl.nom.includes(g)) && hasTuteur)) occupied++; });
+            if (!(isGrimpante && hasTuteur) && occupied >= maxSlots) return false; 
+            return true;
+        }
+
+        // 1. RECOLTE
+        for (let i = 0; i < me.zones.length; i++) {
+            let z = me.zones[i];
+            if (z && z.slots) {
+                for (let j = 0; j < z.slots.length; j++) {
+                    let c = z.slots[j];
+                    if (c.eCur <= 0 && c.sCur <= 0 && me.time >= s.costRecolterTemps) {
+                        localSelectedId = z.id; actionRecolter(z.id, j); return;
+                    }
+                }
+            }
+        }
+
+        // 2. ARROSER (Survie)
+        if (me.time >= s.costArroserTemps) {
+            for (let i = 0; i < me.zones.length; i++) {
+                let z = me.zones[i];
+                if (z && z.slots && z.slots.some(c => c.eCur > 0)) { localSelectedId = z.id; actArr(z.id); return; }
+            }
+        }
+
+        // 3. PLANTER
+        for (let i = 0; i < me.hand.length; i++) {
+            let c = me.hand[i];
+            let cost = Math.max(0, (c.t || 1) - (me.upgrades[2] - 1));
+            if (me.time >= cost && (c.cat === 'L' || c.cat === 'A')) {
+                for (let j = 0; j < me.zones.length; j++) {
+                    if (canPlant(c, me.zones[j])) { localSelectedId = me.zones[j].id; playC(i, me.zones[j].id); return; }
+                }
+            }
+        }
+
+        // 4. AMENAGER (Si on a une plante valide dans la main mais pas de place)
+        let costP_Or = Math.max(0, s.costAmenagerPotagerOr - (me.upgrades[5] >= 2 ? (me.upgrades[5] === 3 ? 2 : 1) : 0));
+        if (me.time >= s.costAmenagerPotagerTemps && me.money >= costP_Or) {
+            let needsPotager = me.hand.some(c => c.cat === 'L' && (c.sm||[]).includes(curS));
+            let needsVerger = me.hand.some(c => c.cat === 'A' && (c.sm||[]).includes(curS));
+            if (needsPotager || needsVerger) {
+                let emptyAdj = me.zones.find(z => !z.type && (isAdjacent(me, z.id) || z.num == 1 || z.num == 2));
+                if (emptyAdj) {
+                    let num = parseInt(emptyAdj.num);
+                    localSelectedId = emptyAdj.id;
+                    if (needsPotager && (num === 1 || num === 2)) { actT('POTAGER', emptyAdj.id); return; } 
+                    else if (needsVerger && num >= 2 && num <= 5) { actT('VERGER', emptyAdj.id); return; }
+                }
+            }
+        }
+
+        // 5. AMELIORATIONS (Moteur) -> Energie (1), Sol (3), Savoir (2), Outils (5)
+        if (me.money >= 4 && me.time >= 3) {
+            let prioUpgrades = [1, 3, 2, 5, 0, 6, 4, 7];
+            for(let i of prioUpgrades) {
+                let costH = me.upgrades[i]===1 ? s.costUp2Temps : s.costUp3Temps; 
+                let costM = me.upgrades[i]===1 ? s.costUp2Or : s.costUp3Or;
+                let isUpLocked = (me.upgrades[i] === 2 && (!state.coop || !state.coop.unlocks || !state.coop.unlocks.upgrades3));
+                let minMoneyRequired = state.annee === 1 ? costM + 2 : costM;
+                if (me.upgrades[i] < 3 && me.time >= costH && me.money >= minMoneyRequired && !isUpLocked) {
+                    upgr(i); return;
+                }
+            }
+        }
+
+        // 6. JARDINERIE (Acheter des cultures si on n'en a pas)
+        let redJ = me.upgrades[6] >= 2 ? 1 : 0;
+        let costJ = Math.max(0, s.jardSlot3Temps - redJ);
+        if (me.time >= costJ && me.money >= 2 && me.hand.length < 4) {
+            let hasPlants = me.hand.some(c => c.cat === 'L' || c.cat === 'A');
+            let targetCat = hasPlants ? ['S', 'X', 'C'][Math.floor(Math.random() * 3)] : 'C'; 
+            if (state.market[targetCat] && state.market[targetCat].length > 0) {
+                let affordable = state.market[targetCat].filter(c => me.money >= c.p);
+                if (affordable.length > 0) {
+                    let bestCard = affordable[0];
+                    if (targetCat === 'C') {
+                        let nextS = ALL_SEASONS[(state.saisonIdx + 1) % 4];
+                        let optimal = affordable.find(c => (c.sm||[]).includes(curS) || (c.sm||[]).includes(nextS));
+                        if(optimal) bestCard = optimal;
+                    }
+                    me.time -= costJ; me.money -= bestCard.p; me.hand.push(bestCard);
+                    let idx = state.market[targetCat].findIndex(c => c.nom === bestCard.nom);
+                    if(idx !== -1) state.market[targetCat].splice(idx, 1);
+                    addLog(`🤖 Le bot achète ${bestCard.nom}.`, pId);
+                    let maxCards = (state.coop?.unlocks?.market3) ? 3 : 2;
+                    while(state.market[targetCat].length < maxCards && state.decks[targetCat].length > 0) { 
+                        state.market[targetCat].push(state.decks[targetCat].splice(Math.floor(Math.random()*state.decks[targetCat].length), 1)[0]); 
+                    }
+                    sync(); return;
+                }
+            }
+        }
+
+        // 7. FOIRE (Objectifs - Année 2 et 3)
+        let costCons = 2 + (state.foire.conseiller || 0);
+        if (state.annee >= 2 && me.time >= costCons && state.decks.O && state.decks.O.length > 0) {
+            me.time -= costCons; state.foire.conseiller = (state.foire.conseiller || 0) + 1;
+            let obj = state.decks.O.splice(Math.floor(Math.random() * state.decks.O.length), 1)[0];
+            if(!me.objectives) me.objectives=[]; me.objectives.push(obj);
+            addLog(`🤖 Le bot a récupéré l'Objectif : ${obj.nom}`, pId); sync(); return;
+        }
+
+        // 8. SOUTIEN / AUXILIAIRES
+        for (let i = 0; i < me.hand.length; i++) {
+            let c = me.hand[i];
+            let cost = Math.max(0, (c.t || 1) - (me.upgrades[2] - 1));
+            if (me.time >= cost && (c.cat === 'X' || c.cat === 'S')) {
+                if (c.cat === 'X' || (c.cat === 'S' && !listCompagnes.includes(c.nom) && !c.nom.includes("Fumier") && !c.nom.includes("Ortie") && !c.nom.includes("Paillage") && !c.nom.includes("Corne"))) {
+                    playC(i, null); return;
+                } else if (c.cat === 'S') {
+                    let tz = me.zones.find(z => z.slots && z.slots.length > 0);
+                    if(tz) { localSelectedId = tz.id; playC(i, tz.id); return; }
+                }
+            }
+        }
+
+        // 9. VENDRE AU STAND FOIRE
+        if (me.time >= 1 && (me.hand.length >= 4 || (me.money < 2 && me.hand.length > 0))) { actFoireStand(0); return; }
+
+        // 10. FIN
+        actFin();
+    }
+
+    // --- LE RESTE DES FONCTIONS DU JEU ---
     function generatePlayer() {
         return { 
             pv: 0, fences: 0, objectives: [], stats: { maxHarvest: 0, harvestCount: 0 }, coopDons: 0,
@@ -253,9 +453,7 @@
 
     function startNewGame(mode) {
         myId = 1; document.getElementById('lobby').style.display = 'none'; document.getElementById('my-hud').style.borderTopColor = 'var(--p1)';
-        if (typeof botEnabled !== 'undefined') {
-            if (mode === 'IA_SOLO' || mode === 'IA_VS_IA' || mode === 'VS_IA') { botEnabled = true; } else { botEnabled = false; }
-        }
+        if (mode === 'IA_SOLO' || mode === 'IA_VS_IA' || mode === 'VS_IA') { botEnabled = true; } else { botEnabled = false; }
         initNewGame(1, mode);
     }
 
@@ -453,9 +651,9 @@
         
         if(typeof triggerBot === "function") { 
             let shouldRunBot = false; 
-            if(state.turn === myId && typeof botEnabled !== 'undefined' && botEnabled && !state.gameOver) shouldRunBot = true; 
+            if(state.turn === myId && botEnabled && !state.gameOver) shouldRunBot = true; 
             if((state.mode === 'VS_IA' || state.mode === 'IA_VS_IA') && state.turn === 2 && myId === 1 && !state.gameOver) shouldRunBot = true; 
-            if(state.gameOver && typeof botEnabled !== 'undefined' && botEnabled) shouldRunBot = true; 
+            if(state.gameOver && botEnabled) shouldRunBot = true; 
             if(shouldRunBot && !localModalOpen && !localFoireOpen) {
                 setTimeout(() => triggerBot(state.turn), 50);
             }
@@ -650,7 +848,10 @@
         let ch = "1";
         if(!isBotTurn()) {
             ch = prompt(`Bâtiments (Coût action: -4h) :\n1: Serre (${s.costSerreOr}💰 - Sur Potager existant)\n2: Composteur (${s.costComposteurOr}💰 - Sur Zone 1 ou 2 VIDE)\n3: Local (${s.costLocalOr}💰 - Sur zone VIDE)`);
+        } else {
+            ch = ["1", "2", "3"][Math.floor(Math.random() * 3)];
         }
+
         if(!ch) return;
         let zNum = z.num != null ? Number(z.num) : null;
 
@@ -728,7 +929,12 @@
 
         let levelsToFund = 0; 
         if(maxAffordable > 0) {
-            if(isBotTurn()) { levelsToFund = Math.random() < 0.25 ? 1 : 0; } 
+            if(isBotTurn()) { 
+                if(state.annee === 1) levelsToFund = 0;
+                else if(state.annee === 2 && me.money > 6) levelsToFund = 1;
+                else if(state.annee === 3) levelsToFund = maxAffordable > 1 ? 1 : maxAffordable;
+                else levelsToFund = 0;
+            } 
             else { let input = prompt(`🧺 Récolte de ${c.nom} (+${moneyGained}💰).\nLa Coopérative est N${currentLvl}.\nVous pouvez financer jusqu'à ${maxAffordable} niveau(x).\nCombien de niveaux financez-vous ? (0 pour tout garder)`); levelsToFund = parseInt(input) || 0; }
         }
         if(levelsToFund > maxAffordable) levelsToFund = maxAffordable; if(levelsToFund < 0) levelsToFund = 0;
@@ -764,7 +970,7 @@
     }
 
     function playC(idx, zId = localSelectedId) { 
-        const pId = state.turn; const me = state['p'+pId], c = me.hand[idx], z = me.zones[zId];
+        const pId = state.turn; const me = state['p'+pId], c = me.hand[idx], z = zId !== null ? me.zones[zId] : null;
         const cost = Math.max(0, (c.t||1)-(me.upgrades[2]-1));
 
         if(c.cat === 'X' || (c.cat === 'S' && !listCompagnes.includes(c.nom) && !c.nom.includes("Fumier") && !c.nom.includes("Ortie") && !c.nom.includes("Paillage") && !c.nom.includes("Corne"))) { 
@@ -848,7 +1054,7 @@
             [1, 2].forEach(pid => {
                 let pData = state['p'+pid];
                 let objPV = 0;
-                if(typeof botEnabled !== 'undefined' && botEnabled && (state.mode === 'IA_SOLO' || state.mode === 'IA_VS_IA' || (state.mode === 'VS_IA' && pid === 2))) { 
+                if(botEnabled && (state.mode === 'IA_SOLO' || state.mode === 'IA_VS_IA' || (state.mode === 'VS_IA' && pid === 2))) { 
                     objPV = Math.floor(Math.random() * 10); 
                 } else {
                     let input = prompt(`Joueur ${pid} : Combien de PV supplémentaires rapportent vos cartes Objectifs et Personnages ?`, "0");
@@ -905,5 +1111,6 @@
     function actFin() { if(state.mode === 'SOLO' || state.mode === 'IA_SOLO') resolveSeason(); else { if(state.turn === 1) { state.turn = 2; addLog(`⏭️ Fin de tour.`, 1); sync(); } else resolveSeason(); } }
     async function confirmReset(force = false) { if(confirm("⚠️ Réinitialiser complètement le serveur ?")) { let currentMode = state ? state.mode : 'MULTI'; await initNewGame(myId || "Serveur", currentMode); } }
 </script>
+
 </body>
 </html>
