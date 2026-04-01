@@ -2,20 +2,40 @@
 <html lang="fr">
 <head>
     <meta charset="UTF-8">
-    <title>La Main Verte - V54 (Arrosage Sécurisé & Biodiversité)</title>
+    <title>La Main Verte - V55 (Règles Expertes & Combos)</title>
     <script src="https://www.gstatic.com/firebasejs/9.17.1/firebase-app-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/9.17.1/firebase-database-compat.js"></script>
     <style>
-        :root { --p1: #2e7d32; --p2: #1565c0; --bg: #f4f7f1; --potager: #81c784; --verger: #fff176; --amenag: #ffccbc; --batiment: #455a64; --dark: #263238; --gold: #ffd700; --serre: #e1f5fe; }
-        body { font-family: 'Segoe UI', sans-serif; background: var(--bg); margin: 0; display: flex; height: 100vh; overflow: hidden; }
+        :root { 
+            --p1: #2e7d32; --p2: #1565c0; --bg: #f4f7f1; --potager: #81c784; 
+            --verger: #fff176; --amenag: #ffccbc; --batiment: #455a64; 
+            --dark: #263238; --gold: #ffd700; --serre: #e1f5fe; 
+        }
+        body { 
+            font-family: 'Segoe UI', sans-serif; background: var(--bg); 
+            margin: 0; display: flex; height: 100vh; overflow: hidden; 
+        }
         
-        #lobby, #game-over-screen, #season-anim-overlay { position: fixed; top:0; left:0; width:100%; height:100%; z-index: 1000; display: flex; flex-direction: column; align-items: center; justify-content: center; color: white; }
+        #lobby, #game-over-screen, #season-anim-overlay { 
+            position: fixed; top:0; left:0; width:100%; height:100%; 
+            z-index: 1000; display: flex; flex-direction: column; 
+            align-items: center; justify-content: center; color: white; 
+        }
         #lobby { background:rgba(0,0,0,0.9); }
         #game-over-screen { background:rgba(0,0,0,0.85); z-index: 3000; display: none; }
         #season-anim-overlay { background: rgba(255,255,255,0.7); z-index: 2000; display: none; opacity: 0; transition: opacity 0.5s ease-in-out; }
         
-        .anim-box { background: white; border: 5px solid var(--p1); border-radius: 20px; padding: 40px 80px; box-shadow: 0 15px 40px rgba(0,0,0,0.3); text-align: center; transform: scale(0.8); transition: transform 0.5s; }
-        .btn-lobby { background: var(--p1); color: white; border: none; padding: 12px 25px; font-size: 1.1em; border-radius: 8px; margin: 8px; cursor: pointer; width: 320px; transition: 0.2s; font-weight: bold;}
+        .anim-box { 
+            background: white; border: 5px solid var(--p1); border-radius: 20px; 
+            padding: 40px 80px; box-shadow: 0 15px 40px rgba(0,0,0,0.3); 
+            text-align: center; transform: scale(0.8); transition: transform 0.5s; 
+        }
+        
+        .btn-lobby { 
+            background: var(--p1); color: white; border: none; padding: 12px 25px; 
+            font-size: 1.1em; border-radius: 8px; margin: 8px; cursor: pointer; 
+            width: 320px; transition: 0.2s; font-weight: bold;
+        }
         .btn-lobby:hover { filter: brightness(1.2); transform: scale(1.05); }
         
         .score-box { background: white; color: #263238; padding: 40px; border-radius: 12px; text-align: center; box-shadow: 0 10px 40px rgba(0,0,0,0.5); min-width: 500px; }
@@ -85,7 +105,7 @@
 <body>
 
 <div id="lobby">
-    <h1 style="font-size: 3em; margin-bottom: 10px;">🌱 La Main Verte <span style="font-size:0.4em; color:#a5d6a7; vertical-align: middle;">V54</span></h1>
+    <h1 style="font-size: 3em; margin-bottom: 10px;">🌱 La Main Verte <span style="font-size:0.4em; color:#a5d6a7; vertical-align: middle;">V55</span></h1>
     <p style="font-size: 1.2em; margin-bottom: 30px;">Choisissez un mode de jeu :</p>
     <button class="btn-lobby" onclick="startNewGame('SOLO')">👤 Jouer en Solo</button>
     <button class="btn-lobby" style="background:#8e24aa" onclick="startNewGame('IA_SOLO')">🤖 Mode Spectateur (IA Solo)</button>
@@ -210,6 +230,8 @@
     var listPetitsFruits = ["Fraise", "Melon", "Pastèque"]; 
     var listGrimpantes = ["Haricot", "Pois", "Concombre", "Cornichon", "Chayotte", "Vigne"];
     var listCompagnes = ["Ail", "Aneth", "Agastache", "Basilic", "Bleuet", "Bourrache", "Capucine", "Cébette", "Cerfeuil", "Ciboulette", "Coriandre", "Cosmos", "Echalote", "Épinard", "Estragon", "Lin", "Marguerite", "Mélilot Blanc", "Mélisse", "Menthe", "Moutarde", "Oignon", "Origan", "Oeillet d'Inde", "Persil", "Romarin", "Sarriette", "Sauge", "Serpolet", "Souci", "Tanaisie", "Thym", "Tournesol"];
+    var listOutils = ["Arrosoir", "Tuyau", "Enrouleur", "Brouette", "Sécateur", "Cagette", "Tuteur", "Treillage", "Barrière", "Gants", "Ceinture", "Outil"];
+    var listCompost = ["Fumier", "Bois mort", "Carton", "Épluchures"];
 
     var COOP_TRACK = [
         { cost: 1, type: 'none', desc: "Étape de base" }, 
@@ -321,6 +343,7 @@
         const curS = ALL_SEASONS[state.saisonIdx];
         const hasTuteur = me.auxActifs.some(a => a && (a.includes("Tuteur") || a.includes("Treillage")));
         const hasComposteur = me.zones.some(z => z.type === 'COMPOSTEUR' || z.batiment === 'COMPOSTEUR');
+        const hasLocal = me.zones.some(z => z.type === 'LOCAL OUTILS' || z.batiment === 'LOCAL OUTILS');
         
         let hasArrosoir = me.auxActifs.some(a => a && a.includes("Arrosoir"));
         let hasTuyau = me.auxActifs.some(a => a && (a.includes("Tuyau") || a.includes("Enrouleur")));
@@ -386,14 +409,16 @@
         for (let i = 0; i < me.hand.length; i++) {
             let c = me.hand[i];
             let cost = Math.max(0, (c.t || 1) - (me.upgrades[2] - 1));
+            let isOutil = listOutils.some(o => c.nom.includes(o));
+            
             if (me.time >= cost) {
-                if (c.cat === 'X' || (c.cat === 'S' && !listCompagnes.includes(c.nom) && !c.nom.includes("Fumier") && !c.nom.includes("Ortie") && !c.nom.includes("Paillage") && !c.nom.includes("Corne"))) {
-                    playC(i, null); 
-                    return;
+                if (c.cat === 'X' || (c.cat === 'S' && !listCompagnes.includes(c.nom) && !listCompost.some(k=>c.nom.includes(k)) && !c.nom.includes("Corne"))) {
+                    if(isOutil && !hasLocal) continue;
+                    playC(i, null); return;
                 }
                 else if (c.cat === 'S') {
-                    if(c.nom.includes("Fumier")) { 
-                        playC(i, null); return; 
+                    if(listCompost.some(k=>c.nom.includes(k))) { 
+                        if(hasComposteur) { playC(i, null); return; }
                     }
                     else if(listCompagnes.includes(c.nom)) {
                         let tz = me.zones.find(z => z.slots && z.slots.some(pl => !pl.compagne));
@@ -421,8 +446,13 @@
             }
         }
 
-        // 6. CONSTRUIRE BÂTIMENT
+        // 6. CONSTRUIRE BÂTIMENT (et LOCAL si besoin)
         if (me.time >= 4 && me.money >= 6) { 
+            let needsLocal = me.hand.some(c => listOutils.some(o => c.nom.includes(o)));
+            if (needsLocal && !hasLocal && me.money >= s.costLocalOr) {
+                let zVide = me.zones.find(z => !z.type && isAdjacent(me, z.id));
+                if (zVide) { localSelectedId = zVide.id; actB(zVide.id, "3"); return; }
+            }
             if (me.money >= s.costSerreOr) {
                 let zPotager = me.zones.find(z => z.type === 'POTAGER' && z.batiment !== 'SERRE');
                 if (zPotager) { localSelectedId = zPotager.id; actB(zPotager.id, "1"); return; }
@@ -450,14 +480,11 @@
         }
 
         if (!me.amenagementMode && me.waterMax < 4 && me.time >= 3 && me.money >= 4) {
-            // Le bot active le flag mais il ne paye rien pour ouvrir le menu
             toggleAmenagement(); return;
         }
-        if (me.amenagementMode) {
-            if (me.time >= 3 && me.money >= 4) {
-                let mz = me.zones.find(z => !z.type && z.num >= 2 && z.num <= 4 && (isAdjacent(me, z.id) || z.num == 1 || z.num == 2));
-                if (mz) { localSelectedId = mz.id; actT('MARE', mz.id); toggleAmenagement(); return; }
-            }
+        if (me.amenagementMode && me.time >= 0 && me.money >= 4) {
+            let mz = me.zones.find(z => !z.type && z.num >= 2 && z.num <= 4 && (isAdjacent(me, z.id) || z.num == 1 || z.num == 2));
+            if (mz) { localSelectedId = mz.id; actT('MARE', mz.id); toggleAmenagement(); return; }
             toggleAmenagement(); 
             return;
         }
@@ -542,16 +569,6 @@
         document.getElementById('lobby').style.display = 'none'; 
         document.getElementById('my-hud').style.borderTopColor = id === 1 ? 'var(--p1)' : 'var(--p2)';
         if(state) render();
-    }
-
-    function generatePlayer() {
-        return { 
-            pv: 0, fences: 0, objectives: [], stats: { maxHarvest: 0, harvestCount: 0 }, coopDons: 0,
-            scoreDetails: { base: 0, mPV: 0, zPV: 0, uPV: 0, objPV: 0, finalScore: 0 },
-            money: 10, time: 10, timeMax: 10, compost: 0, water: 0, waterMax: 0, amenagementMode: false,
-            upgrades: Array(8).fill(1), hand: [], auxActifs: [], 
-            zones: zoneNumbersMap.map((num, i) => ({ id: i, num: num, type: num === 0 ? "LIFE" : (i === 14 ? "POTAGER" : null), slots: [], batiment: null })) 
-        };
     }
 
     async function initNewGame(creatorId = null, mode = 'MULTI') {
@@ -640,9 +657,7 @@
         }
     });
 
-    function sync() { 
-        if(state) db.set(state); 
-    }
+    function sync() { if(state) db.set(state); }
     
     function draw(cat) { 
         if(!state.decks[cat] || state.decks[cat].length === 0) return null; 
@@ -655,15 +670,8 @@
         document.getElementById('anim-title').innerText = SAISON_NOMS[sIdx]; 
         document.getElementById('anim-subtitle').innerText = "Année " + annee;
         overlay.style.display = 'flex'; 
-        setTimeout(() => { 
-            overlay.style.opacity = '1'; 
-            document.getElementById('anim-box').style.transform = 'scale(1)'; 
-        }, 50);
-        setTimeout(() => { 
-            overlay.style.opacity = '0'; 
-            document.getElementById('anim-box').style.transform = 'scale(0.8)'; 
-            setTimeout(() => overlay.style.display = 'none', 500); 
-        }, 2500);
+        setTimeout(() => { overlay.style.opacity = '1'; document.getElementById('anim-box').style.transform = 'scale(1)'; }, 50);
+        setTimeout(() => { overlay.style.opacity = '0'; document.getElementById('anim-box').style.transform = 'scale(0.8)'; setTimeout(() => overlay.style.display = 'none', 500); }, 2500);
     }
 
     function showGameOver() {
@@ -689,22 +697,14 @@
         }
     }
 
-    function setTD(id, val) { 
-        const el = document.getElementById(id); 
-        if(el) el.innerText = val; 
-    }
-    
-    function setTxt(id, txt) { 
-        const el = document.getElementById(id); 
-        if(el) el.innerHTML = txt; 
-    }
+    function setTD(id, val) { const el = document.getElementById(id); if(el) el.innerText = val; }
+    function setTxt(id, txt) { const el = document.getElementById(id); if(el) el.innerHTML = txt; }
 
     function addLog(msg, pid = myId) {
         if(!state.gameLogs) state.gameLogs = []; 
         let suffix = ""; 
         if(state && state['p'+pid] && !msg.startsWith("🏆") && !msg.startsWith("> 🧹")) {
-            let p = state['p'+pid]; 
-            suffix = ` [💰${p.money} | ⏳${p.time} | 🏆${p.pv||0}]`;
+            let p = state['p'+pid]; suffix = ` [💰${p.money} | ⏳${p.time} | 🏆${p.pv||0}]`;
         }
         state.gameLogs.unshift(`[J${pid}] ` + msg + suffix);
         if(state.gameLogs.length > 250) state.gameLogs.pop(); 
@@ -908,13 +908,23 @@
         (me.hand || []).forEach((c, i) => {
             const cost = Math.max(0, (c.t||1) - (me.upgrades[2]-1)); 
             const card = document.createElement('div'); 
+            
+            let isOutil = listOutils.some(o => c.nom.includes(o));
+            let hasLocal = me.zones.some(z => z.type === 'LOCAL OUTILS' || z.batiment === 'LOCAL OUTILS');
+            let toolLocked = isOutil && !hasLocal;
+
             card.className = "card";
+            if(toolLocked) card.style.opacity = "0.6";
+
             let details = "";
             if (c.cat === 'S') details = `✨ <b>Effet :</b> ${c.desc}`; 
             else if (c.cat === 'X') details = `🛡️ <b>Protège :</b> Anti-${c.prot}`;
             else details = `📈 <b>Gain : +${c.g}💰</b><br>💧${c.e} ☀️${c.s}<br>🌱 ${(c.sm||[]).join(',')} | 🧺 ${(c.rc||[]).join(',')}`;
             
-            card.innerHTML = `<b>${c.nom}</b><br><span style="font-size:0.9em;">${details}</span><div style="display:flex; gap:4px; margin-top:4px;"><button onclick="playC(${i})" style="flex:1; padding:4px; cursor:pointer;" ${!isMyTurn || me.time<cost || state.gameOver ? 'disabled':''}>Jouer (-${cost}h)</button></div>`;
+            let btnText = toolLocked ? "🏠 Local Requis" : `Jouer (-${cost}h)`;
+            let btnDisabled = (!isMyTurn || me.time<cost || state.gameOver || toolLocked) ? 'disabled' : '';
+
+            card.innerHTML = `<b>${c.nom}</b><br><span style="font-size:0.9em;">${details}</span><div style="display:flex; gap:4px; margin-top:4px;"><button onclick="playC(${i})" style="flex:1; padding:4px; cursor:pointer;" ${btnDisabled}>${btnText}</button></div>`;
             hDiv.appendChild(card);
         });
 
@@ -1238,9 +1248,7 @@
             me.water = Math.min(me.waterMax, (me.water||0) + 4); 
         }
         
-        if(me.amenagementMode) {
-            me.amenagementMode = false;
-        }
+        if(me.amenagementMode) me.amenagementMode = false;
 
         addLog(`🏗️ ${t} sur Z${zId===14 ? 'PO' : num} (-${costO}💰${costH>0?`, -${costH}h`:''}).`, pId); 
         localSelectedId = null; 
@@ -1319,12 +1327,26 @@
         const hasComp = me.zones.some(x => x.type === 'COMPOSTEUR' || x.batiment === 'COMPOSTEUR'); 
         if(!hasComp) return safeAlert("Construisez un Composteur !");
         
-        if(z && z.slots && z.slots.length > 0 && me.compost > 0 && me.time >= s.costAmenderTemps) { 
-            me.time-=s.costAmenderTemps; me.compost--; 
-            z.slots.forEach(c => { c.amd = (c.amd || 0) + 1; }); 
-            addLog(`💩 Amendement Z${z.id===14?'PO':z.num} (-1💩).`, pId); 
+        // C'est ici qu'intervient l'effet BROUETTE !
+        let hasBrouette = (me.auxActifs || []).some(a => a && a.includes("Brouette"));
+        let maxAmd = (hasBrouette && me.compost >= 2) ? 2 : 1;
+
+        if(z && z.slots && z.slots.length > 0 && me.compost >= maxAmd && me.time >= s.costAmenderTemps) { 
+            me.time-=s.costAmenderTemps; 
+            me.compost -= maxAmd; 
+            z.slots.forEach(c => { c.amd = (c.amd || 0) + maxAmd; }); 
+            addLog(`💩 Amendement Z${z.id===14?'PO':z.num} (-${maxAmd}💩).`, pId); 
             sync(); 
-        } 
+        } else if (me.compost > 0 && me.time >= s.costAmenderTemps) {
+             // Si la brouette est là mais qu'il ne reste qu'un seul compost, on amende de 1
+             me.time-=s.costAmenderTemps; 
+             me.compost -= 1; 
+             z.slots.forEach(c => { c.amd = (c.amd || 0) + 1; }); 
+             addLog(`💩 Amendement Z${z.id===14?'PO':z.num} (-1💩).`, pId); 
+             sync();
+        } else {
+             return safeAlert("Pas assez de compost ou de temps !");
+        }
     }
 
     function actComposter(zId = localSelectedId) {
@@ -1361,11 +1383,36 @@
         const pId = state.turn; const me = state['p'+pId], z = me.zones[id], s=state.settings; 
         if(me.time < s.costRecolterTemps) return;
         
-        const c = z.slots[slotIdx]; 
-        if (c.eCur > 0 || c.sCur > 0) return safeAlert(`Cette plante n'est pas encore prête ! Besoins restants : 💧${c.eCur} / ☀️${c.sCur}`);
+        const targetC = z.slots[slotIdx]; 
+        if (targetC.eCur > 0 || targetC.sCur > 0) return safeAlert(`Cette plante n'est pas encore prête ! Besoins restants : 💧${targetC.eCur} / ☀️${targetC.sCur}`);
         
+        // EFFET CAGETTE : Chercher une 2ème plante identique prête à récolter
+        let hasCagette = (me.auxActifs || []).some(a => a && a.includes("Cagette"));
+        let targets = [{zoneId: id, slotIdx: slotIdx, c: targetC}];
+        
+        if (hasCagette) {
+            for (let i = 0; i < me.zones.length; i++) {
+                let zz = me.zones[i];
+                if (zz && zz.slots) {
+                    for (let j = 0; j < zz.slots.length; j++) {
+                        if (i === id && j === slotIdx) continue;
+                        let cc = zz.slots[j];
+                        if (cc.nom === targetC.nom && cc.eCur <= 0 && cc.sCur <= 0) {
+                            targets.push({zoneId: zz.id, slotIdx: j, c: cc});
+                            break; 
+                        }
+                    }
+                }
+                if(targets.length === 2) break;
+            }
+        }
+
         me.time -= s.costRecolterTemps; 
-        let moneyGained = c.g + (me.upgrades[3]-1) + (c.amd||0); 
+        let moneyGained = 0;
+        targets.forEach(t => {
+            moneyGained += t.c.g + (me.upgrades[3]-1) + (t.c.amd||0);
+        });
+
         let currentLvl = state.coop.level; let maxAffordable = 0; let tempGain = moneyGained; let tempLvl = currentLvl;
         
         while(tempLvl < COOP_TRACK.length && tempGain >= COOP_TRACK[tempLvl].cost) { 
@@ -1381,7 +1428,7 @@
                 else levelsToFund = 0;
             } 
             else { 
-                let input = prompt(`🧺 Récolte de ${c.nom} (+${moneyGained}💰).\nLa Coopérative est N${currentLvl}.\nVous pouvez financer jusqu'à ${maxAffordable} niveau(x).\nCombien de niveaux financez-vous ? (0 pour tout garder)`); 
+                let input = prompt(`🧺 Récolte de ${targetC.nom} ${targets.length>1?'(x2)' : ''} (+${moneyGained}💰).\nLa Coopérative est N${currentLvl}.\nVous pouvez financer jusqu'à ${maxAffordable} niveau(x).\nCombien de niveaux financez-vous ? (0 pour tout garder)`); 
                 levelsToFund = parseInt(input) || 0; 
             }
         }
@@ -1424,13 +1471,23 @@
         let netGain = moneyGained - costTotal; 
         me.money += netGain;
         if(!me.stats) me.stats = { maxHarvest: 0, harvestCount: 0 };
-        me.stats.harvestCount++; 
+        me.stats.harvestCount += targets.length; 
         if(moneyGained > me.stats.maxHarvest) me.stats.maxHarvest = moneyGained; 
 
-        if(c.cat === 'A') { c.eCur = c.e; c.sCur = c.s; c.amd = 0; } 
-        else { z.slots.splice(slotIdx, 1); }
+        // Suppression des plantes récoltées
+        targets.forEach(t => {
+            if(t.c.cat === 'A') {
+                t.c.eCur = t.c.e; t.c.sCur = t.c.s; t.c.amd = 0;
+            } else {
+                t.c.toRemove = true;
+            }
+        });
         
-        addLog(`🧺 Récolte de ${c.nom} (+${netGain}💰 nets).`, pId); 
+        me.zones.forEach(zz => {
+            if(zz.slots) zz.slots = zz.slots.filter(cc => !cc.toRemove);
+        });
+        
+        addLog(`🧺 Récolte de ${targetC.nom} ${targets.length>1?'(x2 avec Cagette)':''} (+${netGain}💰 nets).`, pId); 
         sync(); 
     }
 
@@ -1438,13 +1495,27 @@
         const pId = state.turn; const me = state['p'+pId], c = me.hand[idx], z = zId !== null ? me.zones[zId] : null;
         const cost = Math.max(0, (c.t||1)-(me.upgrades[2]-1));
 
-        if(c.cat === 'X' || (c.cat === 'S' && !listCompagnes.includes(c.nom) && !c.nom.includes("Fumier") && !c.nom.includes("Ortie") && !c.nom.includes("Paillage") && !c.nom.includes("Corne"))) { 
+        let isOutil = listOutils.some(o => c.nom.includes(o));
+        let hasLocal = me.zones.some(zz => zz.type === 'LOCAL OUTILS' || zz.batiment === 'LOCAL OUTILS');
+        if (isOutil && !hasLocal) return safeAlert("Vous devez construire un Local à outils pour jouer cette carte !");
+
+        if(c.cat === 'X' || (c.cat === 'S' && !listCompagnes.includes(c.nom) && !listCompost.some(k=>c.nom.includes(k)) && !c.nom.includes("Corne"))) { 
             if(me.time < cost) return; 
             me.time-=cost; if(!me.auxActifs) me.auxActifs=[]; me.auxActifs.push(c.cat==='X' ? c.prot : c.nom); 
             me.hand.splice(idx,1); addLog(`🛠️ Déploiement : ${c.nom}.`, pId); sync(); return;
         } 
         
         if(c.cat === 'S') { 
+            if(listCompost.some(k => c.nom.includes(k))) {
+                let hasComposteur = me.zones.some(zz => zz.type === 'COMPOSTEUR' || zz.batiment === 'COMPOSTEUR');
+                if(!hasComposteur) return safeAlert("Il vous faut un Composteur pour recycler cela !");
+                me.time -= cost;
+                me.compost = (me.compost||0) + 2;
+                me.hand.splice(idx, 1);
+                addLog(`✨ Compostage de ${c.nom} (+2💩).`, pId);
+                sync(); return;
+            }
+
             if(zId === null || zId === undefined) return safeAlert("Veuillez sélectionner une zone pour y appliquer cette carte !");
             if(me.time < cost) return; 
             if(!z || !z.slots || z.slots.length === 0) return safeAlert("Zone vide ! Il faut y planter quelque chose d'abord.");
@@ -1456,8 +1527,7 @@
             }
             else { 
                 me.time-=cost; 
-                if(c.nom.includes("Fumier")) { me.compost=(me.compost||0)+2; } 
-                else if(c.nom.includes("Ortie")) { z.slots.forEach(pl => pl.eCur = Math.max(0, pl.eCur-4)); } 
+                if(c.nom.includes("Ortie")) { z.slots.forEach(pl => pl.eCur = Math.max(0, pl.eCur-4)); } 
                 else if(c.nom.includes("Paillage")) { z.slots.forEach(pl => { pl.eCur = Math.max(0, pl.eCur-2); pl.sCur = Math.max(0, pl.sCur-1); }); } 
                 else if(c.nom.includes("Corne")) { z.slots.forEach(pl => pl.amd = (pl.amd||0)+2); } 
             }
@@ -1540,6 +1610,17 @@
                 } 
             });
             if(state.currentRav && (!pData.auxActifs || !pData.auxActifs.includes(state.currentRav.n || state.currentRav.nom))) { pData.money = Math.max(0, pData.money - state.currentRav.d); }
+            
+            // EFFET SECATEUR EN FIN DE SAISON
+            let hasSecateur = (pData.auxActifs || []).some(a => a && a.includes("Sécateur"));
+            let hasVergerOrHaie = pData.zones.some(z => z.type === 'VERGER' || z.type === 'HAIE');
+            let hasComposteur = pData.zones.some(z => z.type === 'COMPOSTEUR' || z.batiment === 'COMPOSTEUR');
+            
+            if (hasSecateur && hasVergerOrHaie && hasComposteur && pData.time > 0) {
+                pData.compost = (pData.compost || 0) + pData.time;
+                addLog(`✂️ Sécateur : ${pData.time}h restantes ➔ +${pData.time}💩`, pid);
+            }
+
             pData.time = pData.timeMax; 
         });
 
