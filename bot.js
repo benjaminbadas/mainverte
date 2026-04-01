@@ -46,14 +46,14 @@ function triggerBot(pId, force = false) {
 
     isBotThinking = true;
     setTimeout(() => {
+        // CORRECTION MAJEURE : On libère le verrou AVANT d'exécuter l'action
+        // Cela permet à Firebase de relancer le bot automatiquement et de manière fluide !
+        isBotThinking = false; 
         try {
             executeBestAction(pId);
         } catch (error) {
             console.error("Erreur dans le cerveau du Bot :", error);
-            // S'il crashe, il passe son tour pour ne pas bloquer le jeu
             actFin();
-        } finally {
-            isBotThinking = false;
         }
     }, botDelay);
 }
@@ -62,7 +62,7 @@ function executeBestAction(pId) {
     const me = state['p' + pId];
     const s = state.settings;
 
-    // PATCH FIREBASE ANTI-CRASH : On s'assure que les tableaux vides existent toujours
+    // SÉCURITÉ : On s'assure que les tableaux vides existent toujours
     if (!me.hand) me.hand = [];
     if (!me.zones) me.zones = [];
     if (!me.auxActifs) me.auxActifs = [];
@@ -129,7 +129,7 @@ function executeBestAction(pId) {
     }
 
     // --- PRIORITÉ 5 : PLANTER UN LÉGUME / ARBRE ---
-    let curS = ALL_SEASONS[state.saisonIdx];
+    let curS = ["P","E","A","H"][state.saisonIdx];
     let hasTuteur = me.auxActifs.some(a => a && (a.includes("Tuteur") || a.includes("Treillage")));
     
     for (let i = 0; i < me.hand.length; i++) {
@@ -145,7 +145,7 @@ function executeBestAction(pId) {
                 let z = me.zones[j];
                 if (!z.type) continue; 
                 
-                let smValid = z.batiment === 'SERRE' ? (c.sm||[]).map(se => ALL_SEASONS[(ALL_SEASONS.indexOf(se)+3)%4]).concat(c.sm||[]) : (c.sm||[]);
+                let smValid = z.batiment === 'SERRE' ? (c.sm||[]).map(se => ["P","E","A","H"][(["P","E","A","H"].indexOf(se)+3)%4]).concat(c.sm||[]) : (c.sm||[]);
                 if(!smValid.includes(curS)) continue; 
 
                 if (c.cat === 'L' && z.type !== 'POTAGER' && !(z.type === 'VERGER' && isPetitFruit)) continue; 
@@ -195,7 +195,7 @@ function executeBestAction(pId) {
         }
     }
 
-    // --- PRIORITÉ 8 : VENTE À LA FOIRE (Si Main pleine) ---
+    // --- PRIORITÉ 8 : VENTE FOIRE (Si Main pleine) ---
     if (me.hand.length >= 4 && me.time >= 1) {
         actFoireStand(0);
         return;
