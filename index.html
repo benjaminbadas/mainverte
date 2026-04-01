@@ -2,7 +2,7 @@
 <html lang="fr">
 <head>
     <meta charset="UTF-8">
-    <title>La Main Verte - v60 (Objectifs en Temps Réel & Défausse)</title>
+    <title>La Main Verte - v61 (Événements Saisonniers)</title>
     <script src="https://www.gstatic.com/firebasejs/9.17.1/firebase-app-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/9.17.1/firebase-database-compat.js"></script>
     
@@ -97,6 +97,7 @@
         .price-tag { position: absolute; top: -6px; right: -6px; background: var(--gold); padding: 1px 5px; border-radius: 8px; font-size: 0.8em; font-weight: bold; border: 1px solid #b8860b; }
         
         .alert-rav { background: #ffebee; color: #c62828; padding: 4px; border-radius: 4px; font-size: 0.75em; margin-bottom: 5px; border: 1px solid #ef9a9a; text-align: center; font-weight: bold;}
+        .alert-event { background: #f3e5f5; color: #6a1b9a; padding: 4px; border-radius: 4px; font-size: 0.8em; margin-bottom: 5px; border: 1px solid #ce93d8; text-align: center; font-weight: bold;}
         .logs { height: 150px; background: var(--dark); color: #a5d6a7; padding: 8px; font-family: monospace; font-size: 0.75em; overflow-y: auto; border-radius: 6px; margin-top:5px; border: 2px solid #455a64;}
         
         .turn-banner { background: #ff9800; color: white; text-align: center; padding: 5px; font-weight: bold; display: none; border-radius: 4px; margin-bottom: 5px;}
@@ -108,7 +109,7 @@
 <body>
 
 <div id="lobby">
-    <h1 style="font-size: 3em; margin-bottom: 10px;">🌱 La Main Verte <span style="font-size:0.4em; color:#a5d6a7; vertical-align: middle;">v60</span></h1>
+    <h1 style="font-size: 3em; margin-bottom: 10px;">🌱 La Main Verte <span style="font-size:0.4em; color:#a5d6a7; vertical-align: middle;">v61</span></h1>
     <p style="font-size: 1.2em; margin-bottom: 30px;">Choisissez un mode de jeu :</p>
     <button class="btn-lobby" onclick="startNewGame('SOLO')">👤 Jouer en Solo</button>
     <button class="btn-lobby" style="background:#8e24aa" onclick="startNewGame('IA_SOLO')">🤖 Mode Spectateur (IA Solo)</button>
@@ -173,7 +174,9 @@
         <b>👀 Adversaire :</b> <span>💰 <span id="opp-money">0</span> | ⏳ <span id="opp-time">0</span>h | 💧 <span id="opp-water">0</span>L | 🏆 <span id="opp-pv">0</span></span>
     </div>
     
+    <div id="event-zone" class="alert-event" style="display:none;"></div>
     <div id="ravageur-zone" class="alert-rav" style="display:none;"></div>
+    
     <div id="aux-tray" style="display:none; gap:5px; margin-bottom:8px; background:#e3f2fd; padding:5px; border-radius:5px; border:1px solid #90caf9; flex-wrap:wrap; font-size:0.8em; color:#1565c0;"></div>
     <div class="farm-grid" id="farm-grid"></div>
     <div class="logs" id="game-logs"></div>
@@ -269,17 +272,17 @@
     // ============================================================================
 
     window.discardCard = function(c) {
-        // Firebase supprime automatiquement les objets/tableaux vides. 
-        // Il faut s'assurer que l'arborescence est recréée à chaque fois avant de push.
         if (!state.discards) state.discards = {};
         if (!state.discards.C) state.discards.C = [];
         if (!state.discards.S) state.discards.S = [];
         if (!state.discards.A) state.discards.A = [];
         if (!state.discards.O) state.discards.O = [];
+        if (!state.discards.E) state.discards.E = [];
         
         let targetDeck = 'C';
         if (c.cat === 'S') targetDeck = 'S';
         else if (c.cat === 'A' || c.cat === 'X') targetDeck = 'A';
+        else if (c.cat === 'E' || c.type) targetDeck = 'E'; // Défausse événement
         else if (!c.cat) targetDeck = 'O';
 
         let cleanC = { ...c };
@@ -296,7 +299,7 @@
             if (state.discards && state.discards[deckType] && state.discards[deckType].length > 0) {
                 state.decks[deckType] = state.discards[deckType];
                 state.discards[deckType] = [];
-                let nomPioche = deckType === 'C' ? 'Cultures' : (deckType === 'S' ? 'Soutiens' : (deckType === 'A' ? 'Auxiliaires' : 'Objectifs'));
+                let nomPioche = deckType === 'C' ? 'Cultures' : (deckType === 'S' ? 'Soutiens' : (deckType === 'A' ? 'Auxiliaires' : (deckType === 'E' ? 'Événements' : 'Objectifs')));
                 addLog(`🔀 La pioche ${nomPioche} a été mélangée !`, state.turn);
             } else {
                 return null;
@@ -470,7 +473,8 @@
 
         function canPlant(c, z) {
             if (!z.type) return false;
-            let smValid = z.batiment === 'SERRE' ? (c.sm||[]).map(se => ALL_SEASONS[(ALL_SEASONS.indexOf(se)+3)%4]).concat(c.sm||[]) : (c.sm||[]);
+            let isGrele = (state.currentEvent && state.currentEvent.nom === "Grêle");
+            let smValid = (z.batiment === 'SERRE' && !isGrele) ? (c.sm||[]).map(se => ALL_SEASONS[(ALL_SEASONS.indexOf(se)+3)%4]).concat(c.sm||[]) : (c.sm||[]);
             if(!smValid.includes(curS)) return false;
 
             let isPetitFruit = listPetitsFruits.some(pf => c.nom.includes(pf));
@@ -742,6 +746,15 @@
             logBox.innerHTML = state.gameLogs.map(l => `<div>${l}</div>`).join('');
         }
         
+        // AFFICHAGE ÉVÉNEMENT SAISONNIER
+        const eventZone = document.getElementById('event-zone');
+        if(state.currentEvent) {
+            eventZone.innerText = `⚡ ÉVÉNEMENT : ${state.currentEvent.nom} (${state.currentEvent.desc})`;
+            eventZone.style.display = 'block';
+        } else {
+            eventZone.style.display = 'none';
+        }
+
         const rZone = document.getElementById('ravageur-zone');
         if(state.currentRav) { 
             rZone.innerText = `⚠️ RAVAGEUR : ${state.currentRav.n || state.currentRav.nom} (-${state.currentRav.d}💰)`; 
@@ -870,6 +883,7 @@
             let details = "";
             if (c.cat === 'S') details = `✨ <b>Effet :</b> ${c.desc}`; 
             else if (c.cat === 'X') details = `🛡️ <b>Protège :</b> Anti-${c.prot}`;
+            else if (c.cat === 'E') details = `⚡ <b>Événement</b>`;
             else details = `📈 <b>Gain : +${c.g}💰</b><br>💧${c.e} ☀️${c.s}<br>🌱 ${(c.sm||[]).join(',')} | 🧺 ${(c.rc||[]).join(',')}`;
             
             let btnText = toolLocked ? "🏠 Local Requis" : `Jouer (-${cost}h)`;
@@ -1260,6 +1274,9 @@
         
         let zNum = z.num != null ? Number(z.num) : null;
 
+        // EVENEMENT : Grêle (Bloque les serres)
+        if(ch==="1" && state.currentEvent && state.currentEvent.nom === "Grêle") return safeAlert("Impossible de construire une Serre pendant la Grêle !");
+
         if(ch==="1") { 
             if(z.type!=="POTAGER") return safeAlert("La Serre se place par-dessus un Potager !");
             if(z.batiment==="SERRE") return safeAlert("Il y a déjà une Serre ici !");
@@ -1395,9 +1412,21 @@
 
         me.time -= s.costRecolterTemps; 
         let moneyGained = 0;
+        
+        // EVENEMENT : Saison Exceptionnelle
+        let eventBonus = (state.currentEvent && state.currentEvent.nom === "Saison exceptionnelle") ? 2 : 0;
+        
         targets.forEach(t => {
-            moneyGained += t.c.g + (me.upgrades[3]-1) + (t.c.amd||0);
+            let gain = t.c.g + (me.upgrades[3]-1) + (t.c.amd||0);
+            // EVENEMENT : Grêle (Baisse rendement verger)
+            if (t.c.cat === 'A' && state.currentEvent && state.currentEvent.nom === "Grêle") {
+                gain = Math.max(0, gain - 2);
+            }
+            moneyGained += gain;
         });
+
+        // Ajout du bonus d'événement saisonnier
+        moneyGained += eventBonus;
 
         let currentLvl = state.coop.level; let maxAffordable = 0; let tempGain = moneyGained; let tempLvl = currentLvl;
         
@@ -1546,7 +1575,10 @@
         }
 
         let curS = ALL_SEASONS[state.saisonIdx]; 
-        let smValid = z.batiment === 'SERRE' ? (c.sm||[]).map(se => ALL_SEASONS[(ALL_SEASONS.indexOf(se)+3)%4]).concat(c.sm||[]) : (c.sm||[]);
+        
+        // EVENEMENT : Grêle (Empêche l'utilisation de la serre pour passer outre les saisons)
+        let isGrele = (state.currentEvent && state.currentEvent.nom === "Grêle");
+        let smValid = (z.batiment === 'SERRE' && !isGrele) ? (c.sm||[]).map(se => ALL_SEASONS[(ALL_SEASONS.indexOf(se)+3)%4]).concat(c.sm||[]) : (c.sm||[]);
         if(!smValid.includes(curS)) return safeAlert("Mauvaise saison de semis !");
         
         me.time-=cost; z.slots.push({...c, eCur:c.e, sCur:c.s, amd:0, compagne: null}); me.hand.splice(idx,1); 
@@ -1554,8 +1586,14 @@
     }
 
     function resolveSeason() {
-        let curS = ALL_SEASONS[state.saisonIdx]; let pBase = Math.floor(Math.random()*3)+1; let sBase = Math.floor(Math.random()*2)+1;
+        let curS = ALL_SEASONS[state.saisonIdx]; 
+        
+        // EVENEMENT : Sécheresse (Modifie la météo)
+        let maxPrecip = (state.currentEvent && state.currentEvent.nom === "Sécheresse") ? 2 : 3;
+        let pBase = Math.floor(Math.random() * maxPrecip) + 1; 
+        let sBase = Math.floor(Math.random() * 2) + 1;
         state.currentMeteo = {p: pBase, s: sBase};
+
         if(state.ravPool && state.ravPool.length > 0 && Math.random() < 0.3) { state.currentRav = state.ravPool[Math.floor(Math.random()*state.ravPool.length)]; } else { state.currentRav = null; }
 
         let isFinalTurn = (state.saisonIdx === 3 && state.annee === 3);
@@ -1637,8 +1675,35 @@
         }
 
         let newSeason = ALL_SEASONS[state.saisonIdx];
+        
+        // -------------------------------------------------------------
+        // NOUVEAUTÉ : GESTION DES ÉVÉNEMENTS SAISONNIERS
+        // -------------------------------------------------------------
+        
+        // On défausse l'ancien événement
+        if (state.currentEvent) {
+            discardCard(state.currentEvent);
+            state.currentEvent = null;
+        }
+        
+        // Si on n'est PAS à la toute première saison du jeu (Année 1, Printemps)
+        if (!(state.annee === 1 && state.saisonIdx === 0)) {
+            state.currentEvent = draw('E');
+            
+            if (state.currentEvent) {
+                // Effet immédiat : Aide de la région
+                if (state.currentEvent.nom === "Aide de la région") {
+                    [1, 2].forEach(pid => state['p'+pid].money += 2);
+                    addLog("🏛️ Événement - Aide de la région : +2💰 pour tous !", 1);
+                }
+            }
+        }
+
+        // -------------------------------------------------------------
+
         [1, 2].forEach(pid => {
             let pData = state['p'+pid];
+            
             pData.zones.forEach(z => { 
                 if(z && z.slots && z.slots.length > 0) { 
                     z.slots.forEach(c => {
@@ -1664,6 +1729,14 @@
                     });
                 }
             });
+            
+            // Événements qui modifient le temps maximum alloué pour la nouvelle saison
+            let timeMod = 0;
+            if (state.currentEvent) {
+                if (state.currentEvent.nom === "Travail en musique") timeMod = 2;
+                if (state.currentEvent.nom === "Blessure") timeMod = -2;
+            }
+            pData.time = Math.max(0, pData.timeMax + timeMod); 
         });
 
         state.turn = 1; addLog(`💤 Résolution saison. Météo: 🌧️${pBase} ☀️${sBase}`, state.mode === 'SOLO' || state.mode === 'IA_SOLO' ? 1 : 2); sync();
@@ -1721,6 +1794,14 @@
                     ],
                     O: [
                         { nom: "Ferme Autonome", desc: "Avoir Serre, Local et Composteur (7 PV)" }
+                    ],
+                    E: [
+                        { nom: "Saison exceptionnelle", type: "Positif", desc: "+2 sous à la récolte" },
+                        { nom: "Travail en musique", type: "Positif", desc: "+2 Temps disponible" },
+                        { nom: "Aide de la région", type: "Positif", desc: "Gain immédiat de 2 sous" },
+                        { nom: "Grêle", type: "Négatif", desc: "Serres indisponibles, -2 rendement sur fruitiers" },
+                        { nom: "Sécheresse", type: "Négatif", desc: "Lancez 1 dé précipitation en moins" },
+                        { nom: "Blessure", type: "Négatif", desc: "Un jardinier (temps) en moins cette saison" }
                     ]
                 };
             }
@@ -1742,13 +1823,13 @@
                 p1: initP(), p2: initP(),
                 market: { C:[], S:[], A:[] }, 
                 decks: decksToUse,
-                discards: { C:[], S:[], A:[], O:[] },
-                currentMeteo: {p:1, s:1}, currentRav: null,
+                discards: { C:[], S:[], A:[], O:[], E:[] },
+                currentMeteo: {p:1, s:1}, currentRav: null, currentEvent: null,
                 coop: { level: 0, unlocks: {} }, foire: { camelot: 0, conseiller: 0 },
                 settings: settingsToUse
             };
 
-            // Remplissage initial propre sans passer par jardR() pour éviter la défausse immédiate
+            // Remplissage initial de la jardinerie
             ['C', 'S', 'A'].forEach(cat => {
                 for(let i=0; i<2; i++) {
                     let newC = draw(cat);
