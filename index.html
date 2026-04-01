@@ -2,7 +2,7 @@
 <html lang="fr">
 <head>
     <meta charset="UTF-8">
-    <title>La Main Verte - V48 (Édition Propre)</title>
+    <title>La Main Verte - V49 (Gestion de l'Eau)</title>
     <script src="https://www.gstatic.com/firebasejs/9.17.1/firebase-app-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/9.17.1/firebase-database-compat.js"></script>
     <style>
@@ -24,7 +24,7 @@
         .main-game { flex: 1; display: flex; flex-direction: column; padding: 10px; overflow-y: auto; }
         .sidebar { width: 440px; background: white; border-left: 2px solid #ddd; padding: 10px; display: flex; flex-direction: column; overflow-y: auto;}
         
-        .hud { display: flex; justify-content: space-between; align-items: center; background: white; padding: 10px; border-radius: 8px; box-shadow: 0 2px 5px rgba(0,0,0,0.1); margin-bottom: 5px; font-weight: bold; font-size: 0.9em; border-top: 4px solid var(--p1); }
+        .hud { display: flex; justify-content: space-between; align-items: center; background: white; padding: 10px; border-radius: 8px; box-shadow: 0 2px 5px rgba(0,0,0,0.1); margin-bottom: 5px; font-weight: bold; font-size: 0.85em; border-top: 4px solid var(--p1); }
         .hud-opp { background: #e3f2fd; padding: 6px 10px; border-radius: 8px; margin-bottom: 10px; font-size: 0.8em; color: #1565c0; border: 1px solid #bbdefb; display: flex; justify-content: space-between; align-items: center;}
         
         /* GRILLE HEXAGONALE */
@@ -61,7 +61,7 @@
         .card { border: 1px solid #ddd; border-radius: 6px; padding: 6px; margin-bottom: 4px; background: white; font-size: 0.75em; border-left: 4px solid var(--p1); cursor: help; position: relative;}
         .btn-action { width: 100%; padding: 8px; border: none; border-radius: 4px; font-weight: bold; color: white; cursor: pointer; font-size: 0.75em; margin-bottom: 3px; transition: 0.2s; }
         .btn-action:hover:not(:disabled) { filter: brightness(1.1); }
-        .res-pill { background: #e8f5e9; padding: 2px 6px; border-radius: 10px; color: var(--p1); border: 1px solid var(--p1); }
+        .res-pill { background: #e8f5e9; padding: 2px 6px; border-radius: 10px; color: var(--p1); border: 1px solid var(--p1); margin-right: 3px;}
         .res-pv { background: #fff8e1; padding: 2px 6px; border-radius: 10px; color: #f57f17; border: 1px solid #fbc02d; font-weight:bold;}
         button:disabled { filter: grayscale(100%); opacity: 0.5; cursor: not-allowed; transform: none; }
         
@@ -88,7 +88,7 @@
 <body>
 
 <div id="lobby">
-    <h1 style="font-size: 3em; margin-bottom: 10px;">🌱 La Main Verte <span style="font-size:0.4em; color:#a5d6a7; vertical-align: middle;">V48</span></h1>
+    <h1 style="font-size: 3em; margin-bottom: 10px;">🌱 La Main Verte <span style="font-size:0.4em; color:#a5d6a7; vertical-align: middle;">V49</span></h1>
     <p style="font-size: 1.2em; margin-bottom: 30px;">Choisissez un mode de jeu :</p>
     <button class="btn-lobby" onclick="startNewGame('SOLO')">👤 Jouer en Solo</button>
     <button class="btn-lobby" style="background:#8e24aa" onclick="startNewGame('IA_SOLO')">🤖 Mode Spectateur (IA Solo)</button>
@@ -135,17 +135,20 @@
     <div id="turn-banner" class="turn-banner">Veuillez patienter...</div>
     <div class="hud" id="my-hud">
         <div id="season-display">📅 Saison...</div>
-        <div title="1 PV = 3 sous en fin de partie">💰 <span id="res-money">0</span> | ⏳ <span id="res-time">0</span>/<span id="res-timemax">10</span>h | <span class="res-pv" title="Points de Victoire (Base)">🏆 <span id="res-pv">0</span></span></div>
-        <div title="Compost">💩 <span id="res-compost" class="res-pill">0</span></div>
+        <div title="1 PV = 3 sous en fin de partie">💰 <span id="res-money">0</span> | ⏳ <span id="res-time">0</span>/<span id="res-timemax">10</span>h | <span class="res-pv" title="Points de Victoire">🏆 <span id="res-pv">0</span></span></div>
+        <div>
+            <span title="Eau stockée (Pluie/Mares/Récupérateurs)" class="res-pill" style="color:#0288d1; border-color:#0288d1; background:#e1f5fe;">💧 <span id="res-water">0</span>/<span id="res-watermax">0</span>L</span>
+            <span title="Compost" class="res-pill">💩 <span id="res-compost">0</span></span>
+        </div>
         <div id="meteo-display" style="background:#e3f2fd; padding:3px 10px; border-radius:10px;">🎲 --</div>
         <button id="champion-btn" onclick="playChampion()" style="background:#fbc02d; color:#333; border:none; border-radius:4px; padding:4px 8px; cursor:pointer;">🏆 Jouer Champion</button>
-        <button id="auto-train-btn" onclick="toggleAutoTrain()" style="background:#009688; color:white; border:none; border-radius:4px; padding:4px 8px; cursor:pointer;">🧬 Auto-Train: OFF</button>
-        <button id="bot-btn" onclick="toggleBot()" style="background:#9c27b0; color:white; border:none; border-radius:4px; padding:4px 8px; cursor:pointer;">🤖 Bot: OFF</button>
+        <button id="auto-train-btn" onclick="if(typeof toggleAutoTrain === 'function') toggleAutoTrain(); else alert('Bot non disponible');" style="background:#009688; color:white; border:none; border-radius:4px; padding:4px 8px; cursor:pointer;">🧬 Auto-Train: OFF</button>
+        <button id="bot-btn" onclick="if(typeof toggleBot === 'function') toggleBot(); else alert('Bot non disponible');" style="background:#9c27b0; color:white; border:none; border-radius:4px; padding:4px 8px; cursor:pointer;">🤖 Bot: OFF</button>
         <button onclick="confirmReset()" style="background:#ff5252; color:white; border:none; border-radius:4px; padding:4px 8px; cursor:pointer;">🧹 Reset</button>
     </div>
     
     <div class="hud-opp" id="opp-hud">
-        <b>👀 Adversaire :</b> <span>💰 <span id="opp-money">0</span> | ⏳ <span id="opp-time">0</span>h | 🏆 <span id="opp-pv">0</span></span>
+        <b>👀 Adversaire :</b> <span>💰 <span id="opp-money">0</span> | ⏳ <span id="opp-time">0</span>h | 💧 <span id="opp-water">0</span>L | 🏆 <span id="opp-pv">0</span></span>
     </div>
     
     <div id="ravageur-zone" class="alert-rav" style="display:none;"></div>
@@ -225,6 +228,9 @@
 
     let state = null; let myId = null; let localSelectedId = null; let localModalOpen = false; let localFoireOpen = false; let localPicksLeft = 0; let isInitializing = false;
 
+    // ============================================================================
+    // CERVEAU DE L'INTELLIGENCE ARTIFICIELLE (BOT)
+    // ============================================================================
     let botEnabled = false;
     let autoTrain = false;
     let isBotThinking = false;
@@ -306,6 +312,10 @@
         const curS = ALL_SEASONS[state.saisonIdx];
         const hasTuteur = me.auxActifs.some(a => a && (a.includes("Tuteur") || a.includes("Treillage")));
         const hasComposteur = me.zones.some(z => z.type === 'COMPOSTEUR' || z.batiment === 'COMPOSTEUR');
+        
+        let hasArrosoir = me.auxActifs.some(a => a && a.includes("Arrosoir"));
+        let hasTuyau = me.auxActifs.some(a => a && (a.includes("Tuyau") || a.includes("Enrouleur")));
+        let canWater = (me.water >= 2 || hasArrosoir || hasTuyau);
 
         function canPlant(c, z) {
             if (!z.type) return false;
@@ -324,6 +334,7 @@
             return true;
         }
 
+        // 1. RECOLTER
         for (let i = 0; i < me.zones.length; i++) {
             let z = me.zones[i];
             if (z && z.slots) {
@@ -336,18 +347,21 @@
             }
         }
 
-        if (me.time >= s.costArroserTemps) {
+        // 2. ARROSER
+        if (me.time >= s.costArroserTemps && canWater) {
             for (let i = 0; i < me.zones.length; i++) {
                 let z = me.zones[i];
                 if (z && z.slots && z.slots.some(c => c.eCur > 0)) { localSelectedId = z.id; actArr(z.id); return; }
             }
         }
 
+        // 3. AMENDER
         if (hasComposteur && me.compost > 0 && me.time >= s.costAmenderTemps) {
             let zToAmend = me.zones.find(z => z.slots && z.slots.length > 0);
             if (zToAmend) { localSelectedId = zToAmend.id; actAmd(zToAmend.id); return; }
         }
 
+        // 4. JOUER OUTILS/COMPAGNES
         for (let i = 0; i < me.hand.length; i++) {
             let c = me.hand[i];
             let cost = Math.max(0, (c.t || 1) - (me.upgrades[2] - 1));
@@ -368,6 +382,7 @@
             }
         }
 
+        // 5. PLANTER
         for (let i = 0; i < me.hand.length; i++) {
             let c = me.hand[i];
             let cost = Math.max(0, (c.t || 1) - (me.upgrades[2] - 1));
@@ -378,6 +393,7 @@
             }
         }
 
+        // 6. CONSTRUIRE BÂTIMENT
         if (me.time >= 4 && me.money >= 6) { 
             if (me.money >= s.costSerreOr) {
                 let zPotager = me.zones.find(z => z.type === 'POTAGER' && z.batiment !== 'SERRE');
@@ -389,6 +405,7 @@
             }
         }
 
+        // 7. AMÉNAGER TERRAIN
         let wantsPotager = me.hand.some(c => c.cat === 'L' && !listPetitsFruits.some(pf => c.nom.includes(pf)));
         let wantsVerger = me.hand.some(c => c.cat === 'A' || listPetitsFruits.some(pf => c.nom.includes(pf)));
         let costP_Or = Math.max(0, s.costAmenagerPotagerOr - (me.upgrades[5] >= 2 ? (me.upgrades[5] === 3 ? 2 : 1) : 0));
@@ -404,6 +421,18 @@
             }
         }
 
+        // Si le bot n'a pas d'eau et pas de mare, il essaie d'en faire une (S'il est en mode Biodiversité)
+        if (!me.amenagementMode && me.waterMax < 4 && me.time >= 3 && me.money >= 4) {
+            toggleAmenagement(); return;
+        }
+        if (me.amenagementMode && me.time >= 0 && me.money >= 4) {
+            let mz = me.zones.find(z => !z.type && z.num >= 2 && z.num <= 4 && (isAdjacent(me, z.id) || z.num == 1 || z.num == 2));
+            if (mz) { localSelectedId = mz.id; actT('MARE', mz.id); toggleAmenagement(); return; }
+            toggleAmenagement(); // Si on trouve pas, on désactive
+            return;
+        }
+
+        // 8. AMÉLIORATIONS
         if (me.money >= 4 && me.time >= 3) {
             let prioUpgrades = [1, 3, 2, 5, 0, 6, 4, 7];
             for(let i of prioUpgrades) {
@@ -417,6 +446,7 @@
             }
         }
 
+        // 9. JARDINERIE
         let redJ = me.upgrades[6] >= 2 ? 1 : 0;
         let costJ = Math.max(0, s.jardSlot3Temps - redJ);
         if (me.time >= costJ && me.money >= 2 && me.hand.length < 4) {
@@ -444,6 +474,7 @@
             }
         }
 
+        // 10. FOIRE OBJECTIFS
         let costCons = 2 + (state.foire.conseiller || 0);
         if (state.annee >= 2 && me.time >= costCons && state.decks.O && state.decks.O.length > 0) {
             me.time -= costCons; state.foire.conseiller = (state.foire.conseiller || 0) + 1;
@@ -452,119 +483,17 @@
             addLog(`🤖 Le bot a récupéré l'Objectif : ${obj.nom}`, pId); sync(); return;
         }
 
+        // 11. VENTE STAND
         if (me.time >= 1 && (me.hand.length >= 4 || (me.money < 2 && me.hand.length > 0))) { actFoireStand(0); return; }
 
+        // 12. FIN DE TOUR
         actFin();
     }
 
-    function generatePlayer() {
-        return { 
-            pv: 0, fences: 0, objectives: [], stats: { maxHarvest: 0, harvestCount: 0 }, coopDons: 0,
-            scoreDetails: { base: 0, mPV: 0, zPV: 0, uPV: 0, objPV: 0, finalScore: 0 },
-            money: 10, time: 10, timeMax: 10, compost: 0, amenagementMode: false,
-            upgrades: Array(8).fill(1), hand: [], auxActifs: [], 
-            zones: zoneNumbersMap.map((num, i) => ({ id: i, num: num, type: num === 0 ? "LIFE" : (i === 14 ? "POTAGER" : null), slots: [], batiment: null })) 
-        };
-    }
 
-    function startNewGame(mode) {
-        myId = 1; document.getElementById('lobby').style.display = 'none'; document.getElementById('my-hud').style.borderTopColor = 'var(--p1)';
-        botEnabled = (mode === 'IA_SOLO' || mode === 'IA_VS_IA' || mode === 'VS_IA');
-        initNewGame(1, mode);
-    }
-
-    function joinGame(id) {
-        myId = id; document.getElementById('lobby').style.display = 'none'; document.getElementById('my-hud').style.borderTopColor = id === 1 ? 'var(--p1)' : 'var(--p2)';
-        if(state) render();
-    }
-
-    db.on("value", snap => {
-        const val = snap.val();
-        if(val && val.p1) {
-            if(!val.coop) val.coop = { level: 0, unlocks: {} }; if(!val.coop.unlocks) val.coop.unlocks = {}; if(!val.foire) val.foire = { camelot: 0, conseiller: 0 };
-            if(!val.p1.zones[0].slots) console.warn("⚠️ Ancienne BDD détectée ! Faites un Reset !");
-            if (state && (state.saisonIdx !== val.saisonIdx || state.annee !== val.annee) && !val.gameOver) { playSeasonAnimation(val.saisonIdx, val.annee); }
-            state = val; render(); 
-        }
-    });
-
-    function sync() { if(state) db.set(state); }
-
-    function addLog(msg, pid = myId) {
-        if(!state.gameLogs) state.gameLogs = []; let suffix = ""; 
-        if(state && state['p'+pid] && !msg.startsWith("🏆") && !msg.startsWith("> 🧹")) {
-            let p = state['p'+pid]; suffix = ` [💰${p.money} | ⏳${p.time} | 🏆${p.pv||0}]`;
-        }
-        state.gameLogs.unshift(`[J${pid}] ` + msg + suffix);
-        if(state.gameLogs.length > 250) state.gameLogs.pop(); 
-    }
-
-    async function initNewGame(creatorId = null, mode = 'MULTI') {
-        if(isInitializing) return; isInitializing = true;
-        try {
-            const snapConf = await dbConfig.once("value"); let config = snapConf.val() || {};
-            let decks = { C: [], S: [], A: [], O: [] };
-            
-            let fallbackObjectives = [
-                {nom: "Diversité", desc: "Avoir 4 types de légumes différents. (5 PV)", qte: 2, cat: 'O'},
-                {nom: "Monoculture", desc: "Avoir 4 légumes identiques. (5 PV)", qte: 1, cat: 'O'},
-                {nom: "Le grand verger", desc: "Avoir 3 arbres fruitiers. (6 PV)", qte: 2, cat: 'O'},
-                {nom: "Ferme autonome", desc: "Posséder Serre, Composteur et Local. (7 PV)", qte: 1, cat: 'O'}
-            ];
-            if(!config.decks) config.decks = {};
-            if(!config.decks.O || config.decks.O.length === 0) config.decks.O = fallbackObjectives;
-
-            ['C','S','A','O'].forEach(cat => { (config.decks[cat] || []).forEach(c => { let q = c.qte || 1; for(let i=0; i<q; i++) decks[cat].push({...c}); }); });
-            
-            let defaultSet = { costAmenagerPotagerOr:2, costAmenagerPotagerTemps:3, costAmenagerNatureOr:3, costAmenagerNatureTemps:3, costSerreOr:3, costSerreTemps:4, costComposteurOr:4, costComposteurTemps:4, costLocalOr:5, costLocalTemps:4, costArroserTemps:1, costAmenderTemps:1, costComposterTemps:1, costRecolterTemps:2, costUp2Or:2, costUp2Temps:3, costUp3Or:4, costUp3Temps:5, jardSlot1Temps:3, jardSlot1Pioches:5, jardSlot2Temps:2, jardSlot2Pioches:3, jardSlot3Temps:2, jardSlot3Pioches:2, jardSlot4Temps:1, jardSlot4Pioches:1 };
-            let loadedSettings = config.settings || defaultSet; for(let k in defaultSet) if(loadedSettings[k]===undefined) loadedSettings[k]=defaultSet[k];
-
-            state = { 
-                mode: mode, turn: 1, annee: 1, saisonIdx: 0, gameOver: false, settings: loadedSettings, 
-                decks: decks, ravPool: config.ravageurs||[], market: { C: [], S: [], A: [] }, 
-                foire: { camelot: 0, conseiller: 0 }, coop: { level: 0, unlocks: {} },
-                currentMeteo: {p:0, s:0}, currentRav: null, p1: generatePlayer(), p2: generatePlayer(), gameLogs: [creatorId ? `> 🧹 Partie (Mode: ${mode}) initialisée.` : "> Nouvelle partie initialisée."] 
-            };
-            ['C','S','A'].forEach(cat => { for(let i=0; i<2; i++) { let d = draw(cat); if(d) state.market[cat].push(d); } });
-            document.getElementById('game-over-screen').style.display = 'none'; await db.set(state);
-            localSelectedId = null;
-        } catch(e) { console.error(e); } finally { isInitializing = false; } 
-    }
-
-    function draw(cat) { if(!state.decks[cat] || state.decks[cat].length === 0) return null; return state.decks[cat].splice(Math.floor(Math.random()*state.decks[cat].length), 1)[0]; }
-
-    function playSeasonAnimation(sIdx, annee) {
-        if(state.gameOver) return;
-        const overlay = document.getElementById('season-anim-overlay');
-        document.getElementById('anim-title').innerText = SAISON_NOMS[sIdx]; document.getElementById('anim-subtitle').innerText = "Année " + annee;
-        overlay.style.display = 'flex'; setTimeout(() => { overlay.style.opacity = '1'; document.getElementById('anim-box').style.transform = 'scale(1)'; }, 50);
-        setTimeout(() => { overlay.style.opacity = '0'; document.getElementById('anim-box').style.transform = 'scale(0.8)'; setTimeout(() => overlay.style.display = 'none', 500); }, 2500);
-    }
-
-    function showGameOver() {
-        document.getElementById('game-over-screen').style.display = 'flex';
-        
-        let p1 = state.p1.scoreDetails || {base:0, mPV:0, zPV:0, uPV:0, objPV:0, finalScore:0};
-        let p2 = state.p2.scoreDetails || {base:0, mPV:0, zPV:0, uPV:0, objPV:0, finalScore:0};
-
-        const setTD = (id, val) => document.getElementById(id).innerText = val;
-        
-        setTD('b1-base', p1.base); setTD('b2-base', p2.base);
-        setTD('b1-m', p1.mPV); setTD('b2-m', p2.mPV);
-        setTD('b1-z', p1.zPV); setTD('b2-z', p2.zPV);
-        setTD('b1-u', p1.uPV); setTD('b2-u', p2.uPV);
-        setTD('b1-o', p1.objPV); setTD('b2-o', p2.objPV);
-        setTD('b1-tot', p1.finalScore + " 🏆"); setTD('b2-tot', p2.finalScore + " 🏆");
-
-        if(state.mode === 'SOLO' || state.mode === 'IA_SOLO') {
-            document.getElementById('th-j2').style.display = 'none';
-            document.querySelectorAll('#game-over-screen td:nth-child(3)').forEach(el => el.style.display='none');
-            document.getElementById('winner-text').innerText = "🎉 Bilan de votre Ferme !";
-        } else {
-            let winTxt = p1.finalScore > p2.finalScore ? "🏆 Le Joueur 1 Gagne !" : (p2.finalScore > p1.finalScore ? "🏆 Le Joueur 2 Gagne !" : "Égalité !");
-            document.getElementById('winner-text').innerText = winTxt;
-        }
-    }
+    // ============================================================================
+    // MOTEUR PRINCIPAL DU JEU
+    // ============================================================================
 
     function setTxt(id, txt) { const el = document.getElementById(id); if(el) el.innerHTML = txt; }
 
@@ -582,6 +511,17 @@
         else { setTxt('res-money', me.money); }
         
         setTxt('res-time', me.time); setTxt('res-timemax', me.timeMax); setTxt('res-compost', me.compost); setTxt('res-pv', me.pv || 0);
+        
+        // CALCULE LA CAPACITÉ EN EAU EN TEMPS RÉEL
+        let waterMax = 0;
+        me.zones.forEach(z => { if(z.type === 'MARE') waterMax += 4; });
+        (me.auxActifs||[]).forEach(a => { if(a && a.includes("Récupérateur")) waterMax += 7; });
+        me.waterMax = waterMax;
+        if ((me.water || 0) > me.waterMax) me.water = me.waterMax;
+        
+        setTxt('res-water', me.water || 0); setTxt('res-watermax', me.waterMax);
+        setTxt('opp-water', opp.water || 0);
+
         setTxt('season-display', `📅 ${SAISON_NOMS[state.saisonIdx]} - An ${state.annee}/3`); setTxt('meteo-display', `🌧️ ${state.currentMeteo.p} | ☀️ ${state.currentMeteo.s}`);
         
         if (state.gameOver && opp.scoreDetails) {
@@ -694,9 +634,9 @@
         
         if(typeof triggerBot === "function") { 
             let shouldRunBot = false; 
-            if(state.turn === myId && botEnabled && !state.gameOver) shouldRunBot = true; 
+            if(state.turn === myId && typeof botEnabled !== 'undefined' && botEnabled && !state.gameOver) shouldRunBot = true; 
             if((state.mode === 'VS_IA' || state.mode === 'IA_VS_IA') && state.turn === 2 && myId === 1 && !state.gameOver) shouldRunBot = true; 
-            if(state.gameOver && botEnabled) shouldRunBot = true; 
+            if(state.gameOver && typeof botEnabled !== 'undefined' && botEnabled) shouldRunBot = true; 
             if(shouldRunBot && !localModalOpen && !localFoireOpen) {
                 setTimeout(() => triggerBot(state.turn), 50);
             }
@@ -718,6 +658,7 @@
         const s = state.settings; const costP_Or = Math.max(0, s.costAmenagerPotagerOr - (me.upgrades[5] >= 2 ? (me.upgrades[5] === 3 ? 2 : 1) : 0));
         const dis = !isMyTurn || state.gameOver || (state.mode === 'IA_VS_IA' || state.mode === 'IA_SOLO'); 
         const hasComposteur = me.zones.some(z => z.type === 'COMPOSTEUR' || z.batiment === 'COMPOSTEUR');
+        const canWater = (me.water >= 2) || (me.auxActifs||[]).some(a => a && (a.includes("Arrosoir") || a.includes("Tuyau") || a.includes("Enrouleur")));
 
         const btnCont = document.getElementById('action-buttons-container');
         
@@ -745,7 +686,7 @@
                 <button class="btn-action" style="background:#ff5722" onclick="toggleAmenagement()" ${dis||me.time<3?'disabled':''}>🌳 Biodiversité (-3h)</button>
                 <button class="btn-action" style="background:#607d8b" onclick="actB()" ${dis||me.time<4?'disabled':''}>🏠 Bâtiment (-4h)</button>
                 
-                <button class="btn-action" style="background:#2196f3" onclick="actArr()" ${dis||me.time<s.costArroserTemps?'disabled':''}>💧 Arroser Zone</button>
+                <button class="btn-action" style="background:#2196f3" onclick="actArr()" ${dis||me.time<s.costArroserTemps||!canWater?'disabled':''}>💧 Arroser Zone (-1h)</button>
                 <button class="btn-action" style="background:#795548" onclick="actAmd()" ${dis||me.time<s.costAmenderTemps||me.compost<1||!hasComposteur?'disabled':''}>💩 Amender Zone</button>
                 <button class="btn-action" style="background:#9c27b0" onclick="openFoire()" ${dis?'disabled':''}>🎪 FOIRE AGRICOLE</button>
                 <button class="btn-action" style="background:#e53935; font-size:1em;" onclick="actFin()" ${dis?'disabled':''}>💤 Fin de Saison</button>
@@ -887,6 +828,7 @@
         if(me.time < costH) return safeAlert(`Il vous manque du temps (Coût : ${costH}h) !`);
         
         me.money -= costO; me.time -= costH; zoneCible.type = t; 
+        if(t === 'MARE') { me.waterMax += 4; me.water = Math.min(me.waterMax, (me.water||0) + 4); }
         addLog(`🏗️ ${t} sur Z${zId===14 ? 'PO' : num} (-${costO}💰${costH>0?`, -${costH}h`:''}).`, pId); 
         localSelectedId = null; 
         sync(); 
@@ -934,10 +876,24 @@
     
     function actArr(zId = localSelectedId) { 
         const pId = state.turn; const me=state['p'+pId], z=me.zones[zId], s=state.settings; 
-        if(z && z.slots && z.slots.length > 0 && me.time>=s.costArroserTemps) { 
-            me.time-=s.costArroserTemps; z.slots.forEach(c => { c.eCur = Math.max(0, c.eCur-2); });
-            addLog(`💧 Arrosage Z${z.id===14?'PO':z.num} (-${s.costArroserTemps}h).`, pId); sync(); 
-        } 
+        let hasArrosoir = me.auxActifs.some(a => a && a.includes("Arrosoir"));
+        let hasTuyau = me.auxActifs.some(a => a && (a.includes("Tuyau") || a.includes("Enrouleur")));
+        
+        if (!me.water && !hasArrosoir && !hasTuyau) return safeAlert("Pas d'eau en stock ni d'outil !");
+        if(me.time < s.costArroserTemps) return safeAlert("Pas de temps dispo.");
+        if(!z || !z.slots || z.slots.length === 0) return safeAlert("Rien à arroser ici.");
+
+        let waterApplied = 0; let costW = 0;
+        if (me.water >= 2) { costW = 2; waterApplied += 2; }
+        else if (hasTuyau) { waterApplied += 2; }
+
+        if (hasArrosoir) { waterApplied += 2; }
+        
+        if (waterApplied === 0) return safeAlert("Impossible d'arroser (stock insuffisant et pas d'outils).");
+
+        me.time-=s.costArroserTemps; me.water -= costW;
+        z.slots.forEach(c => { c.eCur = Math.max(0, c.eCur - waterApplied); });
+        addLog(`💧 Arrosage Z${z.id===14?'PO':z.num} (-1h, -${costW}💧, +${waterApplied} aux plantes).`, pId); sync(); 
     }
     
     function actAmd(zId = localSelectedId) { 
@@ -1063,57 +1019,6 @@
         addLog(`🌱 Semis ${c.nom} ${isGrimpante&&hasTuteur?'(Grimpante)':''}.`, pId); sync(); 
     }
 
-    function evalObjectives(pData) {
-        let vegNames = [];
-        let treeCount = 0;
-        let hasSerre = false, hasComposteur = false, hasLocal = false;
-
-        pData.zones.forEach(z => {
-            if(z.batiment === 'SERRE') hasSerre = true;
-            if(z.type === 'COMPOSTEUR' || z.batiment === 'COMPOSTEUR') hasComposteur = true;
-            if(z.type === 'LOCAL OUTILS' || z.batiment === 'LOCAL OUTILS') hasLocal = true;
-
-            if(z.slots) {
-                z.slots.forEach(c => {
-                    if(c.cat === 'L') vegNames.push(c.nom);
-                    if(c.cat === 'A') treeCount++;
-                });
-            }
-        });
-
-        let uniqueVeg = new Set(vegNames).size;
-        let vegCounts = {};
-        vegNames.forEach(n => vegCounts[n] = (vegCounts[n] || 0) + 1);
-        let maxSameVeg = vegNames.length > 0 ? Math.max(...Object.values(vegCounts)) : 0;
-
-        let totalObjPV = 0;
-        (pData.objectives || []).forEach(o => {
-            let points = 0;
-            let match = o.desc ? o.desc.match(/(\d+)\s*PV/i) : null;
-            if(match) points = parseInt(match[1]);
-            
-            if(points === 0) {
-                if(o.nom.includes("Diversité")) points = 5;
-                if(o.nom.includes("Monoculture")) points = 5;
-                if(o.nom.toLowerCase().includes("verger")) points = 6;
-                if(o.nom.includes("Ferme")) points = 7;
-            }
-
-            let achieved = false;
-            let nomLower = o.nom.toLowerCase();
-            
-            if(nomLower.includes("diversité") && uniqueVeg >= 4) achieved = true;
-            else if(nomLower.includes("monoculture") && maxSameVeg >= 4) achieved = true;
-            else if(nomLower.includes("verger") && treeCount >= 3) achieved = true;
-            else if(nomLower.includes("autonome") && hasSerre && hasComposteur && hasLocal) achieved = true;
-
-            o.achieved = achieved;
-            if(achieved) totalObjPV += points;
-        });
-
-        return totalObjPV;
-    }
-
     function resolveSeason() {
         let curS = ALL_SEASONS[state.saisonIdx]; let pBase = Math.floor(Math.random()*3)+1; let sBase = Math.floor(Math.random()*2)+1;
         state.currentMeteo = {p: pBase, s: sBase};
@@ -1123,6 +1028,10 @@
 
         [1, 2].forEach(pid => {
             let pData = state['p'+pid]; let bClimat = pData.upgrades[4] > 1 ? 1 : 0; 
+            
+            // L'eau de pluie remplit les cuves !
+            pData.water = Math.min(pData.waterMax || 0, (pData.water || 0) + pBase);
+
             pData.zones.forEach(z => { 
                 if(z && z.slots && z.slots.length > 0) { 
                     z.slots.forEach(c => {
@@ -1204,7 +1113,7 @@
             });
         });
 
-        state.turn = 1; addLog(`💤 Résolution saison.`, state.mode === 'SOLO' || state.mode === 'IA_SOLO' ? 1 : 2); sync();
+        state.turn = 1; addLog(`💤 Résolution saison. Météo: 🌧️${pBase} ☀️${sBase}`, state.mode === 'SOLO' || state.mode === 'IA_SOLO' ? 1 : 2); sync();
     }
 
     function actFin() { if(state.mode === 'SOLO' || state.mode === 'IA_SOLO') resolveSeason(); else { if(state.turn === 1) { state.turn = 2; addLog(`⏭️ Fin de tour.`, 1); sync(); } else resolveSeason(); } }
