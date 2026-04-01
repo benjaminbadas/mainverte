@@ -2,7 +2,7 @@
 <html lang="fr">
 <head>
     <meta charset="UTF-8">
-    <title>La Main Verte - V55 (Règles Expertes & Combos)</title>
+    <title>La Main Verte - V56 (Code Intégral et Réparé)</title>
     <script src="https://www.gstatic.com/firebasejs/9.17.1/firebase-app-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/9.17.1/firebase-database-compat.js"></script>
     <style>
@@ -105,7 +105,7 @@
 <body>
 
 <div id="lobby">
-    <h1 style="font-size: 3em; margin-bottom: 10px;">🌱 La Main Verte <span style="font-size:0.4em; color:#a5d6a7; vertical-align: middle;">V55</span></h1>
+    <h1 style="font-size: 3em; margin-bottom: 10px;">🌱 La Main Verte <span style="font-size:0.4em; color:#a5d6a7; vertical-align: middle;">V56</span></h1>
     <p style="font-size: 1.2em; margin-bottom: 30px;">Choisissez un mode de jeu :</p>
     <button class="btn-lobby" onclick="startNewGame('SOLO')">👤 Jouer en Solo</button>
     <button class="btn-lobby" style="background:#8e24aa" onclick="startNewGame('IA_SOLO')">🤖 Mode Spectateur (IA Solo)</button>
@@ -199,7 +199,7 @@
 
 <script>
     // ============================================================================
-    // VARIABLES GLOBALES ET CONFIGURATION FIREBASE
+    // CONFIGURATION FIREBASE & CONSTANTES
     // ============================================================================
     var firebaseConfig = {
         apiKey: "AIzaSyA_OHv6TDiVsn4PwM9s25gij8lBwQH8xrg",
@@ -246,22 +246,22 @@
         { cost: 4, type: 'indiv', reward: {pv: 5}, desc: "+5🏆 (Indiv)" } 
     ];
 
-    let state = null; 
-    let myId = null; 
-    let localSelectedId = null; 
-    let localModalOpen = false; 
-    let localFoireOpen = false; 
-    let localPicksLeft = 0; 
-    let isInitializing = false;
-
-    let botEnabled = false;
-    let autoTrain = false;
-    let isBotThinking = false;
-    let botDelay = 800; 
+    var state = null; 
+    var myId = null; 
+    var localSelectedId = null; 
+    var localModalOpen = false; 
+    var localFoireOpen = false; 
+    var localPicksLeft = 0; 
+    var isInitializing = false;
 
     // ============================================================================
-    // FONCTIONS UTILITAIRES ET BOT
+    // FONCTIONNALITES DU BOT IA
     // ============================================================================
+    var botEnabled = false;
+    var autoTrain = false;
+    var isBotThinking = false;
+    var botDelay = 800; 
+
     function isBotTurn() {
         if(!state) return false;
         if(botEnabled) {
@@ -553,22 +553,17 @@
 
 
     // ============================================================================
-    // MOTEUR PRINCIPAL DU JEU ET UI
+    // MOTEUR PRINCIPAL ET FONCTIONS DE JEU
     // ============================================================================
 
-    function startNewGame(mode) {
-        myId = 1; 
-        document.getElementById('lobby').style.display = 'none'; 
-        document.getElementById('my-hud').style.borderTopColor = 'var(--p1)';
-        botEnabled = (mode === 'IA_SOLO' || mode === 'IA_VS_IA' || mode === 'VS_IA');
-        initNewGame(1, mode);
-    }
-
-    function joinGame(id) {
-        myId = id; 
-        document.getElementById('lobby').style.display = 'none'; 
-        document.getElementById('my-hud').style.borderTopColor = id === 1 ? 'var(--p1)' : 'var(--p2)';
-        if(state) render();
+    function generatePlayer() {
+        return { 
+            pv: 0, fences: 0, objectives: [], stats: { maxHarvest: 0, harvestCount: 0 }, coopDons: 0,
+            scoreDetails: { base: 0, mPV: 0, zPV: 0, uPV: 0, objPV: 0, finalScore: 0 },
+            money: 10, time: 10, timeMax: 10, compost: 0, water: 0, waterMax: 0, amenagementMode: false,
+            upgrades: Array(8).fill(1), hand: [], auxActifs: [], 
+            zones: zoneNumbersMap.map((num, i) => ({ id: i, num: num, type: num === 0 ? "LIFE" : (i === 14 ? "POTAGER" : null), slots: [], batiment: null })) 
+        };
     }
 
     async function initNewGame(creatorId = null, mode = 'MULTI') {
@@ -633,6 +628,21 @@
         } finally { 
             isInitializing = false; 
         } 
+    }
+
+    function startNewGame(mode) {
+        myId = 1; 
+        document.getElementById('lobby').style.display = 'none'; 
+        document.getElementById('my-hud').style.borderTopColor = 'var(--p1)';
+        botEnabled = (mode === 'IA_SOLO' || mode === 'IA_VS_IA' || mode === 'VS_IA');
+        initNewGame(1, mode);
+    }
+
+    function joinGame(id) {
+        myId = id; 
+        document.getElementById('lobby').style.display = 'none'; 
+        document.getElementById('my-hud').style.borderTopColor = id === 1 ? 'var(--p1)' : 'var(--p2)';
+        if(state) render();
     }
 
     async function confirmReset(force = false) { 
@@ -704,7 +714,8 @@
         if(!state.gameLogs) state.gameLogs = []; 
         let suffix = ""; 
         if(state && state['p'+pid] && !msg.startsWith("🏆") && !msg.startsWith("> 🧹")) {
-            let p = state['p'+pid]; suffix = ` [💰${p.money} | ⏳${p.time} | 🏆${p.pv||0}]`;
+            let p = state['p'+pid]; 
+            suffix = ` [💰${p.money} | ⏳${p.time} | 🏆${p.pv||0}]`;
         }
         state.gameLogs.unshift(`[J${pid}] ` + msg + suffix);
         if(state.gameLogs.length > 250) state.gameLogs.pop(); 
@@ -905,15 +916,16 @@
 
         const hDiv = document.getElementById('player-hand'); 
         hDiv.innerHTML = "";
+        let hasLocal = me.zones.some(z => z.type === 'LOCAL OUTILS' || z.batiment === 'LOCAL OUTILS');
+
         (me.hand || []).forEach((c, i) => {
             const cost = Math.max(0, (c.t||1) - (me.upgrades[2]-1)); 
             const card = document.createElement('div'); 
+            card.className = "card";
             
             let isOutil = listOutils.some(o => c.nom.includes(o));
-            let hasLocal = me.zones.some(z => z.type === 'LOCAL OUTILS' || z.batiment === 'LOCAL OUTILS');
             let toolLocked = isOutil && !hasLocal;
 
-            card.className = "card";
             if(toolLocked) card.style.opacity = "0.6";
 
             let details = "";
@@ -1233,7 +1245,6 @@
             costO = Math.max(0, s.costAmenagerPotagerOr - (me.upgrades[5] >= 2 ? (me.upgrades[5]===3 ? 2 : 1) : 0)); 
             costH = s.costAmenagerPotagerTemps; 
         } else { 
-            if(!me.amenagementMode) return safeAlert("Bouton invalide. Utilisez le menu Biodiversité."); 
             costO = (t === 'MARE') ? 4 : 3; 
             costH = 3; 
         }
@@ -1327,7 +1338,6 @@
         const hasComp = me.zones.some(x => x.type === 'COMPOSTEUR' || x.batiment === 'COMPOSTEUR'); 
         if(!hasComp) return safeAlert("Construisez un Composteur !");
         
-        // C'est ici qu'intervient l'effet BROUETTE !
         let hasBrouette = (me.auxActifs || []).some(a => a && a.includes("Brouette"));
         let maxAmd = (hasBrouette && me.compost >= 2) ? 2 : 1;
 
@@ -1338,7 +1348,6 @@
             addLog(`💩 Amendement Z${z.id===14?'PO':z.num} (-${maxAmd}💩).`, pId); 
             sync(); 
         } else if (me.compost > 0 && me.time >= s.costAmenderTemps) {
-             // Si la brouette est là mais qu'il ne reste qu'un seul compost, on amende de 1
              me.time-=s.costAmenderTemps; 
              me.compost -= 1; 
              z.slots.forEach(c => { c.amd = (c.amd || 0) + 1; }); 
@@ -1386,7 +1395,6 @@
         const targetC = z.slots[slotIdx]; 
         if (targetC.eCur > 0 || targetC.sCur > 0) return safeAlert(`Cette plante n'est pas encore prête ! Besoins restants : 💧${targetC.eCur} / ☀️${targetC.sCur}`);
         
-        // EFFET CAGETTE : Chercher une 2ème plante identique prête à récolter
         let hasCagette = (me.auxActifs || []).some(a => a && a.includes("Cagette"));
         let targets = [{zoneId: id, slotIdx: slotIdx, c: targetC}];
         
@@ -1474,7 +1482,6 @@
         me.stats.harvestCount += targets.length; 
         if(moneyGained > me.stats.maxHarvest) me.stats.maxHarvest = moneyGained; 
 
-        // Suppression des plantes récoltées
         targets.forEach(t => {
             if(t.c.cat === 'A') {
                 t.c.eCur = t.c.e; t.c.sCur = t.c.s; t.c.amd = 0;
@@ -1611,7 +1618,6 @@
             });
             if(state.currentRav && (!pData.auxActifs || !pData.auxActifs.includes(state.currentRav.n || state.currentRav.nom))) { pData.money = Math.max(0, pData.money - state.currentRav.d); }
             
-            // EFFET SECATEUR EN FIN DE SAISON
             let hasSecateur = (pData.auxActifs || []).some(a => a && a.includes("Sécateur"));
             let hasVergerOrHaie = pData.zones.some(z => z.type === 'VERGER' || z.type === 'HAIE');
             let hasComposteur = pData.zones.some(z => z.type === 'COMPOSTEUR' || z.batiment === 'COMPOSTEUR');
