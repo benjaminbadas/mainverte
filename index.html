@@ -2,7 +2,7 @@
 <html lang="fr">
 <head>
     <meta charset="UTF-8">
-    <title>La Main Verte - V58 (Objectifs en Temps Réel)</title>
+    <title>La Main Verte - v60 (Objectifs en Temps Réel & Défausse)</title>
     <script src="https://www.gstatic.com/firebasejs/9.17.1/firebase-app-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/9.17.1/firebase-database-compat.js"></script>
     
@@ -108,7 +108,7 @@
 <body>
 
 <div id="lobby">
-    <h1 style="font-size: 3em; margin-bottom: 10px;">🌱 La Main Verte <span style="font-size:0.4em; color:#a5d6a7; vertical-align: middle;">V58</span></h1>
+    <h1 style="font-size: 3em; margin-bottom: 10px;">🌱 La Main Verte <span style="font-size:0.4em; color:#a5d6a7; vertical-align: middle;">v60</span></h1>
     <p style="font-size: 1.2em; margin-bottom: 30px;">Choisissez un mode de jeu :</p>
     <button class="btn-lobby" onclick="startNewGame('SOLO')">👤 Jouer en Solo</button>
     <button class="btn-lobby" style="background:#8e24aa" onclick="startNewGame('IA_SOLO')">🤖 Mode Spectateur (IA Solo)</button>
@@ -263,6 +263,46 @@
     var autoTrain = false;
     var isBotThinking = false;
     var botDelay = 800; 
+
+    // ============================================================================
+    // GESTION DE LA DÉFAUSSE ET DU MÉLANGE
+    // ============================================================================
+
+    window.discardCard = function(c) {
+        if (!state.discards) state.discards = { C: [], S: [], A: [], O: [] };
+        
+        let targetDeck = 'C';
+        if (c.cat === 'S') targetDeck = 'S';
+        else if (c.cat === 'A' || c.cat === 'X') targetDeck = 'A';
+        else if (!c.cat) targetDeck = 'O';
+
+        // On nettoie la carte des variables "en jeu" avant de la remettre dans la défausse
+        let cleanC = { ...c };
+        delete cleanC.eCur; delete cleanC.sCur; delete cleanC.amd; 
+        delete cleanC.compagne; delete cleanC.dead; delete cleanC.toRemove;
+        
+        state.discards[targetDeck].push(cleanC);
+    };
+
+    window.draw = function(deckType) {
+        if (!state.decks[deckType]) state.decks[deckType] = [];
+        
+        // Si la pioche est vide, on remélange la défausse
+        if (state.decks[deckType].length === 0) {
+            if (state.discards && state.discards[deckType] && state.discards[deckType].length > 0) {
+                state.decks[deckType] = state.discards[deckType];
+                state.discards[deckType] = [];
+                let nomPioche = deckType === 'C' ? 'Cultures' : (deckType === 'S' ? 'Soutiens' : (deckType === 'A' ? 'Auxiliaires' : 'Objectifs'));
+                addLog(`🔀 La pioche ${nomPioche} a été mélangée !`, state.turn);
+            } else {
+                return null; // Défausse ET pioche vides
+            }
+        }
+        
+        let randomIndex = Math.floor(Math.random() * state.decks[deckType].length);
+        return state.decks[deckType].splice(randomIndex, 1)[0];
+    };
+
 
     // ============================================================================
     // VÉRIFICATION CONTINUE DES OBJECTIFS ET SYNCHRONISATION
@@ -571,7 +611,8 @@
                     
                     let maxCards = (state.coop?.unlocks?.market3) ? 3 : 2;
                     while(state.market[targetCat].length < maxCards && state.decks[targetCat].length > 0) { 
-                        state.market[targetCat].push(state.decks[targetCat].splice(Math.floor(Math.random()*state.decks[targetCat].length), 1)[0]); 
+                        let newC = draw(targetCat);
+                        if(newC) state.market[targetCat].push(newC); 
                     }
                     sync(); return;
                 }
@@ -581,9 +622,11 @@
         let costCons = 2 + (state.foire.conseiller || 0);
         if (state.annee >= 2 && me.time >= costCons && state.decks.O && state.decks.O.length > 0) {
             me.time -= costCons; state.foire.conseiller = (state.foire.conseiller || 0) + 1;
-            let obj = state.decks.O.splice(Math.floor(Math.random() * state.decks.O.length), 1)[0];
-            if(!me.objectives) me.objectives=[]; me.objectives.push(obj);
-            addLog(`🤖 Le bot a récupéré l'Objectif : ${obj.nom}`, pId); sync(); return;
+            let obj = draw('O');
+            if(obj) {
+                if(!me.objectives) me.objectives=[]; me.objectives.push(obj);
+                addLog(`🤖 Le bot a récupéré l'Objectif : ${obj.nom}`, pId); sync(); return;
+            }
         }
 
         if (me.time >= 1 && (me.hand.length >= 4 || (me.money < 2 && me.hand.length > 0))) { actFoireStand(0); return; }
@@ -915,7 +958,6 @@
             upG.innerHTML += `<div style="font-size:0.7em; background:#fafafa; padding:4px; border:1px solid #ddd; border-radius:4px;"><b>${n}</b> L${me.upgrades[i]} ${btnHtml}</div>`;
         });
 
-        // --- NOUVEAUTÉ : APERÇU DU MARCHÉ DANS LA SIDEBAR ---
         const previewCont = document.getElementById('market-preview-container');
         previewCont.innerHTML = "<div style='color:#555; font-size:0.9em; margin-bottom:5px;'><i>👀 En vitrine actuellement :</i></div>";
         
@@ -939,7 +981,6 @@
             previewCont.innerHTML += catRow;
         });
 
-        // Boutons de la Jardinerie existants avec tes nouveaux coûts et pioches
         const jCont = document.getElementById('jard-buttons-container'); 
         jCont.innerHTML = ""; 
         const redJ = me.upgrades[6]>=2?1:0;
@@ -965,10 +1006,8 @@
             const r = document.createElement('div'); 
             r.className = "rayon";
             
-            // 1. Titre du rayon
             r.innerHTML = `<h3>${cat==='C'?'🌾 Cultures':(cat==='S'?'🛠️ Soutiens':'🦊 Auxiliaires')}</h3>`;
             
-            // 2. Boutons d'action inversés et placés au DESSUS des cartes
             const btnContainer = document.createElement('div');
             btnContainer.innerHTML = `
             <button class="btn-jard-action" onclick="jardP('${cat}')">🎲 Pioche à l'aveugle</button>
@@ -976,7 +1015,6 @@
             <hr style="margin-top:10px; margin-bottom:10px;">`;
             r.appendChild(btnContainer);
 
-            // 3. Affichage des cartes (Aperçu visuel)
             (state.market[cat] || []).forEach((c, idx) => {
                 const can = me.money >= c.p; 
                 const d = document.createElement('div'); 
@@ -1018,10 +1056,13 @@
                     addLog(`🎲 Pioche aveugle : ${c.nom} (-${c.p}💰).`, pId); 
                     consm(); 
                 } else { 
+                    discardCard(c);
                     consm(); 
                 } 
             } else { 
-                safeAlert(`Fonds insuffisants.`); consm(); 
+                safeAlert(`Fonds insuffisants.`); 
+                discardCard(c);
+                consm(); 
             } 
         } else {
             safeAlert("Pioche vide !"); 
@@ -1029,6 +1070,7 @@
     }
 
     function jardR(cat) { 
+        (state.market[cat] || []).forEach(c => discardCard(c));
         state.market[cat] = []; 
         const maxCards = (state.coop?.unlocks?.market3) ? 3 : 2; 
         for(let i=0; i<maxCards; i++) { 
@@ -1084,7 +1126,9 @@
     function actFoireStand(idx) { 
         const me = state['p'+state.turn]; 
         if(me.time<1) return; 
-        me.time--; me.money++; me.hand.splice(idx,1); 
+        me.time--; me.money++; 
+        let sold = me.hand.splice(idx,1)[0]; 
+        discardCard(sold);
         addLog(`🎪 Vente au stand (+1💰, -1h).`, state.turn); 
         sync(); 
     }
@@ -1103,10 +1147,9 @@
         const me = state['p'+state.turn]; 
         const cost = 2 + (state.foire.conseiller||0); 
         if(me.time<cost) return;
-        if(!state.decks.O || state.decks.O.length === 0) return safeAlert("La pioche d'objectifs est vide !");
         
         let obj1 = draw('O'); let obj2 = draw('O'); 
-        if(!obj1 && !obj2) return safeAlert("Pioche d'objectifs vide !");
+        if(!obj1 && !obj2) return safeAlert("Pioche d'objectifs vide (et défausse vide) !");
         
         let choice = 1; 
         if(obj1 && obj2) {
@@ -1125,10 +1168,12 @@
         
         if(choice === 1 && obj1) { 
             me.objectives.push(obj1); 
-            if(obj2) state.decks.O.push(obj2); 
+            if(obj2) discardCard(obj2); 
         } else if(obj2) { 
             me.objectives.push(obj2); 
-            if(obj1) state.decks.O.push(obj1); 
+            if(obj1) discardCard(obj1); 
+        } else if(obj1) { // Au cas où on aurait pioché qu'une seule carte
+            me.objectives.push(obj1);
         }
         addLog(`🎪 Objectif récupéré (-${cost}h).`, state.turn); 
         localFoireOpen=false; 
@@ -1298,6 +1343,7 @@
         } 
         else { 
             let nb = z.slots.length; me.compost = (me.compost || 0) + (2 * nb); 
+            z.slots.forEach(c => { if(c.cat !== 'A') discardCard(c); });
             addLog(`♻️ Compostage (+${2*nb}💩).`, pId); 
             z.slots = []; 
         }
@@ -1414,6 +1460,7 @@
                 t.c.eCur = t.c.e; t.c.sCur = t.c.s; t.c.amd = 0;
             } else {
                 t.c.toRemove = true;
+                discardCard(t.c);
             }
         });
         
@@ -1445,7 +1492,8 @@
                 if(!hasComposteur) return safeAlert("Il vous faut un Composteur pour recycler cela !");
                 me.time -= cost;
                 me.compost = (me.compost||0) + 2;
-                me.hand.splice(idx, 1);
+                let used = me.hand.splice(idx, 1)[0];
+                discardCard(used);
                 addLog(`✨ Compostage de ${c.nom} (+2💩).`, pId);
                 sync(); return;
             }
@@ -1465,7 +1513,9 @@
                 else if(c.nom.includes("Paillage")) { z.slots.forEach(pl => { pl.eCur = Math.max(0, pl.eCur-2); pl.sCur = Math.max(0, pl.sCur-1); }); } 
                 else if(c.nom.includes("Corne")) { z.slots.forEach(pl => pl.amd = (pl.amd||0)+2); } 
             }
-            me.hand.splice(idx,1); sync(); return;
+            let used = me.hand.splice(idx,1)[0];
+            if (!listCompagnes.includes(used.nom)) discardCard(used); 
+            sync(); return;
         } 
         
         if(zId === null || zId === undefined) return safeAlert("Veuillez sélectionner une zone pour planter !");
@@ -1514,7 +1564,10 @@
                         c.eCur = Math.max(0, c.eCur - (pBase + bClimat)); c.sCur = Math.max(0, c.sCur - (sBase + bClimat)); 
                         if (isFinalTurn && c.eCur === 0 && c.sCur === 0) { const mGain = (c.g + (pData.upgrades[3]-1) + (c.amd||0)); pData.money += mGain; c.toRemove = true; }
                     });
-                    z.slots = z.slots.filter(c => !c.toRemove);
+                    z.slots = z.slots.filter(c => {
+                        if (c.toRemove) discardCard(c);
+                        return !c.toRemove;
+                    });
                 } 
             });
             if(state.currentRav && (!pData.auxActifs || !pData.auxActifs.includes(state.currentRav.n || state.currentRav.nom))) { pData.money = Math.max(0, pData.money - state.currentRav.d); }
@@ -1599,7 +1652,10 @@
                             else { let msg = `🥀 Mort de ${c.nom} sur Z${z.id===14 ? 'PO' : z.num}.`; c.dead = true; if(pData.zones.some(x => x.type === 'COMPOSTEUR' || x.batiment === 'COMPOSTEUR')) { pData.compost = (pData.compost||0) + 2; msg += " Recyclé (+2💩)."; } addLog(msg, pid); }
                         }
                     });
-                    z.slots = z.slots.filter(c => !c.dead);
+                    z.slots = z.slots.filter(c => {
+                        if (c.dead) discardCard(c);
+                        return !c.dead;
+                    });
                 }
             });
         });
@@ -1623,11 +1679,9 @@
     window.startNewGame = function(mode) {
         myId = 1; // Hôte
         
-        // 1. Appel asynchrone pour lire "game-config" de Firebase (données Admin)
         dbConfig.once('value').then((snap) => {
             let adminData = snap.val();
 
-            // Initialisation des zones avec le Potager de départ
             let initZones = () => {
                 let z = [];
                 for(let i=0; i<15; i++) {
@@ -1637,13 +1691,11 @@
                 return z;
             };
             
-            // Initialisation des joueurs
             let initP = () => ({
                 money: 10, time: 10, timeMax: 10, water: 0, waterMax: 0, compost: 0, pv: 0,
                 hand: [], upgrades: Array(8).fill(1), zones: initZones(), auxActifs: [], objectives: []
             });
 
-            // 2. CHOIX DU DECK : Firebase -> Local -> Secours
             let decksToUse;
             if (adminData && adminData.decks) {
                 decksToUse = JSON.parse(JSON.stringify(adminData.decks));
@@ -1675,7 +1727,6 @@
                 };
             }
 
-            // 3. Choix des paramètres (Settings) : Firebase -> Secours
             let settingsToUse = (adminData && adminData.settings) ? adminData.settings : { 
                 costArroserTemps: 1, costAmenderTemps: 1, costRecolterTemps: 1, costComposterTemps: 1,
                 costAmenagerPotagerOr: 2, costAmenagerPotagerTemps: 3,
@@ -1693,6 +1744,7 @@
                 p1: initP(), p2: initP(),
                 market: { C:[], S:[], A:[] }, 
                 decks: decksToUse,
+                discards: { C:[], S:[], A:[], O:[] },
                 currentMeteo: {p:1, s:1}, currentRav: null,
                 coop: { level: 0, unlocks: {} }, foire: { camelot: 0, conseiller: 0 },
                 settings: settingsToUse
@@ -1706,12 +1758,6 @@
             sync();
             render();
         });
-    };
-
-    window.draw = function(deckType) {
-        if (!state.decks[deckType] || state.decks[deckType].length === 0) return null;
-        let randomIndex = Math.floor(Math.random() * state.decks[deckType].length);
-        return state.decks[deckType].splice(randomIndex, 1)[0];
     };
 
     window.showGameOver = function() {
