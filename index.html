@@ -2,7 +2,7 @@
 <html lang="fr">
 <head>
     <meta charset="UTF-8">
-    <title>La Main Verte - V49 (Gestion de l'Eau)</title>
+    <title>La Main Verte - V50 (Édition Indestructible)</title>
     <script src="https://www.gstatic.com/firebasejs/9.17.1/firebase-app-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/9.17.1/firebase-database-compat.js"></script>
     <style>
@@ -24,7 +24,7 @@
         .main-game { flex: 1; display: flex; flex-direction: column; padding: 10px; overflow-y: auto; }
         .sidebar { width: 440px; background: white; border-left: 2px solid #ddd; padding: 10px; display: flex; flex-direction: column; overflow-y: auto;}
         
-        .hud { display: flex; justify-content: space-between; align-items: center; background: white; padding: 10px; border-radius: 8px; box-shadow: 0 2px 5px rgba(0,0,0,0.1); margin-bottom: 5px; font-weight: bold; font-size: 0.85em; border-top: 4px solid var(--p1); }
+        .hud { display: flex; justify-content: space-between; align-items: center; background: white; padding: 10px; border-radius: 8px; box-shadow: 0 2px 5px rgba(0,0,0,0.1); margin-bottom: 5px; font-weight: bold; font-size: 0.9em; border-top: 4px solid var(--p1); }
         .hud-opp { background: #e3f2fd; padding: 6px 10px; border-radius: 8px; margin-bottom: 10px; font-size: 0.8em; color: #1565c0; border: 1px solid #bbdefb; display: flex; justify-content: space-between; align-items: center;}
         
         /* GRILLE HEXAGONALE */
@@ -88,7 +88,7 @@
 <body>
 
 <div id="lobby">
-    <h1 style="font-size: 3em; margin-bottom: 10px;">🌱 La Main Verte <span style="font-size:0.4em; color:#a5d6a7; vertical-align: middle;">V49</span></h1>
+    <h1 style="font-size: 3em; margin-bottom: 10px;">🌱 La Main Verte <span style="font-size:0.4em; color:#a5d6a7; vertical-align: middle;">V50</span></h1>
     <p style="font-size: 1.2em; margin-bottom: 30px;">Choisissez un mode de jeu :</p>
     <button class="btn-lobby" onclick="startNewGame('SOLO')">👤 Jouer en Solo</button>
     <button class="btn-lobby" style="background:#8e24aa" onclick="startNewGame('IA_SOLO')">🤖 Mode Spectateur (IA Solo)</button>
@@ -135,15 +135,15 @@
     <div id="turn-banner" class="turn-banner">Veuillez patienter...</div>
     <div class="hud" id="my-hud">
         <div id="season-display">📅 Saison...</div>
-        <div title="1 PV = 3 sous en fin de partie">💰 <span id="res-money">0</span> | ⏳ <span id="res-time">0</span>/<span id="res-timemax">10</span>h | <span class="res-pv" title="Points de Victoire">🏆 <span id="res-pv">0</span></span></div>
+        <div title="1 PV = 3 sous en fin de partie">💰 <span id="res-money">0</span> | ⏳ <span id="res-time">0</span>/<span id="res-timemax">10</span>h | <span class="res-pv" title="Points de Victoire (Base)">🏆 <span id="res-pv">0</span></span></div>
         <div>
             <span title="Eau stockée (Pluie/Mares/Récupérateurs)" class="res-pill" style="color:#0288d1; border-color:#0288d1; background:#e1f5fe;">💧 <span id="res-water">0</span>/<span id="res-watermax">0</span>L</span>
             <span title="Compost" class="res-pill">💩 <span id="res-compost">0</span></span>
         </div>
         <div id="meteo-display" style="background:#e3f2fd; padding:3px 10px; border-radius:10px;">🎲 --</div>
         <button id="champion-btn" onclick="playChampion()" style="background:#fbc02d; color:#333; border:none; border-radius:4px; padding:4px 8px; cursor:pointer;">🏆 Jouer Champion</button>
-        <button id="auto-train-btn" onclick="if(typeof toggleAutoTrain === 'function') toggleAutoTrain(); else alert('Bot non disponible');" style="background:#009688; color:white; border:none; border-radius:4px; padding:4px 8px; cursor:pointer;">🧬 Auto-Train: OFF</button>
-        <button id="bot-btn" onclick="if(typeof toggleBot === 'function') toggleBot(); else alert('Bot non disponible');" style="background:#9c27b0; color:white; border:none; border-radius:4px; padding:4px 8px; cursor:pointer;">🤖 Bot: OFF</button>
+        <button id="auto-train-btn" onclick="toggleAutoTrain()" style="background:#009688; color:white; border:none; border-radius:4px; padding:4px 8px; cursor:pointer;">🧬 Auto-Train: OFF</button>
+        <button id="bot-btn" onclick="toggleBot()" style="background:#9c27b0; color:white; border:none; border-radius:4px; padding:4px 8px; cursor:pointer;">🤖 Bot: OFF</button>
         <button onclick="confirmReset()" style="background:#ff5252; color:white; border:none; border-radius:4px; padding:4px 8px; cursor:pointer;">🧹 Reset</button>
     </div>
     
@@ -187,33 +187,38 @@
 <div class="modal-overlay" id="foire-modal"><div class="modal-content" id="foire-content-inner"></div></div>
 
 <script>
-    const firebaseConfig = {
+    // ============================================================================
+    // VARIABLES GLOBALES SÉCURISÉES (Utilisation de `var` anti-crash)
+    // ============================================================================
+    var firebaseConfig = {
         apiKey: "AIzaSyA_OHv6TDiVsn4PwM9s25gij8lBwQH8xrg",
         authDomain: "main-verte-72483.firebaseapp.com",
         databaseURL: "https://main-verte-72483-default-rtdb.europe-west1.firebasedatabase.app",
         projectId: "main-verte-72483",
         storageBucket: "main-verte-72483.firebasestorage.app"
     };
-    firebase.initializeApp(firebaseConfig);
-    const db = firebase.database().ref("game-session-001");
-    const dbConfig = firebase.database().ref("game-config");
 
-    const UP_NAMES = ["Terrain", "Énergie", "Savoir", "Sol", "Climat", "Outils", "Vente", "VIP"];
-    const SAISON_NOMS = ["🌷 Printemps", "☀️ Été", "🍂 Automne", "❄️ Hiver"];
-    const ALL_SEASONS = ["P","E","A","H"];
-    const zoneNumbersMap = [0, 1, 1, 4, 4, 2, 3, 3, 5, 2, 3, 4, 5, 5, null];
+    if (!firebase.apps.length) { firebase.initializeApp(firebaseConfig); }
+    
+    var db = firebase.database().ref("game-session-001");
+    var dbConfig = firebase.database().ref("game-config");
 
-    const adjacencyMap = {
+    var UP_NAMES = ["Terrain", "Énergie", "Savoir", "Sol", "Climat", "Outils", "Vente", "VIP"];
+    var SAISON_NOMS = ["🌷 Printemps", "☀️ Été", "🍂 Automne", "❄️ Hiver"];
+    var ALL_SEASONS = ["P","E","A","H"];
+    var zoneNumbersMap = [0, 1, 1, 4, 4, 2, 3, 3, 5, 2, 3, 4, 5, 5, null];
+
+    var adjacencyMap = {
         0:[1,5], 1:[0,2,5,6], 2:[1,3,6,7], 3:[2,4,7,8], 4:[3,8],
         5:[0,1,6,9,14], 6:[1,2,5,7,9,10], 7:[2,3,6,8,10,11], 8:[3,4,7,11,12],
         9:[5,6,10,14], 10:[6,7,9,11], 11:[7,8,10,12], 12:[8,11,13], 13:[12], 14:[5,9]
     };
 
-    const listPetitsFruits = ["Fraise", "Melon", "Pastèque"]; 
-    const listGrimpantes = ["Haricot", "Pois", "Concombre", "Cornichon", "Chayotte", "Vigne"];
-    const listCompagnes = ["Ail", "Aneth", "Agastache", "Basilic", "Bleuet", "Bourrache", "Capucine", "Cébette", "Cerfeuil", "Ciboulette", "Coriandre", "Cosmos", "Echalote", "Épinard", "Estragon", "Lin", "Marguerite", "Mélilot Blanc", "Mélisse", "Menthe", "Moutarde", "Oignon", "Origan", "Oeillet d'Inde", "Persil", "Romarin", "Sarriette", "Sauge", "Serpolet", "Souci", "Tanaisie", "Thym", "Tournesol"];
+    var listPetitsFruits = ["Fraise", "Melon", "Pastèque"]; 
+    var listGrimpantes = ["Haricot", "Pois", "Concombre", "Cornichon", "Chayotte", "Vigne"];
+    var listCompagnes = ["Ail", "Aneth", "Agastache", "Basilic", "Bleuet", "Bourrache", "Capucine", "Cébette", "Cerfeuil", "Ciboulette", "Coriandre", "Cosmos", "Echalote", "Épinard", "Estragon", "Lin", "Marguerite", "Mélilot Blanc", "Mélisse", "Menthe", "Moutarde", "Oignon", "Origan", "Oeillet d'Inde", "Persil", "Romarin", "Sarriette", "Sauge", "Serpolet", "Souci", "Tanaisie", "Thym", "Tournesol"];
 
-    const COOP_TRACK = [
+    var COOP_TRACK = [
         { cost: 1, type: 'none', desc: "Étape de base" }, 
         { cost: 1, type: 'indiv', reward: {time: 1}, desc: "+1⏳ (Indiv)" }, 
         { cost: 2, type: 'none', desc: "Étape de base" }, 
@@ -226,15 +231,15 @@
         { cost: 4, type: 'indiv', reward: {pv: 5}, desc: "+5🏆 (Indiv)" } 
     ];
 
-    let state = null; let myId = null; let localSelectedId = null; let localModalOpen = false; let localFoireOpen = false; let localPicksLeft = 0; let isInitializing = false;
+    var state = null; var myId = null; var localSelectedId = null; var localModalOpen = false; var localFoireOpen = false; var localPicksLeft = 0; var isInitializing = false;
 
     // ============================================================================
     // CERVEAU DE L'INTELLIGENCE ARTIFICIELLE (BOT)
     // ============================================================================
-    let botEnabled = false;
-    let autoTrain = false;
-    let isBotThinking = false;
-    let botDelay = 800; 
+    var botEnabled = false;
+    var autoTrain = false;
+    var isBotThinking = false;
+    var botDelay = 800; 
 
     function isBotTurn() {
         if(!state) return false;
@@ -421,14 +426,13 @@
             }
         }
 
-        // Si le bot n'a pas d'eau et pas de mare, il essaie d'en faire une (S'il est en mode Biodiversité)
         if (!me.amenagementMode && me.waterMax < 4 && me.time >= 3 && me.money >= 4) {
             toggleAmenagement(); return;
         }
         if (me.amenagementMode && me.time >= 0 && me.money >= 4) {
             let mz = me.zones.find(z => !z.type && z.num >= 2 && z.num <= 4 && (isAdjacent(me, z.id) || z.num == 1 || z.num == 2));
             if (mz) { localSelectedId = mz.id; actT('MARE', mz.id); toggleAmenagement(); return; }
-            toggleAmenagement(); // Si on trouve pas, on désactive
+            toggleAmenagement(); 
             return;
         }
 
@@ -512,7 +516,6 @@
         
         setTxt('res-time', me.time); setTxt('res-timemax', me.timeMax); setTxt('res-compost', me.compost); setTxt('res-pv', me.pv || 0);
         
-        // CALCULE LA CAPACITÉ EN EAU EN TEMPS RÉEL
         let waterMax = 0;
         me.zones.forEach(z => { if(z.type === 'MARE') waterMax += 4; });
         (me.auxActifs||[]).forEach(a => { if(a && a.includes("Récupérateur")) waterMax += 7; });
@@ -1019,6 +1022,57 @@
         addLog(`🌱 Semis ${c.nom} ${isGrimpante&&hasTuteur?'(Grimpante)':''}.`, pId); sync(); 
     }
 
+    function evalObjectives(pData) {
+        let vegNames = [];
+        let treeCount = 0;
+        let hasSerre = false, hasComposteur = false, hasLocal = false;
+
+        pData.zones.forEach(z => {
+            if(z.batiment === 'SERRE') hasSerre = true;
+            if(z.type === 'COMPOSTEUR' || z.batiment === 'COMPOSTEUR') hasComposteur = true;
+            if(z.type === 'LOCAL OUTILS' || z.batiment === 'LOCAL OUTILS') hasLocal = true;
+
+            if(z.slots) {
+                z.slots.forEach(c => {
+                    if(c.cat === 'L') vegNames.push(c.nom);
+                    if(c.cat === 'A') treeCount++;
+                });
+            }
+        });
+
+        let uniqueVeg = new Set(vegNames).size;
+        let vegCounts = {};
+        vegNames.forEach(n => vegCounts[n] = (vegCounts[n] || 0) + 1);
+        let maxSameVeg = vegNames.length > 0 ? Math.max(...Object.values(vegCounts)) : 0;
+
+        let totalObjPV = 0;
+        (pData.objectives || []).forEach(o => {
+            let points = 0;
+            let match = o.desc ? o.desc.match(/(\d+)\s*PV/i) : null;
+            if(match) points = parseInt(match[1]);
+            
+            if(points === 0) {
+                if(o.nom.includes("Diversité")) points = 5;
+                if(o.nom.includes("Monoculture")) points = 5;
+                if(o.nom.toLowerCase().includes("verger")) points = 6;
+                if(o.nom.includes("Ferme")) points = 7;
+            }
+
+            let achieved = false;
+            let nomLower = o.nom.toLowerCase();
+            
+            if(nomLower.includes("diversité") && uniqueVeg >= 4) achieved = true;
+            else if(nomLower.includes("monoculture") && maxSameVeg >= 4) achieved = true;
+            else if(nomLower.includes("verger") && treeCount >= 3) achieved = true;
+            else if(nomLower.includes("autonome") && hasSerre && hasComposteur && hasLocal) achieved = true;
+
+            o.achieved = achieved;
+            if(achieved) totalObjPV += points;
+        });
+
+        return totalObjPV;
+    }
+
     function resolveSeason() {
         let curS = ALL_SEASONS[state.saisonIdx]; let pBase = Math.floor(Math.random()*3)+1; let sBase = Math.floor(Math.random()*2)+1;
         state.currentMeteo = {p: pBase, s: sBase};
@@ -1029,7 +1083,6 @@
         [1, 2].forEach(pid => {
             let pData = state['p'+pid]; let bClimat = pData.upgrades[4] > 1 ? 1 : 0; 
             
-            // L'eau de pluie remplit les cuves !
             pData.water = Math.min(pData.waterMax || 0, (pData.water || 0) + pBase);
 
             pData.zones.forEach(z => { 
@@ -1117,7 +1170,7 @@
     }
 
     function actFin() { if(state.mode === 'SOLO' || state.mode === 'IA_SOLO') resolveSeason(); else { if(state.turn === 1) { state.turn = 2; addLog(`⏭️ Fin de tour.`, 1); sync(); } else resolveSeason(); } }
-    async function confirmReset(force = false) { if(confirm("⚠️ Réinitialiser complètement le serveur ?")) { let currentMode = state ? state.mode : 'MULTI'; await initNewGame(myId || "Serveur", currentMode); } }
+    async function confirmReset(force = false) { if(force === true || confirm("⚠️ Réinitialiser complètement le serveur ?")) { var currentMode = state ? state.mode : 'MULTI'; await initNewGame(myId || "Serveur", currentMode); } }
 </script>
 
 </body>
