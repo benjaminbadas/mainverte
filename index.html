@@ -2,7 +2,7 @@
 <html lang="fr">
 <head>
     <meta charset="UTF-8">
-    <title>La Main Verte - V51 (Anti-Crash)</title>
+    <title>La Main Verte - V52 (Clic Intelligent)</title>
     <script src="https://www.gstatic.com/firebasejs/9.17.1/firebase-app-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/9.17.1/firebase-database-compat.js"></script>
     <style>
@@ -47,8 +47,8 @@
         .zone-id-9 { top: 190px; left: 120px; } .zone-id-10 { top: 190px; left: 230px; } .zone-id-11 { top: 190px; left: 340px; } 
         .zone-id-12 { top: 190px; left: 450px; } .zone-id-13 { top: 280px; left: 450px; } .zone-id-14 { top: 190px; left: 10px; } 
         .slot-container { display: flex; flex-direction: column; gap: 2px; width: 85%; margin-top: 2px;}
-        .mini-plant { background: rgba(255,255,255,0.85); border: 1px solid rgba(0,0,0,0.3); border-radius: 4px; padding: 2px; font-size: 0.85em; line-height: 1.1; cursor: pointer;}
-        .mini-plant:hover { background: white; transform: scale(1.02); }
+        .mini-plant { background: rgba(255,255,255,0.85); border: 1px solid rgba(0,0,0,0.3); border-radius: 4px; padding: 4px 2px; font-size: 0.85em; line-height: 1.1; cursor: pointer; text-align: center; }
+        .mini-plant:hover { background: white; transform: scale(1.02); box-shadow: 0 2px 4px rgba(0,0,0,0.2); }
         .card { border: 1px solid #ddd; border-radius: 6px; padding: 6px; margin-bottom: 4px; background: white; font-size: 0.75em; border-left: 4px solid var(--p1); cursor: help; position: relative;}
         .btn-action { width: 100%; padding: 8px; border: none; border-radius: 4px; font-weight: bold; color: white; cursor: pointer; font-size: 0.75em; margin-bottom: 3px; transition: 0.2s; }
         .btn-action:hover:not(:disabled) { filter: brightness(1.1); }
@@ -71,7 +71,7 @@
 <body>
 
 <div id="lobby">
-    <h1 style="font-size: 3em; margin-bottom: 10px;">🌱 La Main Verte <span style="font-size:0.4em; color:#a5d6a7; vertical-align: middle;">V51</span></h1>
+    <h1 style="font-size: 3em; margin-bottom: 10px;">🌱 La Main Verte <span style="font-size:0.4em; color:#a5d6a7; vertical-align: middle;">V52</span></h1>
     <p style="font-size: 1.2em; margin-bottom: 30px;">Choisissez un mode de jeu :</p>
     <button class="btn-lobby" onclick="startNewGame('SOLO')">👤 Jouer en Solo</button>
     <button class="btn-lobby" style="background:#8e24aa" onclick="startNewGame('IA_SOLO')">🤖 Mode Spectateur (IA Solo)</button>
@@ -415,6 +415,29 @@
         actFin();
     }
 
+    // --- CLIC INTELLIGENT SUR LA PLANTE ---
+    function plantClick(zId, idx) {
+        if (state.turn !== myId || state.gameOver) return;
+        const me = state['p'+myId];
+        const z = me.zones[zId];
+        if (!z || !z.slots) return;
+        const c = z.slots[idx];
+        
+        // 1. Si prête = Récolter
+        if (c.eCur <= 0 && c.sCur <= 0) {
+            actionRecolter(zId, idx);
+        } 
+        // 2. Si soif = Arroser
+        else if (c.eCur > 0) {
+            localSelectedId = zId;
+            actArr(zId);
+        } 
+        // 3. Sinon = Alerte Soleil
+        else {
+            safeAlert(`Cette plante n'a plus soif, elle a juste besoin de soleil (☀️${c.sCur}) pour arriver à maturité !`);
+        }
+    }
+
     // --- INTERFACE ET ACTIONS DE JEU ---
 
     function playSeasonAnimation(sIdx, annee) {
@@ -444,17 +467,6 @@
             let winTxt = p1.finalScore > p2.finalScore ? "🏆 Le Joueur 1 Gagne !" : (p2.finalScore > p1.finalScore ? "🏆 Le Joueur 2 Gagne !" : "Égalité !");
             document.getElementById('winner-text').innerText = winTxt;
         }
-    }
-
-    function setTD(id, val) { const el = document.getElementById(id); if(el) el.innerText = val; }
-
-    function addLog(msg, pid = myId) {
-        if(!state.gameLogs) state.gameLogs = []; let suffix = ""; 
-        if(state && state['p'+pid] && !msg.startsWith("🏆") && !msg.startsWith("> 🧹")) {
-            let p = state['p'+pid]; suffix = ` [💰${p.money} | ⏳${p.time} | 🏆${p.pv||0}]`;
-        }
-        state.gameLogs.unshift(`[J${pid}] ` + msg + suffix);
-        if(state.gameLogs.length > 250) state.gameLogs.pop(); 
     }
 
     function render() {
@@ -527,8 +539,13 @@
                     z.slots.forEach((c, idx) => {
                         let yieldInfo = `${c.nom}`; if(c.compagne) yieldInfo += ` <span style="color:#e91e63; font-size:0.8em; font-weight:bold;">(✨${c.compagne})</span>`;
                         if(c.amd && c.amd > 0) yieldInfo += ` <span style="color:#2e7d32; font-weight:bold;">(+${c.amd}💰)</span>`;
-                        htmlSlots += `<div class="mini-plant" onclick="event.stopPropagation(); actionRecolter(${z.id}, ${idx})"><b>${yieldInfo}</b><br>💧${c.eCur} ☀️${c.sCur}`;
-                        if(c.eCur <= 0 && c.sCur <= 0) htmlSlots += `<button style="background:var(--p1); color:white; border:none; padding:2px; width:100%; border-radius:3px; margin-top:2px; font-size:0.9em; cursor:pointer;" ${!isMyTurn || me.time<s.costRecolterTemps || state.gameOver ? 'disabled':''}>🧺 Récolter</button>`;
+                        
+                        // L'appel intelligent : plantClick
+                        htmlSlots += `<div class="mini-plant" onclick="event.stopPropagation(); plantClick(${z.id}, ${idx})"><b>${yieldInfo}</b><br>💧${c.eCur} ☀️${c.sCur}`;
+                        
+                        if(c.eCur <= 0 && c.sCur <= 0) {
+                            htmlSlots += `<button style="background:var(--p1); color:white; border:none; padding:2px; width:100%; border-radius:3px; margin-top:2px; font-size:0.9em; cursor:pointer;" onclick="event.stopPropagation(); actionRecolter(${z.id}, ${idx})" ${!isMyTurn || me.time<s.costRecolterTemps || state.gameOver ? 'disabled':''}>🧺 Récolter</button>`;
+                        }
                         htmlSlots += `</div>`;
                     });
                     d.innerHTML += htmlSlots + `</div>`;
@@ -700,9 +717,7 @@
     function actFoireConseiller() {
         const me = state['p'+state.turn]; const cost = 2 + (state.foire.conseiller||0); if(me.time<cost) return;
         if(!state.decks.O || state.decks.O.length === 0) return safeAlert("La pioche d'objectifs est vide !");
-        
-        let obj1 = draw('O'); let obj2 = draw('O'); 
-        if(!obj1 && !obj2) return safeAlert("Pioche d'objectifs vide !");
+        let obj1 = draw('O'); let obj2 = draw('O'); if(!obj1 && !obj2) return safeAlert("Pioche d'objectifs vide !");
         
         let choice = 1; 
         if(obj1 && obj2) {
@@ -730,7 +745,7 @@
         let isAdj = isAdjacent(me, zId); if (num === 1 || num === 2) isAdj = true; 
         if(!isAdj) return safeAlert("La tuile doit être adjacente à la Maison (Zone 0) ou à une tuile déjà construite !");
 
-        if (t === 'POTAGER' && num !== 1 && num !== 2 && zId !== 14) return safeAlert("Un Potager ne peut être aménagé QUE sur les zones 1 ou 2 !");
+        if (t === 'POTAGER' && num !== 1 && num !== 2) return safeAlert("Un Potager ne peut être aménagé QUE sur les zones 1 ou 2 !");
         if (t === 'VERGER' && (num < 2 || num > 5)) return safeAlert("Un Verger ne peut être aménagé QUE sur les zones 2, 3, 4 ou 5 !");
         if ((t === 'HAIE' || t === 'FORÊT') && (num < 3 || num > 5)) return safeAlert(t + " = Uniquement sur Zones 3, 4 ou 5 !");
         if (t === 'PRAIRIE' && (num !== 4 && num !== 5)) return safeAlert("Prairie = Uniquement sur Zones 4 ou 5 !");
@@ -756,8 +771,7 @@
         
         let ch = botChoice;
         if(!ch) { if(isBotTurn()) { ch = ["1", "2", "3"][Math.floor(Math.random() * 3)]; } else { ch = prompt(`Bâtiments (Coût action: -4h) :\n1: Serre (${s.costSerreOr}💰 - Sur Potager existant)\n2: Composteur (${s.costComposteurOr}💰 - Sur Zone 1 ou 2 VIDE)\n3: Local (${s.costLocalOr}💰 - Sur zone VIDE)`); } }
-        if(!ch) return;
-        let zNum = z.num != null ? Number(z.num) : null;
+        if(!ch) return; let zNum = z.num != null ? Number(z.num) : null;
 
         if(ch==="1") { 
             if(z.type!=="POTAGER") return safeAlert("La Serre se place par-dessus un Potager !");
@@ -830,7 +844,6 @@
     function actionRecolter(id, slotIdx) { 
         const pId = state.turn; const me = state['p'+pId], z = me.zones[id], s=state.settings; 
         if(me.time < s.costRecolterTemps) return;
-        
         const c = z.slots[slotIdx]; 
         if (c.eCur > 0 || c.sCur > 0) return safeAlert(`Cette plante n'est pas encore prête ! Besoins restants : 💧${c.eCur} / ☀️${c.sCur}`);
         
