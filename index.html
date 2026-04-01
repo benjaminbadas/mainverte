@@ -2,7 +2,7 @@
 <html lang="fr">
 <head>
     <meta charset="UTF-8">
-    <title>La Main Verte - V58 (Objectifs en Temps Réel)</title>
+    <title>La Main Verte - V59 (Objectifs en Temps Réel)</title>
     <script src="https://www.gstatic.com/firebasejs/9.17.1/firebase-app-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/9.17.1/firebase-database-compat.js"></script>
     
@@ -101,6 +101,9 @@
         
         .turn-banner { background: #ff9800; color: white; text-align: center; padding: 5px; font-weight: bold; display: none; border-radius: 4px; margin-bottom: 5px;}
         .turn-banner.active { display: block; background: #4caf50; }
+
+        /* Style spécifique pour l'aperçu du marché dans la sidebar */
+        .market-preview-box { background: #f9f9f9; padding: 8px; border-radius: 6px; border: 1px solid #e0e0e0; margin-bottom: 8px; }
     </style>
 </head>
 <body>
@@ -187,6 +190,9 @@
     <h3 style="margin:0 0 5px 0;">⚙️ Mes Améliorations</h3>
     <div id="up-grid" style="display:grid; grid-template-columns: 1fr 1fr; gap:4px; margin-bottom:10px;"></div>
     <h3 style="margin:0 0 5px 0;">🛒 Jardinerie</h3>
+    
+    <div id="market-preview-container" class="market-preview-box"></div>
+    
     <div id="jard-buttons-container" style="display:grid; grid-template-columns: 1fr 1fr; gap:4px;"></div>
     <h3 style="margin:10px 0 5px 0;">🎯 Mes Objectifs</h3>
     <div id="player-objectives" style="margin-bottom:10px;"></div>
@@ -910,6 +916,31 @@
             upG.innerHTML += `<div style="font-size:0.7em; background:#fafafa; padding:4px; border:1px solid #ddd; border-radius:4px;"><b>${n}</b> L${me.upgrades[i]} ${btnHtml}</div>`;
         });
 
+        // --- NOUVEAUTÉ : APERÇU DU MARCHÉ DANS LA SIDEBAR ---
+        const previewCont = document.getElementById('market-preview-container');
+        previewCont.innerHTML = "<div style='color:#555; font-size:0.9em; margin-bottom:5px;'><i>👀 En vitrine actuellement :</i></div>";
+        
+        ['C', 'S', 'A'].forEach(cat => {
+            let catName = cat === 'C' ? '🌾 Cultures' : (cat === 'S' ? '🛠️ Soutiens' : '🦊 Auxiliaires');
+            let catRow = `<div style="margin-bottom: 6px;"><b>${catName}</b><div style="display:flex; gap:4px; overflow-x:auto; padding-bottom:4px; margin-top:2px;">`;
+            
+            (state.market[cat] || []).forEach(c => {
+                let details = c.cat === 'S' ? `✨ ${c.desc.substring(0, 25)}...` : (c.cat === 'X' ? `🛡️ Anti-${c.prot}` : `📈 +${c.g}💰 | 💧${c.e} ☀️${c.s}`);
+                catRow += `<div style="min-width: 125px; background: white; border: 1px solid #cfd8dc; border-left: 3px solid var(--gold); border-radius: 4px; padding: 4px; font-size: 0.8em; flex-shrink: 0; white-space: normal;">
+                    <span style="float:right; font-weight:bold; color:#b8860b;">${c.p}💰</span>
+                    <b>${c.nom}</b><br><span style="font-size:0.85em; color:#607d8b; display:block; max-height:2.4em; overflow:hidden; text-overflow:ellipsis;">${details}</span>
+                </div>`;
+            });
+            
+            if((state.market[cat] || []).length === 0) {
+                catRow += `<div style="font-size:0.8em; color:#999; padding:2px;">Rayon vide</div>`;
+            }
+            
+            catRow += `</div></div>`;
+            previewCont.innerHTML += catRow;
+        });
+
+        // Boutons de la Jardinerie existants
         const jCont = document.getElementById('jard-buttons-container'); 
         jCont.innerHTML = ""; 
         const redJ = me.upgrades[6]>=2?1:0;
