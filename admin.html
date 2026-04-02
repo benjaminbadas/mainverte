@@ -6,13 +6,13 @@
     <script src="https://www.gstatic.com/firebasejs/9.17.1/firebase-app-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/9.17.1/firebase-database-compat.js"></script>
     <style>
-        body { font-family: 'Segoe UI', sans-serif; background: #eceff1; padding: 20px; color: #263238; margin: 0;}
+        body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; background: #eceff1; padding: 20px; color: #263238; margin: 0;}
         .container { max-width: 1400px; margin: 0 auto; background: #fff; padding: 20px; border-radius: 12px; box-shadow: 0 5px 20px rgba(0,0,0,.1); }
         h1 { color: #2e7d32; text-align: center; margin-bottom: 5px; }
         .tabs { display: flex; border-bottom: 2px solid #2e7d32; margin-bottom: 20px; flex-wrap: wrap; gap: 5px;}
         .tab { padding: 10px 15px; cursor: pointer; font-weight: bold; background: #e8f5e9; border-radius: 8px 8px 0 0; color: #2e7d32; }
         .tab.active { background: #2e7d32; color: #fff; }
-        .tab-content { display: none; overflow-x: auto; max-height: 600px; } .tab-content.active { display: block; }
+        .tab-content { display: none; overflow-x: auto; max-height: 600px; padding-top: 10px; } .tab-content.active { display: block; }
         table { width: 100%; border-collapse: collapse; font-size: 0.85em; }
         th { background: #37474f; color: #fff; padding: 8px; position: sticky; top: 0; z-index: 10; }
         td { padding: 6px; border-bottom: 1px solid #cfd8dc; }
@@ -21,14 +21,18 @@
         .btn-save { display: block; width: 100%; background: #ff9800; color: #fff; border: none; padding: 15px; font-size: 1.2em; font-weight: bold; border-radius: 8px; cursor: pointer; margin-top: 20px; transition: 0.2s;}
         .btn-save:hover { background: #e65100; transform: scale(1.02);}
         #status { text-align: center; font-weight: bold; margin-top: 10px; font-size: 1.1em;}
+        .settings-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(200px, 1fr)); gap: 15px; background: #f9f9f9; padding: 15px; border-radius: 8px; border: 1px solid #ddd; }
+        .setting-item { display: flex; flex-direction: column; font-size: 0.9em; font-weight: bold; }
+        .setting-item input { margin-top: 5px; font-size: 1.1em; padding: 5px; border: 1px solid #2e7d32; }
     </style>
 </head>
 <body>
 
 <div class="container">
-    <h1>🗄️ Base de Données Complète</h1>
+    <h1>🗄️ Base de Données "La Main Verte"</h1>
     <div class="tabs">
-        <div class="tab active" onclick="switchTab('legumes')">🍅 Potager</div>
+        <div class="tab active" onclick="switchTab('settings')">⚙️ Paramètres</div>
+        <div class="tab" onclick="switchTab('legumes')">🍅 Potager</div>
         <div class="tab" onclick="switchTab('arbres')">🍎 Verger</div>
         <div class="tab" onclick="switchTab('compagnes')">🌼 Compagnes</div>
         <div class="tab" onclick="switchTab('soutien')">🛠️ Soutiens</div>
@@ -37,7 +41,12 @@
         <div class="tab" onclick="switchTab('events')">⚡ Événements</div>
     </div>
     
-    <div id="legumes" class="tab-content active"><table id="table-legumes"></table></div>
+    <div id="settings" class="tab-content active">
+        <p><i>Ces valeurs écraseront les paramètres par défaut du jeu.</i></p>
+        <div class="settings-grid" id="settings-grid"></div>
+    </div>
+    
+    <div id="legumes" class="tab-content"><table id="table-legumes"></table></div>
     <div id="arbres" class="tab-content"><table id="table-arbres"></table></div>
     <div id="compagnes" class="tab-content"><table id="table-compagnes"></table></div>
     <div id="soutien" class="tab-content"><table id="table-soutien"></table></div>
@@ -45,7 +54,7 @@
     <div id="ravageurs" class="tab-content"><table id="table-ravageurs"></table></div>
     <div id="events" class="tab-content"><table id="table-events"></table></div>
     
-    <button class="btn-save" onclick="saveToFirebase()">💾 Mettre à jour le Serveur Firebase</button>
+    <button class="btn-save" onclick="saveToFirebase()">💾 Sauvegarder tout sur Firebase</button>
     <div id="status"></div>
 </div>
 
@@ -56,10 +65,22 @@
         databaseURL: "https://main-verte-72483-default-rtdb.europe-west1.firebasedatabase.app",
         projectId: "main-verte-72483"
     });
-    // CORRECTION MAJEURE : On pointe à la racine pour utiliser la méthode "update"
+    
+    // CORRECTION : On pointe directement à la racine
     const dbConfig = firebase.database().ref("game-config");
 
-    // ENCODAGE COMPACT DE TES CARTES (Extrait représentatif basé sur ton document)
+    const defaultSettings = { 
+        costArroserTemps: 1, costAmenderTemps: 1, costRecolterTemps: 2, costComposterTemps: 1,
+        costAmenagerPotagerOr: 2, costAmenagerPotagerTemps: 3,
+        costSerreOr: 3, costComposteurOr: 4, costLocalOr: 5,
+        costUp2Or: 4, costUp2Temps: 3, costUp3Or: 8, costUp3Temps: 5,
+        jardSlot1Temps: 3, jardSlot1Pioches: 5,
+        jardSlot2Temps: 2, jardSlot2Pioches: 3,
+        jardSlot3Temps: 2, jardSlot3Pioches: 2,
+        jardSlot4Temps: 1, jardSlot4Pioches: 1
+    };
+
+    // ENCODAGE DE TES CARTES (Extrait de ton document)
     const dataLegumes=[
         {nom:"Ail",p:1,t:1,e:5,s:4,g:3,sm:"P",rc:"E",rav:"",qte:2},
         {nom:"Artichaut (Violet)",p:2,t:2,e:9,s:7,g:5,sm:"P",rc:"A,H",rav:"",qte:1},
@@ -69,7 +90,7 @@
         {nom:"Céleri Rave",p:1,t:1,e:7,s:6,g:11,sm:"P",rc:"A",rav:"Jaune,Vert,Gris",qte:1},
         {nom:"Chou Brocoli",p:2,t:1,e:7,s:5,g:11,sm:"P",rc:"A",rav:"Jaune,Vert,Gris,Noir",qte:2},
         {nom:"Concombre",p:1,t:1,e:6,s:4,g:4,sm:"P",rc:"E",rav:"",qte:2},
-        {nom:"Courgette (Ronde)",p:1,t:1,e:4,s:3,g:7,sm:"P",rc:"E,A",rav:"Jaune,Vert,Gris,Noir",qte:2},
+        {nom:"Courgette",p:1,t:1,e:4,s:3,g:7,sm:"P",rc:"E,A",rav:"Jaune,Vert,Gris,Noir",qte:2},
         {nom:"Echalote",p:1,t:1,e:4,s:3,g:7,sm:"P",rc:"E",rav:"Jaune,Orange,Gris,Noir",qte:2},
         {nom:"Epinard",p:1,t:0,e:5,s:2,g:5,sm:"A",rc:"H,P",rav:"Jaune,Gris,Noir",qte:2},
         {nom:"Haricot Nain",p:1,t:2,e:4,s:3,g:6,sm:"P,E",rc:"E,A",rav:"Jaune,Gris,Noir",qte:2},
@@ -104,110 +125,6 @@
     ];
 
     const dataSoutien=[
-        {nom:"Arrosoir 10L",p:3,t:1,desc:"+2 Eau lors d'un arrosage",qte:2},
+        {nom:"Arrosoir",p:3,t:1,desc:"+2 Eau lors d'un arrosage",qte:2},
         {nom:"Brouette",p:4,t:1,desc:"Amendement: 1 temps = 2 compost",qte:2},
         {nom:"Sécateur",p:3,t:1,desc:"Compost fin de saison si Verger/Haie",qte:2},
-        {nom:"Cagette",p:4,t:1,desc:"Récoltez 2 cultures d'un coup",qte:2},
-        {nom:"Tuteur",p:2,t:1,desc:"Pour plantes grimpantes",qte:3},
-        {nom:"Clôture",p:3,t:1,desc:"Pour animaux; protège sanglier",qte:3},
-        {nom:"Poules",p:3,t:1,desc:"Action: +1 Rendement (-1h)",qte:2},
-        {nom:"Cheval",p:5,t:1,desc:"Action: +2 Rendement (-2h). Annule blessure.",qte:1},
-        {nom:"Fumier",p:2,t:1,desc:"À composter (+2💩).",qte:3},
-        {nom:"Tuyau",p:4,t:1,desc:"Arrosage +2 Eau sans vider réserve.",qte:2}
-    ];
-
-    const dataAuxiliaires=[
-        {nom:"Coccinelle",p:3,t:1,prot:"Puceron vert",desc:"Protège contre pucerons",qte:2},
-        {nom:"Hérisson",p:3,t:1,prot:"Limace des jardins",desc:"Protège contre limaces",qte:2},
-        {nom:"Mésange",p:3,t:1,prot:"Chenille",desc:"Protège contre chenilles",qte:2},
-        {nom:"Carabe",p:2,t:1,prot:"Limace des jardins",desc:"Protège contre limaces",qte:1}
-    ];
-
-    const dataRavageurs=[
-        {nom:"Acariens",d:2,desc:"Perte 2💰",qte:1},
-        {nom:"Altise",d:1,desc:"Perte 1💰",qte:1},
-        {nom:"Carpocapse",d:2,desc:"Perte 2💰",qte:1},
-        {nom:"Doryphore",d:2,desc:"Perte 2💰",qte:1},
-        {nom:"Limace des jardins",d:2,desc:"Perte 2💰",qte:2},
-        {nom:"Puceron vert",d:1,desc:"Perte 1💰",qte:2},
-        {nom:"Sanglier",d:3,desc:"Perte 3💰! Bloqué par Clôture.",qte:1}
-    ];
-
-    const dataEvents=[
-        {nom:"Saison exceptionnelle",type:"Positif",desc:"+2 sous à la récolte",qte:1},
-        {nom:"Travail en musique",type:"Positif",desc:"+2 Temps",qte:1},
-        {nom:"Aide de la région",type:"Positif",desc:"Gain de 2 sous",qte:1},
-        {nom:"Grêle",type:"Négatif",desc:"Serres bloquées, -2 rendement fruitiers",qte:1},
-        {nom:"Sécheresse",type:"Négatif",desc:"Dé précipitations réduit",qte:1},
-        {nom:"Blessure",type:"Négatif",desc:"-2 Temps",qte:1},
-        {nom:"Mauvaise saison",type:"Négatif",desc:"-2 sous à la récolte",qte:1}
-    ];
-
-    function renderTable(tId, arr, cols) {
-        let t = document.getElementById(tId); let h="<tr>"; cols.forEach(c=>h+=`<th>${c.label}</th>`); h+="</tr>"; t.innerHTML=h;
-        arr.forEach((item,i)=>{
-            let r="<tr>"; cols.forEach(c=>{
-                let v = item[c.key]!==undefined?item[c.key]:"";
-                r+= c.type==='number'?`<td><input type="number" data-idx="${i}" data-key="${c.key}" value="${v}"></td>`:`<td><input type="text" class="${c.type==='large'?'input-large':''}" data-idx="${i}" data-key="${c.key}" value="${v}"></td>`;
-            }); t.innerHTML+=r+"</tr>";
-        });
-    }
-
-    function init() {
-        renderTable("table-legumes", dataLegumes, [{label:"Nom",key:"nom",type:"text"},{label:"Achat💰",key:"p",type:"number"},{label:"Temps⏳",key:"t",type:"number"},{label:"Gain💰",key:"g",type:"number"},{label:"Eau💧",key:"e",type:"number"},{label:"Soleil☀️",key:"s",type:"number"},{label:"Semis",key:"sm",type:"text"},{label:"Récolte",key:"rc",type:"text"},{label:"Sensible 🐌",key:"rav",type:"text"},{label:"Qté",key:"qte",type:"number"}]);
-        renderTable("table-arbres", dataArbres, [{label:"Nom",key:"nom",type:"text"},{label:"Achat💰",key:"p",type:"number"},{label:"Temps⏳",key:"t",type:"number"},{label:"Gain💰",key:"g",type:"number"},{label:"Eau💧",key:"e",type:"number"},{label:"Soleil☀️",key:"s",type:"number"},{label:"Plantation",key:"sm",type:"text"},{label:"Récolte",key:"rc",type:"text"},{label:"Qté",key:"qte",type:"number"}]);
-        renderTable("table-compagnes", dataCompagnes, [{label:"Nom",key:"nom",type:"text"},{label:"Achat💰",key:"p",type:"number"},{label:"Temps⏳",key:"t",type:"number"},{label:"Eau💧",key:"e",type:"number"},{label:"Soleil☀️",key:"s",type:"number"},{label:"Semis",key:"sm",type:"text"},{label:"Récolte",key:"rc",type:"text"},{label:"Effet",key:"desc",type:"large"},{label:"Qté",key:"qte",type:"number"}]);
-        renderTable("table-soutien", dataSoutien, [{label:"Nom",key:"nom",type:"text"},{label:"Achat💰",key:"p",type:"number"},{label:"Temps⏳",key:"t",type:"number"},{label:"Effet",key:"desc",type:"large"},{label:"Qté",key:"qte",type:"number"}]);
-        renderTable("table-auxiliaires", dataAuxiliaires, [{label:"Nom",key:"nom",type:"text"},{label:"Achat💰",key:"p",type:"number"},{label:"Temps⏳",key:"t",type:"number"},{label:"Protège",key:"prot",type:"text"},{label:"Qté",key:"qte",type:"number"}]);
-        renderTable("table-ravageurs", dataRavageurs, [{label:"Nom",key:"nom",type:"text"},{label:"Dégâts💰",key:"d",type:"number"},{label:"Description",key:"desc",type:"large"},{label:"Qté",key:"qte",type:"number"}]);
-        renderTable("table-events", dataEvents, [{label:"Nom",key:"nom",type:"text"},{label:"Type",key:"type",type:"text"},{label:"Description",key:"desc",type:"large"},{label:"Qté",key:"qte",type:"number"}]);
-    }
-
-    function switchTab(id) { document.querySelectorAll('.tab').forEach(t=>t.classList.remove('active')); document.querySelectorAll('.tab-content').forEach(c=>c.classList.remove('active')); event.target.classList.add('active'); document.getElementById(id).classList.add('active'); }
-    
-    function extract(id) {
-        let r=[]; document.getElementById(id).querySelectorAll('tr').forEach((row,i)=>{
-            if(i===0) return; let o={}; row.querySelectorAll('input').forEach(inp=>{ 
-                let k=inp.getAttribute('data-key'),v=inp.value; 
-                if(inp.type==='number') o[k]=parseInt(v)||0; 
-                else if((k==='sm'||k==='rc')&&v!=="") o[k]=v.split(',').map(s=>s.trim()); 
-                else o[k]=v; 
-            }); r.push(o);
-        }); return r;
-    }
-    
-    function multiply(arr, deck, extra) { arr.forEach(i=>{ let q=i.qte||0; for(let j=0;j<q;j++){ let {qte,...c}=i; deck.push({...c,...extra}); } }); }
-    
-    window.saveToFirebase = function() {
-        let status = document.getElementById('status');
-        status.innerText = "⏳ Envoi en cours..."; status.style.color = "#ff9800";
-
-        let d = {C:[], S:[], A:[], O:[], E:[], R:[]};
-        multiply(extract('table-legumes'), d.C, {cat:'L'}); multiply(extract('table-arbres'), d.C, {cat:'A'});
-        multiply(extract('table-compagnes'), d.S, {cat:'S'}); multiply(extract('table-soutien'), d.S, {cat:'S'});
-        multiply(extract('table-auxiliaires'), d.A, {cat:'X'}); 
-        multiply(extract('table-events'), d.E, {cat:'E'}); multiply(extract('table-ravageurs'), d.R, {cat:'R'});
-
-        // On gère les objectifs manuellement ici pour l'exemple (tu pourras ajouter l'onglet plus tard)
-        let objs = [
-            { nom: "Ferme Autonome", desc: "Avoir Serre, Local et Composteur (7 PV)" },
-            { nom: "Grande Diversité", desc: "Avoir 4 légumes différents (5 PV)" }
-        ];
-        objs.forEach(o => d.O.push(o));
-
-        // CORRECTION MAJEURE : On utilise 'update' sur la racine pour ne pas écraser les settings du jeu
-        dbConfig.update({ decks: d })
-            .then(() => {
-                status.innerText = "✅ Base de données mise à jour avec succès !";
-                status.style.color = "#2e7d32";
-            })
-            .catch(e => {
-                status.innerText = "❌ Erreur : " + e.message;
-                status.style.color = "#d32f2f";
-            });
-    }
-
-    window.onload = init;
-</script>
-</body>
-</html>
