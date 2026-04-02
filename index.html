@@ -2,83 +2,35 @@
 <html lang="fr">
 <head>
     <meta charset="UTF-8">
-    <title>La Main Verte - v67 (Complet & Sans Coupure)</title>
+    <title>La Main Verte - Le Jeu (v68)</title>
     <script src="https://www.gstatic.com/firebasejs/9.17.1/firebase-app-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/9.17.1/firebase-database-compat.js"></script>
     <style>
-        :root { 
-            --p1: #2e7d32; --p2: #1565c0; --bg: #f4f7f1; --potager: #81c784; 
-            --verger: #fff176; --amenag: #ffccbc; --batiment: #455a64; 
-            --dark: #263238; --gold: #ffd700; --serre: #e1f5fe; 
-        }
+        :root { --p1: #2e7d32; --p2: #1565c0; --bg: #f4f7f1; --potager: #81c784; --verger: #fff176; --amenag: #ffccbc; --batiment: #455a64; --dark: #263238; --gold: #ffd700; --serre: #e1f5fe; }
         body { font-family: 'Segoe UI', sans-serif; background: var(--bg); margin: 0; display: flex; height: 100vh; overflow: hidden; }
         #lobby, #game-over-screen, #season-anim-overlay { position: fixed; top:0; left:0; width:100%; height:100%; z-index: 1000; display: flex; flex-direction: column; align-items: center; justify-content: center; color: white; }
-        #lobby { background:rgba(0,0,0,0.9); }
-        #game-over-screen { background:rgba(0,0,0,0.85); z-index: 3000; display: none; }
-        #season-anim-overlay { background: rgba(255,255,255,0.7); z-index: 2000; display: none; opacity: 0; transition: opacity 0.5s ease-in-out; }
+        #lobby { background:rgba(0,0,0,0.9); } #game-over-screen { background:rgba(0,0,0,0.85); z-index: 3000; display: none; } #season-anim-overlay { background: rgba(255,255,255,0.7); z-index: 2000; display: none; opacity: 0; transition: opacity 0.5s ease-in-out; }
         .anim-box { background: white; border: 5px solid var(--p1); border-radius: 20px; padding: 40px 80px; box-shadow: 0 15px 40px rgba(0,0,0,0.3); text-align: center; transform: scale(0.8); transition: transform 0.5s; }
-        .btn-lobby { background: var(--p1); color: white; border: none; padding: 12px 25px; font-size: 1.1em; border-radius: 8px; margin: 8px; cursor: pointer; width: 320px; transition: 0.2s; font-weight: bold; }
-        .btn-lobby:hover { filter: brightness(1.2); transform: scale(1.05); }
-        .score-box { background: white; color: #263238; padding: 40px; border-radius: 12px; text-align: center; box-shadow: 0 10px 40px rgba(0,0,0,0.5); min-width: 500px; }
-        .score-table { width: 100%; border-collapse: collapse; margin: 20px 0; font-size: 1.1em; text-align: left; }
-        .score-table th, .score-table td { padding: 10px; border-bottom: 1px solid #cfd8dc; }
-        .score-table th { background: #eceff1; color: #37474f; }
-        .score-table .total-row { font-weight: bold; font-size: 1.3em; background: #e8f5e9; color: var(--p1); border-top: 2px solid var(--p1); }
-        .score-winner { color: var(--p1); font-size: 2em; margin-bottom: 10px; font-weight:bold; }
+        .btn-lobby { background: var(--p1); color: white; border: none; padding: 12px 25px; font-size: 1.1em; border-radius: 8px; margin: 8px; cursor: pointer; width: 320px; transition: 0.2s; font-weight: bold; } .btn-lobby:hover { filter: brightness(1.2); transform: scale(1.05); }
+        .score-box { background: white; color: #263238; padding: 40px; border-radius: 12px; text-align: center; box-shadow: 0 10px 40px rgba(0,0,0,0.5); min-width: 500px; } .score-table { width: 100%; border-collapse: collapse; margin: 20px 0; font-size: 1.1em; text-align: left; } .score-table th, .score-table td { padding: 10px; border-bottom: 1px solid #cfd8dc; } .score-table th { background: #eceff1; color: #37474f; } .score-table .total-row { font-weight: bold; font-size: 1.3em; background: #e8f5e9; color: var(--p1); border-top: 2px solid var(--p1); } .score-winner { color: var(--p1); font-size: 2em; margin-bottom: 10px; font-weight:bold; }
         .main-game { flex: 1; display: flex; flex-direction: column; padding: 10px; overflow-y: auto; }
         .sidebar { width: 500px; background: white; border-left: 2px solid #ddd; padding: 10px; display: flex; flex-direction: column; overflow-y: auto;}
-        .hud { display: flex; justify-content: space-between; align-items: center; background: white; padding: 10px; border-radius: 8px; box-shadow: 0 2px 5px rgba(0,0,0,0.1); margin-bottom: 5px; font-weight: bold; font-size: 0.9em; border-top: 4px solid var(--p1); }
-        .hud-opp { background: #e3f2fd; padding: 6px 10px; border-radius: 8px; margin-bottom: 10px; font-size: 0.8em; color: #1565c0; border: 1px solid #bbdefb; display: flex; justify-content: space-between; align-items: center;}
-        .farm-grid { position: relative; min-width: 620px; min-height: 380px; background: #d7ccc8; padding: 10px; border-radius: 12px; margin: 0; box-shadow: inset 0 2px 8px rgba(0,0,0,0.1); }
-        .zone { position: absolute; width: 100px; height: 115px; background: #efebe9; border: 2px dashed #bcaaa4; border-radius: 8px; display: flex; flex-direction: column; align-items: center; justify-content: center; font-size: 0.70em; cursor: pointer; text-align: center; transition: 0.2s; clip-path: polygon(50% 0%, 100% 25%, 100% 75%, 50% 100%, 0% 75%, 0% 25%); z-index: 1; }
-        .zone.selected { border: 3px solid #ff9800 !important; box-shadow: 0 0 10px rgba(255,152,0,0.6); transform: scale(1.05); z-index: 10;}
-        .zone-color-0 { background: #f3e5f5; border-color: #ce93d8; color: #7b1fa2; }
-        .zone-color-1, .zone-color-2, .zone-color-3 { background: #efebe9; border-color: #bcaaa4; color: #5d4037; }
-        .zone-color-4 { background: #c8e6c9; border-color: #2e7d32; color: #1b5e20; }
-        .zone-color-5 { background: #1b5e20; border-color: #0a3311; color: white; }
-        .tuile-potager { background: var(--potager) !important; border: 2px solid #2e7d32 !important; color: #1b5e20; }
-        .tuile-verger { background: var(--verger) !important; border: 2px solid #fbc02d !important; color: #5d4037; }
-        .tuile-haie { background: #aed581 !important; border: 2px solid #558b2f !important; color: #33691e; }
-        .tuile-forêt { background: #388e3c !important; border: 2px solid #1b5e20 !important; color: white; }
-        .tuile-prairie { background: #dce775 !important; border: 2px solid #9e9d24 !important; color: #827717; }
-        .tuile-mare { background: #4fc3f7 !important; border: 2px solid #0277bd !important; color: #01579b; }
-        .tuile-composteur { background: #795548 !important; border: 2px solid #3e2723 !important; color: white; }
-        .tuile-local { background: #607d8b !important; border: 2px solid #263238 !important; color: white; }
-        .has-serre { box-shadow: inset 0 0 15px rgba(3, 169, 244, 0.6); border: 3px solid #03a9f4 !important; background: var(--serre) !important; }
-        .zone-id-0 { top: 10px; left: 10px; }   .zone-id-1 { top: 10px; left: 120px; }  .zone-id-2 { top: 10px; left: 230px; }  
-        .zone-id-3 { top: 10px; left: 340px; }  .zone-id-4 { top: 10px; left: 450px; }  
-        .zone-id-5 { top: 130px; left: 65px; }  .zone-id-6 { top: 130px; left: 175px; } .zone-id-7 { top: 130px; left: 285px; } 
-        .zone-id-8 { top: 130px; left: 395px; } .zone-id-13 { top: 130px; left: 505px; } 
-        .zone-id-14 { top: 250px; left: 10px; } .zone-id-9 { top: 250px; left: 120px; } .zone-id-10 { top: 250px; left: 230px; } 
-        .zone-id-11 { top: 250px; left: 340px; } .zone-id-12 { top: 250px; left: 450px; }
-        .slot-container { display: flex; flex-direction: column; gap: 2px; width: 85%; margin-top: 2px;}
-        .mini-plant { background: rgba(255,255,255,0.85); border: 1px solid rgba(0,0,0,0.3); border-radius: 4px; padding: 4px 2px; font-size: 0.85em; line-height: 1.1; cursor: pointer; text-align: center; }
-        .mini-plant:hover { background: white; transform: scale(1.02); box-shadow: 0 2px 4px rgba(0,0,0,0.2); }
-        .card { border: 1px solid #ddd; border-radius: 6px; padding: 6px; margin-bottom: 4px; background: white; font-size: 0.75em; border-left: 4px solid var(--p1); cursor: help; position: relative;}
-        .btn-action { width: 100%; padding: 8px; border: none; border-radius: 4px; font-weight: bold; color: white; cursor: pointer; font-size: 0.75em; margin-bottom: 3px; transition: 0.2s; }
-        .btn-action:hover:not(:disabled) { filter: brightness(1.1); }
-        .res-pill { background: #e8f5e9; padding: 2px 6px; border-radius: 10px; color: var(--p1); border: 1px solid var(--p1); margin-right: 3px;}
-        .res-pv { background: #fff8e1; padding: 2px 6px; border-radius: 10px; color: #f57f17; border: 1px solid #fbc02d; font-weight:bold;}
-        button:disabled { filter: grayscale(100%); opacity: 0.5; cursor: not-allowed; transform: none; }
-        .modal-overlay { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.8); z-index: 100; align-items: center; justify-content: center; }
-        .modal-content { background: #fff; padding: 15px; border-radius: 12px; width: 95%; max-width: 1000px; max-height: 90vh; overflow-y: auto; box-shadow: 0 10px 30px rgba(0,0,0,0.5); }
-        .rayon-grid { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 10px; }
-        .rayon { background: #f9f9f9; padding: 8px; border-radius: 8px; border: 1px solid #ccc; display: flex; flex-direction: column; justify-content: space-between; }
-        .btn-jard-action { width: 100%; margin-bottom: 5px; padding: 4px; font-size: 0.8em; cursor: pointer; background: #eee; border: 1px solid #ccc; border-radius: 4px; }
-        .jard-card { border: 2px solid #ddd; padding: 6px; border-radius: 6px; margin-bottom: 6px; cursor: pointer; background: white; position: relative; font-size: 0.85em; transition: 0.2s;}
-        .price-tag { position: absolute; top: -6px; right: -6px; background: var(--gold); padding: 1px 5px; border-radius: 8px; font-size: 0.8em; font-weight: bold; border: 1px solid #b8860b; }
-        .alert-rav { background: #ffebee; color: #c62828; padding: 4px; border-radius: 4px; font-size: 0.75em; margin-bottom: 5px; border: 1px solid #ef9a9a; text-align: center; font-weight: bold;}
-        .alert-event { background: #f3e5f5; color: #6a1b9a; padding: 4px; border-radius: 4px; font-size: 0.8em; margin-bottom: 5px; border: 1px solid #ce93d8; text-align: center; font-weight: bold;}
-        .logs { height: 180px; background: var(--dark); color: #a5d6a7; padding: 8px; font-family: monospace; font-size: 0.75em; overflow-y: auto; border-radius: 6px; margin-top:10px; border: 2px solid #455a64;}
-        .turn-banner { background: #ff9800; color: white; text-align: center; padding: 5px; font-weight: bold; display: none; border-radius: 4px; margin-bottom: 5px;}
-        .turn-banner.active { display: block; background: #4caf50; }
-        .market-preview-box { background: #f9f9f9; padding: 8px; border-radius: 6px; border: 1px solid #e0e0e0; margin-bottom: 8px; }
+        .hud { display: flex; justify-content: space-between; align-items: center; background: white; padding: 10px; border-radius: 8px; box-shadow: 0 2px 5px rgba(0,0,0,0.1); margin-bottom: 5px; font-weight: bold; font-size: 0.9em; border-top: 4px solid var(--p1); } .hud-opp { background: #e3f2fd; padding: 6px 10px; border-radius: 8px; margin-bottom: 10px; font-size: 0.8em; color: #1565c0; border: 1px solid #bbdefb; display: flex; justify-content: space-between; align-items: center;}
+        .farm-grid { position: relative; min-width: 620px; min-height: 380px; background: #d7ccc8; padding: 10px; border-radius: 12px; margin: 0; box-shadow: inset 0 2px 8px rgba(0,0,0,0.1); } .zone { position: absolute; width: 100px; height: 115px; background: #efebe9; border: 2px dashed #bcaaa4; border-radius: 8px; display: flex; flex-direction: column; align-items: center; justify-content: center; font-size: 0.70em; cursor: pointer; text-align: center; transition: 0.2s; clip-path: polygon(50% 0%, 100% 25%, 100% 75%, 50% 100%, 0% 75%, 0% 25%); z-index: 1; } .zone.selected { border: 3px solid #ff9800 !important; box-shadow: 0 0 10px rgba(255,152,0,0.6); transform: scale(1.05); z-index: 10;}
+        .zone-color-0 { background: #f3e5f5; border-color: #ce93d8; color: #7b1fa2; } .zone-color-1, .zone-color-2, .zone-color-3 { background: #efebe9; border-color: #bcaaa4; color: #5d4037; } .zone-color-4 { background: #c8e6c9; border-color: #2e7d32; color: #1b5e20; } .zone-color-5 { background: #1b5e20; border-color: #0a3311; color: white; }
+        .tuile-potager { background: var(--potager) !important; border: 2px solid #2e7d32 !important; color: #1b5e20; } .tuile-verger { background: var(--verger) !important; border: 2px solid #fbc02d !important; color: #5d4037; } .tuile-haie { background: #aed581 !important; border: 2px solid #558b2f !important; color: #33691e; } .tuile-forêt { background: #388e3c !important; border: 2px solid #1b5e20 !important; color: white; } .tuile-prairie { background: #dce775 !important; border: 2px solid #9e9d24 !important; color: #827717; } .tuile-mare { background: #4fc3f7 !important; border: 2px solid #0277bd !important; color: #01579b; } .tuile-composteur { background: #795548 !important; border: 2px solid #3e2723 !important; color: white; } .tuile-local { background: #607d8b !important; border: 2px solid #263238 !important; color: white; } .has-serre { box-shadow: inset 0 0 15px rgba(3, 169, 244, 0.6); border: 3px solid #03a9f4 !important; background: var(--serre) !important; }
+        .zone-id-0 { top: 10px; left: 10px; } .zone-id-1 { top: 10px; left: 120px; } .zone-id-2 { top: 10px; left: 230px; } .zone-id-3 { top: 10px; left: 340px; } .zone-id-4 { top: 10px; left: 450px; } .zone-id-5 { top: 130px; left: 65px; } .zone-id-6 { top: 130px; left: 175px; } .zone-id-7 { top: 130px; left: 285px; } .zone-id-8 { top: 130px; left: 395px; } .zone-id-13 { top: 130px; left: 505px; } .zone-id-14 { top: 250px; left: 10px; } .zone-id-9 { top: 250px; left: 120px; } .zone-id-10 { top: 250px; left: 230px; } .zone-id-11 { top: 250px; left: 340px; } .zone-id-12 { top: 250px; left: 450px; }
+        .slot-container { display: flex; flex-direction: column; gap: 2px; width: 85%; margin-top: 2px;} .mini-plant { background: rgba(255,255,255,0.85); border: 1px solid rgba(0,0,0,0.3); border-radius: 4px; padding: 4px 2px; font-size: 0.85em; line-height: 1.1; cursor: pointer; text-align: center; } .mini-plant:hover { background: white; transform: scale(1.02); box-shadow: 0 2px 4px rgba(0,0,0,0.2); }
+        .card { border: 1px solid #ddd; border-radius: 6px; padding: 6px; margin-bottom: 4px; background: white; font-size: 0.75em; border-left: 4px solid var(--p1); cursor: help; position: relative;} .btn-action { width: 100%; padding: 8px; border: none; border-radius: 4px; font-weight: bold; color: white; cursor: pointer; font-size: 0.75em; margin-bottom: 3px; transition: 0.2s; } .btn-action:hover:not(:disabled) { filter: brightness(1.1); } .res-pill { background: #e8f5e9; padding: 2px 6px; border-radius: 10px; color: var(--p1); border: 1px solid var(--p1); margin-right: 3px;} .res-pv { background: #fff8e1; padding: 2px 6px; border-radius: 10px; color: #f57f17; border: 1px solid #fbc02d; font-weight:bold;} button:disabled { filter: grayscale(100%); opacity: 0.5; cursor: not-allowed; transform: none; }
+        .modal-overlay { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.8); z-index: 100; align-items: center; justify-content: center; } .modal-content { background: #fff; padding: 15px; border-radius: 12px; width: 95%; max-width: 1000px; max-height: 90vh; overflow-y: auto; box-shadow: 0 10px 30px rgba(0,0,0,0.5); } .rayon-grid { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 10px; } .rayon { background: #f9f9f9; padding: 8px; border-radius: 8px; border: 1px solid #ccc; display: flex; flex-direction: column; justify-content: space-between; } .btn-jard-action { width: 100%; margin-bottom: 5px; padding: 4px; font-size: 0.8em; cursor: pointer; background: #eee; border: 1px solid #ccc; border-radius: 4px; } .jard-card { border: 2px solid #ddd; padding: 6px; border-radius: 6px; margin-bottom: 6px; cursor: pointer; background: white; position: relative; font-size: 0.85em; transition: 0.2s;} .price-tag { position: absolute; top: -6px; right: -6px; background: var(--gold); padding: 1px 5px; border-radius: 8px; font-size: 0.8em; font-weight: bold; border: 1px solid #b8860b; z-index: 10; }
+        .alert-rav { background: #ffebee; color: #c62828; padding: 4px; border-radius: 4px; font-size: 0.75em; margin-bottom: 5px; border: 1px solid #ef9a9a; text-align: center; font-weight: bold;} .alert-event { background: #f3e5f5; color: #6a1b9a; padding: 4px; border-radius: 4px; font-size: 0.8em; margin-bottom: 5px; border: 1px solid #ce93d8; text-align: center; font-weight: bold;} .logs { height: 180px; background: var(--dark); color: #a5d6a7; padding: 8px; font-family: monospace; font-size: 0.75em; overflow-y: auto; border-radius: 6px; margin-top:10px; border: 2px solid #455a64;} .turn-banner { background: #ff9800; color: white; text-align: center; padding: 5px; font-weight: bold; display: none; border-radius: 4px; margin-bottom: 5px;} .turn-banner.active { display: block; background: #4caf50; } .market-preview-box { background: #f9f9f9; padding: 8px; border-radius: 6px; border: 1px solid #e0e0e0; margin-bottom: 8px; }
+        .card-icon { position: absolute; top: 4px; right: 4px; font-size: 1.8em; } .jard-card-icon { position: absolute; bottom: 4px; right: 4px; font-size: 2.2em; opacity: 0.8; }
     </style>
 </head>
 <body>
 
 <div id="lobby">
-    <h1 style="font-size: 3em; margin-bottom: 10px;">🌱 La Main Verte <span style="font-size:0.4em; color:#a5d6a7; vertical-align: middle;">v67</span></h1>
+    <h1 style="font-size: 3em; margin-bottom: 10px;">🌱 La Main Verte <span style="font-size:0.4em; color:#a5d6a7; vertical-align: middle;">v68</span></h1>
     <p style="font-size: 1.2em; margin-bottom: 30px;">Choisissez un mode de jeu :</p>
     <button class="btn-lobby" onclick="startNewGame('SOLO')">👤 Jouer en Solo</button>
     <button class="btn-lobby" style="background:#8e24aa" onclick="startNewGame('IA_SOLO')">🤖 Mode Spectateur (IA Solo)</button>
@@ -150,6 +102,7 @@
             </div>
         </div>
     </div>
+
     <div id="action-buttons-container" style="display: grid; grid-template-columns: repeat(4, 1fr); gap:4px; margin-top:5px;"></div>
     <div class="logs" id="game-logs"></div>
 </div>
@@ -158,85 +111,40 @@
     <h3 style="margin:0 0 5px 0;">🛒 Jardinerie</h3>
     <div id="market-preview-container" class="market-preview-box"></div>
     <div id="jard-buttons-container" style="display:grid; grid-template-columns: 1fr 1fr; gap:4px;"></div>
+    
     <h3 style="margin:15px 0 5px 0;">🎯 Mes Objectifs</h3>
     <div id="player-objectives" style="margin-bottom:10px;"></div>
+    
     <h3 style="margin:10px 0 5px 0;">🎒 Ma Main</h3>
     <div id="player-hand" style="flex:1; overflow-y:auto; padding-right:5px;"></div>
 </div>
 
 <div class="modal-overlay" id="jardinerie-modal"><div class="modal-content" id="modal-content-inner"></div></div>
 <div class="modal-overlay" id="foire-modal"><div class="modal-content" id="foire-content-inner"></div></div>
-
-    <script>
-    var firebaseConfig = {
-        apiKey: "AIzaSyA_OHv6TDiVsn4PwM9s25gij8lBwQH8xrg",
-        authDomain: "main-verte-72483.firebaseapp.com",
-        databaseURL: "https://main-verte-72483-default-rtdb.europe-west1.firebasedatabase.app",
-        projectId: "main-verte-72483"
-    };
-
+<script>
+    var firebaseConfig = { apiKey: "AIzaSyA_OHv6TDiVsn4PwM9s25gij8lBwQH8xrg", authDomain: "main-verte-72483.firebaseapp.com", databaseURL: "https://main-verte-72483-default-rtdb.europe-west1.firebasedatabase.app", projectId: "main-verte-72483" };
     if (!firebase.apps.length) firebase.initializeApp(firebaseConfig);
-    var db = firebase.database().ref("game-session-001");
+    var db = firebase.database().ref("game-session-001"); 
     var dbConfig = firebase.database().ref("game-config");
 
     var UP_NAMES = ["Terrain", "Énergie", "Savoir", "Sol", "Climat", "Outils", "Vente", "VIP"];
-    var UP_DESC = [
-        "Débloque l'accès aux zones plus lointaines du plateau.", 
-        "Augmente votre réserve de Temps maximum.", 
-        "Réduit le temps nécessaire pour jouer une carte de votre main.", 
-        "Ajoute un bonus financier permanent à toutes vos récoltes.", 
-        "Les plantes reçoivent de l'Eau et du Soleil gratuits chaque saison.", 
-        "Réduit le coût en Or de l'aménagement des potagers et vergers.", 
-        "Réduit le coût en Temps des expéditions à la Jardinerie.", 
-        "Gagnez des Points de Victoire purs à la fin du jeu."
-    ];
-
-    var SAISON_NOMS = ["🌷 Printemps", "☀️ Été", "🍂 Automne", "❄️ Hiver"];
-    var ALL_SEASONS = ["P","E","A","H"];
+    var UP_DESC = ["Débloque l'accès aux zones plus lointaines du plateau.", "Augmente votre réserve de Temps maximum.", "Réduit le temps nécessaire pour jouer une carte de votre main.", "Ajoute un bonus financier permanent à toutes vos récoltes.", "Les plantes reçoivent de l'Eau et du Soleil gratuits chaque saison.", "Réduit le coût en Or de l'aménagement des potagers et vergers.", "Réduit le coût en Temps des expéditions à la Jardinerie.", "Gagnez des Points de Victoire purs à la fin du jeu."];
+    var SAISON_NOMS = ["🌷 Printemps", "☀️ Été", "🍂 Automne", "❄️ Hiver"]; var ALL_SEASONS = ["P","E","A","H"];
     var zoneNumbersMap = [0, 1, 1, 4, 4, 2, 3, 3, 5, 2, 3, 4, 5, 5, null];
-    var adjacencyMap = {
-        0:[1,5], 1:[0,2,5,6], 2:[1,3,6,7], 3:[2,4,7,8], 4:[3,8,13],
-        5:[0,1,6,9,14], 6:[1,2,5,7,9,10], 7:[2,3,6,8,10,11], 8:[3,4,7,11,12,13],
-        9:[5,6,10,14], 10:[6,7,9,11], 11:[7,8,10,12], 12:[8,11,13], 13:[4,8,12], 14:[5,9]
-    };
-
-    var listPetitsFruits = ["Fraise", "Melon", "Pastèque"]; 
-    var listGrimpantes = ["Haricot", "Pois", "Concombre", "Cornichon", "Chayotte", "Vigne"];
+    var adjacencyMap = { 0:[1,5], 1:[0,2,5,6], 2:[1,3,6,7], 3:[2,4,7,8], 4:[3,8,13], 5:[0,1,6,9,14], 6:[1,2,5,7,9,10], 7:[2,3,6,8,10,11], 8:[3,4,7,11,12,13], 9:[5,6,10,14], 10:[6,7,9,11], 11:[7,8,10,12], 12:[8,11,13], 13:[4,8,12], 14:[5,9] };
+    var listPetitsFruits = ["Fraise", "Melon", "Pastèque"]; var listGrimpantes = ["Haricot", "Pois", "Concombre", "Cornichon", "Chayotte", "Vigne"];
     var listCompagnes = ["Ail", "Aneth", "Agastache", "Basilic", "Bleuet", "Bourrache", "Capucine", "Cébette", "Cerfeuil", "Ciboulette", "Coriandre", "Cosmos", "Echalote", "Épinard", "Estragon", "Lin", "Marguerite", "Mélilot Blanc", "Mélisse", "Menthe", "Moutarde", "Oignon", "Origan", "Oeillet d'Inde", "Persil", "Romarin", "Sarriette", "Sauge", "Serpolet", "Souci", "Tanaisie", "Thym", "Tournesol"];
     var listOutils = ["Arrosoir", "Tuyau", "Enrouleur", "Brouette", "Sécateur", "Cagette", "Tuteur", "Treillage", "Barrière", "Gants", "Ceinture", "Outil"];
-    var listCompost = ["Fumier", "Bois mort", "Carton", "Épluchures"];
-    var listAnimaux = ["Poules", "Moutons", "Chèvres", "Cheval", "Vache", "Cochon"];
+    var listCompost = ["Fumier", "Bois mort", "Carton", "Épluchures"]; var listAnimaux = ["Poules", "Moutons", "Chèvres", "Cheval", "Vache", "Cochon", "Animaux"];
 
-    var COOP_TRACK = [
-        { cost: 1, type: 'none', desc: "Étape de base" }, 
-        { cost: 1, type: 'indiv', reward: {time: 1}, desc: "+1⏳ (Indiv)" }, 
-        { cost: 2, type: 'none', desc: "Étape de base" }, 
-        { cost: 2, type: 'coll', minContributions: 2, reward: {money: 2, time: 1}, desc: "+2💰(Ind) & +1⏳(Coll. pour 2+ dons)" }, 
-        { cost: 2, type: 'none', desc: "Étape de base" }, 
-        { cost: 2, type: 'global', unlock: 'market3', desc: "🔓 3ème carte dans les rayons du marché" }, 
-        { cost: 3, type: 'indiv', reward: {pv: 2}, desc: "+2🏆 (Indiv)" }, 
-        { cost: 3, type: 'global', unlock: 'upgrades3', desc: "🔓 Accès aux Améliorations Niv. 3" }, 
-        { cost: 3, type: 'coll', minContributions: 4, reward: {pv: 2}, desc: "+2🏆(Coll. pour 4+ dons)" }, 
-        { cost: 4, type: 'indiv', reward: {pv: 5}, desc: "+5🏆 (Indiv)" } 
-    ];
-
-    var state = null; var myId = null; var localSelectedId = null; 
-    var localModalOpen = false; var localFoireOpen = false; var localPicksLeft = 0; 
-    var botEnabled = false; var autoTrain = false; var isBotThinking = false; var botDelay = 800; 
+    var COOP_TRACK = [ { cost: 1, type: 'none', desc: "Étape de base" }, { cost: 1, type: 'indiv', reward: {time: 1}, desc: "+1⏳ (Indiv)" }, { cost: 2, type: 'none', desc: "Étape de base" }, { cost: 2, type: 'coll', minContributions: 2, reward: {money: 2, time: 1}, desc: "+2💰(Ind) & +1⏳(Coll. pour 2+ dons)" }, { cost: 2, type: 'none', desc: "Étape de base" }, { cost: 2, type: 'global', unlock: 'market3', desc: "🔓 3ème carte dans les rayons du marché" }, { cost: 3, type: 'indiv', reward: {pv: 2}, desc: "+2🏆 (Indiv)" }, { cost: 3, type: 'global', unlock: 'upgrades3', desc: "🔓 Accès aux Améliorations Niv. 3" }, { cost: 3, type: 'coll', minContributions: 4, reward: {pv: 2}, desc: "+2🏆(Coll. pour 4+ dons)" }, { cost: 4, type: 'indiv', reward: {pv: 5}, desc: "+5🏆 (Indiv)" } ];
+    var state = null; var myId = null; var localSelectedId = null; var localModalOpen = false; var localFoireOpen = false; var localPicksLeft = 0; var botEnabled = false; var autoTrain = false; var isBotThinking = false; var botDelay = 800; 
 
     window.discardCard = function(c) {
         if (!state.discards) state.discards = {C:[], S:[], A:[], O:[], E:[], R:[]};
-        let targetDeck = 'C';
-        if (c.cat === 'S') targetDeck = 'S';
-        else if (c.cat === 'A' || c.cat === 'X') targetDeck = 'A';
-        else if (c.cat === 'E' || c.type) targetDeck = 'E'; 
-        else if (!c.cat) targetDeck = 'O';
-
-        let cleanC = { ...c };
-        delete cleanC.eCur; delete cleanC.sCur; delete cleanC.amd; 
-        delete cleanC.compagne; delete cleanC.dead; delete cleanC.toRemove;
-        if(!state.discards[targetDeck]) state.discards[targetDeck] = [];
-        state.discards[targetDeck].push(cleanC);
+        let targetDeck = 'C'; if (c.cat === 'S') targetDeck = 'S'; else if (c.cat === 'A' || c.cat === 'X') targetDeck = 'A'; else if (c.cat === 'E' || c.type) targetDeck = 'E'; else if (!c.cat) targetDeck = 'O';
+        let cleanC = { ...c }; delete cleanC.eCur; delete cleanC.sCur; delete cleanC.amd; delete cleanC.compagne; delete cleanC.dead; delete cleanC.toRemove;
+        if(!state.discards[targetDeck]) state.discards[targetDeck] = []; state.discards[targetDeck].push(cleanC);
     };
 
     window.draw = function(deckType) {
@@ -255,31 +163,20 @@
     window.sync = function() {
         if(state && !state.gameOver) {
             [1, 2].forEach(pid => {
-                let pData = state['p'+pid];
-                if (!pData || !pData.objectives) return;
+                let pData = state['p'+pid]; if (!pData || !pData.objectives) return;
                 let vegNames = []; let treeCount = 0; let hasSerre = false, hasComposteur = false, hasLocal = false;
                 pData.zones.forEach(z => {
-                    if(z.batiment === 'SERRE') hasSerre = true; if(z.type === 'COMPOSTEUR' || z.batiment === 'COMPOSTEUR') hasComposteur = true; 
-                    if(z.type === 'LOCAL OUTILS' || z.batiment === 'LOCAL OUTILS') hasLocal = true;
+                    if(z.batiment === 'SERRE') hasSerre = true; if(z.type === 'COMPOSTEUR' || z.batiment === 'COMPOSTEUR') hasComposteur = true; if(z.type === 'LOCAL OUTILS' || z.batiment === 'LOCAL OUTILS') hasLocal = true;
                     if(z.slots) z.slots.forEach(c => { if(c.cat === 'L') vegNames.push(c.nom); if(c.cat === 'A') treeCount++; });
                 });
                 let uniqueVeg = new Set(vegNames).size; let vegCounts = {}; vegNames.forEach(n => vegCounts[n] = (vegCounts[n] || 0) + 1);
                 let maxSameVeg = vegNames.length > 0 ? Math.max(...Object.values(vegCounts)) : 0;
-
                 pData.objectives.forEach(o => {
-                    if(o.achieved) return; 
-                    let points = 0; let match = o.desc ? o.desc.match(/(\d+)\s*PV/i) : null; 
-                    if(match) points = parseInt(match[1]);
-                    if(points === 0) { 
-                        if(o.nom.includes("Diversité")) points = 5; if(o.nom.includes("Monoculture")) points = 5; 
-                        if(o.nom.toLowerCase().includes("verger")) points = 6; if(o.nom.includes("Ferme")) points = 7; 
-                    }
+                    if(o.achieved) return; let points = 0; let match = o.desc ? o.desc.match(/(\d+)\s*PV/i) : null; if(match) points = parseInt(match[1]);
+                    if(points === 0) { if(o.nom.includes("Diversité")) points = 5; if(o.nom.includes("Monoculture")) points = 5; if(o.nom.toLowerCase().includes("verger")) points = 6; if(o.nom.includes("Ferme")) points = 7; }
                     let achieved = false; let nL = o.nom.toLowerCase();
-                    if(nL.includes("diversité") && uniqueVeg >= 4) achieved = true;
-                    else if(nL.includes("monoculture") && maxSameVeg >= 4) achieved = true;
-                    else if(nL.includes("verger") && treeCount >= 3) achieved = true;
-                    else if(nL.includes("autonome") && hasSerre && hasComposteur && hasLocal) achieved = true;
-                    
+                    if(nL.includes("diversité") && uniqueVeg >= 4) achieved = true; else if(nL.includes("monoculture") && maxSameVeg >= 4) achieved = true;
+                    else if(nL.includes("verger") && treeCount >= 3) achieved = true; else if(nL.includes("autonome") && hasSerre && hasComposteur && hasLocal) achieved = true;
                     if(achieved) { o.achieved = true; pData.pv = (pData.pv || 0) + points; addLog(`🎯 Objectif accompli : ${o.nom} (+${points} 🏆) !`, pid); }
                 });
             });
@@ -287,15 +184,12 @@
         if (state && typeof db !== 'undefined') db.set(state);
     };
 
-    function isBotTurn() {
-        if(!state) return false;
-        if(botEnabled) {
-            if(state.mode === 'IA_SOLO' || state.mode === 'IA_VS_IA') return true;
-            if(state.mode === 'VS_IA' && state.turn === 2) return true;
-        }
-        return false;
-    }
-    
+    const originalSync = window.sync;
+    window.sync = function() {
+        if(state && !state.gameOver) { if(state.p1) originalSync(); }
+    };
+
+    function isBotTurn() { if(!state) return false; if(botEnabled) { if(state.mode === 'IA_SOLO' || state.mode === 'IA_VS_IA') return true; if(state.mode === 'VS_IA' && state.turn === 2) return true; } return false; }
     function safeAlert(msg) { if(isBotTurn()) console.warn("🤖 Bot alerte ignorée : " + msg); else alert(msg); }
     function toggleBot() { botEnabled = !botEnabled; let btn = document.getElementById('bot-btn'); if(btn) { btn.innerText = botEnabled ? "🤖 Bot: ON" : "🤖 Bot: OFF"; btn.style.background = botEnabled ? "#4caf50" : "#9c27b0"; } if(botEnabled && state && state.turn === myId && !state.gameOver) triggerBot(state.turn); }
     function toggleAutoTrain() { autoTrain = !autoTrain; botDelay = autoTrain ? 100 : 800; let btn = document.getElementById('auto-train-btn'); if(btn) { btn.innerText = autoTrain ? "🧬 Auto-Train: ON" : "🧬 Auto-Train: OFF"; btn.style.background = autoTrain ? "#4caf50" : "#009688"; } if(autoTrain && !botEnabled) toggleBot(); }
@@ -311,8 +205,7 @@
     function executeBestAction(pId) {
         const me = state['p' + pId]; const s = state.settings;
         if (!me.hand) me.hand = []; if (!me.zones) me.zones = []; if (!me.auxActifs) me.auxActifs = [];
-        if (!me.upgrades) me.upgrades = Array(8).fill(1); if (me.fences === undefined) me.fences = 0;
-        if (!me.animalUses) me.animalUses = {};
+        if (!me.upgrades) me.upgrades = Array(8).fill(1); if (me.fences === undefined) me.fences = 0; if (!me.animalUses) me.animalUses = {};
 
         const curS = ALL_SEASONS[state.saisonIdx];
         const hasTuteur = me.auxActifs.some(a => a && (a.includes("Tuteur") || a.includes("Treillage")));
@@ -320,9 +213,7 @@
         const hasLocal = me.zones.some(z => z.type === 'LOCAL OUTILS' || z.batiment === 'LOCAL OUTILS');
         const hasFence = (me.fences > 0) || me.auxActifs.some(a => a && a.includes("Barrière"));
         const hasPrairie = me.zones.some(z => z.type === 'PRAIRIE');
-        
-        let hasArrosoir = me.auxActifs.some(a => a && a.includes("Arrosoir"));
-        let hasTuyau = me.auxActifs.some(a => a && (a.includes("Tuyau") || a.includes("Enrouleur")));
+        let hasArrosoir = me.auxActifs.some(a => a && a.includes("Arrosoir")); let hasTuyau = me.auxActifs.some(a => a && (a.includes("Tuyau") || a.includes("Enrouleur")));
         let canWater = (me.water >= 2 || hasArrosoir || hasTuyau);
 
         function canPlant(c, z) {
@@ -340,56 +231,23 @@
             return true;
         }
 
-        for (let i = 0; i < me.zones.length; i++) {
-            let z = me.zones[i];
-            if (z && z.slots) {
-                for (let j = 0; j < z.slots.length; j++) {
-                    let c = z.slots[j];
-                    if (c.eCur <= 0 && c.sCur <= 0 && me.time >= s.costRecolterTemps) { localSelectedId = z.id; actionRecolter(z.id, j); return; }
-                }
-            }
-        }
-
-        if (me.time >= s.costArroserTemps && canWater) {
-            for (let i = 0; i < me.zones.length; i++) {
-                let z = me.zones[i];
-                if (z && z.slots && z.slots.some(c => c.eCur > 0)) { localSelectedId = z.id; actArr(z.id); return; }
-            }
-        }
-
-        if (hasComposteur && me.compost > 0 && me.time >= s.costAmenderTemps) {
-            let zToAmend = me.zones.find(z => z.slots && z.slots.length > 0);
-            if (zToAmend) { localSelectedId = zToAmend.id; actAmd(zToAmend.id); return; }
-        }
-
-        for (let i = 0; i < me.hand.length; i++) {
-            let c = me.hand[i]; let cost = Math.max(0, (c.t || 1) - (me.upgrades[2] - 1));
-            let isAnimal = listAnimaux.some(a => c.nom.includes(a));
-            if (isAnimal && me.time >= cost) { if (hasFence && (c.nom.includes("Poules") || hasPrairie)) { playC(i, null); return; } }
-        }
-
+        for (let i = 0; i < me.zones.length; i++) { let z = me.zones[i]; if (z && z.slots) { for (let j = 0; j < z.slots.length; j++) { let c = z.slots[j]; if (c.eCur <= 0 && c.sCur <= 0 && me.time >= s.costRecolterTemps) { localSelectedId = z.id; actionRecolter(z.id, j); return; } } } }
+        if (me.time >= s.costArroserTemps && canWater) { for (let i = 0; i < me.zones.length; i++) { let z = me.zones[i]; if (z && z.slots && z.slots.some(c => c.eCur > 0)) { localSelectedId = z.id; actArr(z.id); return; } } }
+        if (hasComposteur && me.compost > 0 && me.time >= s.costAmenderTemps) { let zToAmend = me.zones.find(z => z.slots && z.slots.length > 0); if (zToAmend) { localSelectedId = zToAmend.id; actAmd(zToAmend.id); return; } }
+        for (let i = 0; i < me.hand.length; i++) { let c = me.hand[i]; let cost = Math.max(0, (c.t || 1) - (me.upgrades[2] - 1)); let isAnimal = listAnimaux.some(a => c.nom.includes(a)); if (isAnimal && me.time >= cost) { if (hasFence && (c.nom.includes("Poules") || hasPrairie)) { playC(i, null); return; } } }
+        
         let myAnimals = (me.auxActifs || []).filter(a => listAnimaux.some(ani => a && a.includes(ani)));
         if (myAnimals.length > 0) {
-            let hasNaissances = (me.auxActifs || []).some(a => a && a.includes("Naissances"));
-            let naissancesUsed = Object.values(me.animalUses).some(uses => uses >= 2);
-            let availableAnimals = myAnimals.filter(a => {
-                let uses = me.animalUses[a] || 0; let maxUses = 1;
-                if (hasNaissances && !naissancesUsed) maxUses = 2; else if (hasNaissances && naissancesUsed && uses >= 1) maxUses = 1;
-                return uses < maxUses;
-            });
-            if (availableAnimals.length > 0) {
-                let chosenAnimal = availableAnimals[0]; let aniCost = chosenAnimal.includes('Poules') ? 1 : 2;
-                if (me.time >= aniCost) { let zToFertilize = me.zones.find(z => z.slots && z.slots.length > 0); if (zToFertilize) { localSelectedId = zToFertilize.id; window.actAnimaux(chosenAnimal); return; } }
-            }
+            let hasNaissances = (me.auxActifs || []).some(a => a && a.includes("Naissances")); let naissancesUsed = Object.values(me.animalUses).some(uses => uses >= 2);
+            let availableAnimals = myAnimals.filter(a => { let uses = me.animalUses[a] || 0; let maxUses = 1; if (hasNaissances && !naissancesUsed) maxUses = 2; else if (hasNaissances && naissancesUsed && uses >= 1) maxUses = 1; return uses < maxUses; });
+            if (availableAnimals.length > 0) { let chosenAnimal = availableAnimals[0]; let aniCost = chosenAnimal.includes('Poules') ? 1 : 2; if (me.time >= aniCost) { let zToFertilize = me.zones.find(z => z.slots && z.slots.length > 0); if (zToFertilize) { localSelectedId = zToFertilize.id; window.actAnimaux(chosenAnimal); return; } } }
         }
 
         for (let i = 0; i < me.hand.length; i++) {
-            let c = me.hand[i]; let cost = Math.max(0, (c.t || 1) - (me.upgrades[2] - 1));
-            let isOutil = listOutils.some(o => c.nom.includes(o)); let isAnimal = listAnimaux.some(a => c.nom.includes(a));
+            let c = me.hand[i]; let cost = Math.max(0, (c.t || 1) - (me.upgrades[2] - 1)); let isOutil = listOutils.some(o => c.nom.includes(o)); let isAnimal = listAnimaux.some(a => c.nom.includes(a));
             if (me.time >= cost && !isAnimal) {
-                if (c.cat === 'X' || (c.cat === 'S' && !listCompagnes.includes(c.nom) && !listCompost.some(k=>c.nom.includes(k)) && !c.nom.includes("Corne"))) {
-                    if(isOutil && !hasLocal) continue; playC(i, null); return;
-                } else if (c.cat === 'S') {
+                if (c.cat === 'X' || (c.cat === 'S' && !listCompagnes.includes(c.nom) && !listCompost.some(k=>c.nom.includes(k)) && !c.nom.includes("Corne"))) { if(isOutil && !hasLocal) continue; playC(i, null); return; } 
+                else if (c.cat === 'S') {
                     if(listCompost.some(k=>c.nom.includes(k))) { if(hasComposteur) { playC(i, null); return; } }
                     else if(listCompagnes.includes(c.nom)) { let tz = me.zones.find(z => z.slots && z.slots.some(pl => !pl.compagne)); if(tz) { localSelectedId = tz.id; playC(i, tz.id); return; } }
                     else { let tz = me.zones.find(z => z.slots && z.slots.length > 0); if(tz) { localSelectedId = tz.id; playC(i, tz.id); return; } }
@@ -397,12 +255,7 @@
             }
         }
 
-        for (let i = 0; i < me.hand.length; i++) {
-            let c = me.hand[i]; let cost = Math.max(0, (c.t || 1) - (me.upgrades[2] - 1));
-            if (me.time >= cost && (c.cat === 'L' || c.cat === 'A')) {
-                for (let j = 0; j < me.zones.length; j++) { if (canPlant(c, me.zones[j])) { localSelectedId = me.zones[j].id; playC(i, me.zones[j].id); return; } }
-            }
-        }
+        for (let i = 0; i < me.hand.length; i++) { let c = me.hand[i]; let cost = Math.max(0, (c.t || 1) - (me.upgrades[2] - 1)); if (me.time >= cost && (c.cat === 'L' || c.cat === 'A')) { for (let j = 0; j < me.zones.length; j++) { if (canPlant(c, me.zones[j])) { localSelectedId = me.zones[j].id; playC(i, me.zones[j].id); return; } } } }
 
         if (me.time >= 4 && me.money >= 6) { 
             let needsLocal = me.hand.some(c => listOutils.some(o => c.nom.includes(o)));
@@ -411,8 +264,7 @@
             if (!hasComposteur && me.money >= s.costComposteurOr) { let zVide = me.zones.find(z => !z.type && (z.num == 1 || z.num == 2) && isAdjacent(me, z.id)); if (zVide) { localSelectedId = zVide.id; actB(zVide.id, "2"); return; } }
         }
 
-        let wantsPotager = me.hand.some(c => c.cat === 'L' && !listPetitsFruits.some(pf => c.nom.includes(pf)));
-        let wantsVerger = me.hand.some(c => c.cat === 'A' || listPetitsFruits.some(pf => c.nom.includes(pf)));
+        let wantsPotager = me.hand.some(c => c.cat === 'L' && !listPetitsFruits.some(pf => c.nom.includes(pf))); let wantsVerger = me.hand.some(c => c.cat === 'A' || listPetitsFruits.some(pf => c.nom.includes(pf)));
         let costP_Or = Math.max(0, s.costAmenagerPotagerOr - (me.upgrades[5] >= 2 ? (me.upgrades[5] === 3 ? 2 : 1) : 0));
 
         if (me.time >= s.costAmenagerPotagerTemps && me.money >= costP_Or) {
@@ -427,26 +279,22 @@
             let prioUpgrades = [1, 3, 2, 5, 0, 6, 4, 7];
             for(let i of prioUpgrades) {
                 let costH = me.upgrades[i]===1 ? s.costUp2Temps : s.costUp3Temps; let costM = me.upgrades[i]===1 ? s.costUp2Or : s.costUp3Or;
-                let isUpLocked = (me.upgrades[i] === 2 && (!state.coop || !state.coop.unlocks || !state.coop.unlocks.upgrades3));
-                let minMoneyRequired = state.annee === 1 ? costM + 2 : costM;
+                let isUpLocked = (me.upgrades[i] === 2 && (!state.coop || !state.coop.unlocks || !state.coop.unlocks.upgrades3)); let minMoneyRequired = state.annee === 1 ? costM + 2 : costM;
                 if (me.upgrades[i] < 3 && me.time >= costH && me.money >= minMoneyRequired && !isUpLocked) { upgr(i); return; }
             }
         }
 
         let redJ = me.upgrades[6] >= 2 ? 1 : 0; let costJ = Math.max(0, s.jardSlot3Temps - redJ);
         if (me.time >= costJ && me.money >= 2 && me.hand.length < 4) {
-            let hasPlants = me.hand.some(c => c.cat === 'L' || c.cat === 'A');
-            let targetCat = hasPlants ? ['S', 'X', 'C'][Math.floor(Math.random() * 3)] : 'C'; 
+            let hasPlants = me.hand.some(c => c.cat === 'L' || c.cat === 'A'); let targetCat = hasPlants ? ['S', 'X', 'C'][Math.floor(Math.random() * 3)] : 'C'; 
             if (state.market[targetCat] && state.market[targetCat].length > 0) {
                 let affordable = state.market[targetCat].filter(c => me.money >= c.p);
                 if (affordable.length > 0) {
                     let bestCard = affordable[0];
                     if (targetCat === 'C') { let nextS = ALL_SEASONS[(state.saisonIdx + 1) % 4]; let optimal = affordable.find(c => (c.sm||[]).includes(curS) || (c.sm||[]).includes(nextS)); if(optimal) bestCard = optimal; }
-                    me.time -= costJ; me.money -= bestCard.p; me.hand.push(bestCard);
-                    let idx = state.market[targetCat].findIndex(c => c.nom === bestCard.nom); if(idx !== -1) state.market[targetCat].splice(idx, 1);
+                    me.time -= costJ; me.money -= bestCard.p; me.hand.push(bestCard); let idx = state.market[targetCat].findIndex(c => c.nom === bestCard.nom); if(idx !== -1) state.market[targetCat].splice(idx, 1);
                     addLog(`🤖 Le bot achète ${bestCard.nom}.`, pId);
-                    let maxCards = (state.coop?.unlocks?.market3) ? 3 : 2;
-                    while(state.market[targetCat].length < maxCards) { let newC = draw(targetCat); if(newC) state.market[targetCat].push(newC); else break; }
+                    let maxCards = (state.coop?.unlocks?.market3) ? 3 : 2; while(state.market[targetCat].length < maxCards) { let newC = draw(targetCat); if(newC) state.market[targetCat].push(newC); else break; }
                     sync(); return;
                 }
             }
@@ -459,10 +307,8 @@
         }
 
         if (me.time >= 1 && (me.hand.length >= 4 || (me.money < 2 && me.hand.length > 0))) { actFoireStand(0); return; }
-
         actFin();
     }
-
     function setTxt(id, txt) { const el = document.getElementById(id); if(el) el.innerHTML = txt; }
     function addLog(msg, pid = myId) {
         if(!state.gameLogs) state.gameLogs = []; let suffix = ""; 
@@ -581,7 +427,8 @@
             if (o.achieved) { status = ` <span style='color:#2e7d32; font-weight:bold; float:right;'>✅ +${points}🏆</span>`; borderCol = "#4caf50"; bgCol = "#e8f5e9"; } 
             else if (state.gameOver) { status = " <span style='color:#d32f2f; font-weight:bold; float:right;'>❌ Raté</span>"; borderCol = "#f44336"; bgCol = "#ffebee"; } 
             else { status = ` <span style='color:#1565c0; font-weight:bold; float:right;'>⏳ En cours</span>`; }
-            oDiv.innerHTML += `<div class="card" style="border-left-color: ${borderCol}; background:${bgCol};"><b>🎯 ${o.nom}</b>${status}<br><span style="font-size:0.85em; color:#1565c0;">${o.desc || ''}</span></div>`;
+            let iconHtml=o.icon?(o.icon.includes('http')?`<img src="${o.icon}" style="width:20px;vertical-align:middle;">`:o.icon):'🎯';
+            oDiv.innerHTML += `<div class="card" style="border-left-color: ${borderCol}; background:${bgCol};"><b>${iconHtml} ${o.nom}</b>${status}<br><span style="font-size:0.85em; color:#1565c0;">${o.desc || ''}</span></div>`;
         });
 
         const hDiv = document.getElementById('player-hand'); hDiv.innerHTML = "";
@@ -600,8 +447,9 @@
             
             let btnText = toolLocked ? "🏠 Local Requis" : `Jouer (-${cost}h)`;
             let btnDisabled = (!isMyTurn || me.time<cost || state.gameOver || toolLocked) ? 'disabled' : '';
+            let iconHtml=c.icon?(c.icon.includes('http')?`<img src="${c.icon}" class="card-icon" style="width:24px;height:24px;">`:`<div class="card-icon">${c.icon}</div>`):'';
 
-            card.innerHTML = `<b>${c.nom}</b><br><span style="font-size:0.9em;">${details}</span><div style="display:flex; gap:4px; margin-top:4px;"><button onclick="playC(${i})" style="flex:1; padding:4px; cursor:pointer;" ${btnDisabled} title="Dépensez le temps requis pour placer cette carte sur le terrain.">${btnText}</button></div>`;
+            card.innerHTML = `${iconHtml}<b>${c.nom}</b><br><span style="font-size:0.9em;">${details}</span><div style="display:flex; gap:4px; margin-top:4px;"><button onclick="playC(${i})" style="flex:1; padding:4px; cursor:pointer;" ${btnDisabled} title="Dépensez le temps requis pour placer cette carte sur le terrain.">${btnText}</button></div>`;
             hDiv.appendChild(card);
         });
 
@@ -612,9 +460,9 @@
         
         if(typeof triggerBot === "function") { 
             let shouldRunBot = false; 
-            if(state.turn === myId && typeof botEnabled !== 'undefined' && botEnabled && !state.gameOver) shouldRunBot = true; 
+            if(state.turn === myId && botEnabled && !state.gameOver) shouldRunBot = true; 
             if((state.mode === 'VS_IA' || state.mode === 'IA_VS_IA') && state.turn === 2 && myId === 1 && !state.gameOver) shouldRunBot = true; 
-            if(state.gameOver && typeof botEnabled !== 'undefined' && botEnabled) shouldRunBot = true; 
+            if(state.gameOver && botEnabled) shouldRunBot = true; 
             if(shouldRunBot && !localModalOpen && !localFoireOpen) { setTimeout(() => triggerBot(state.turn), 50); }
         }
     }
@@ -737,9 +585,10 @@
             
             (state.market[cat] || []).forEach(c => {
                 let details = c.cat === 'S' ? `✨ ${c.desc.substring(0, 25)}...` : (c.cat === 'X' ? `🛡️ Anti-${c.prot}` : `📈 +${c.g}💰 | 💧${c.e} ☀️${c.s}`);
+                let iconHtml=c.icon?(c.icon.includes('http')?`<img src="${c.icon}" style="width:16px;height:16px;vertical-align:middle;">`:c.icon):'';
                 catRow += `<div style="min-width: 125px; background: white; border: 1px solid #cfd8dc; border-left: 3px solid var(--gold); border-radius: 4px; padding: 4px; font-size: 0.8em; flex-shrink: 0; white-space: normal;">
                     <span style="float:right; font-weight:bold; color:#b8860b;">${c.p}💰</span>
-                    <b>${c.nom}</b><br><span style="font-size:0.85em; color:#607d8b; display:block; max-height:2.4em; overflow:hidden; text-overflow:ellipsis;">${details}</span>
+                    <b>${iconHtml} ${c.nom}</b><br><span style="font-size:0.85em; color:#607d8b; display:block; max-height:2.4em; overflow:hidden; text-overflow:ellipsis;">${details}</span>
                 </div>`;
             });
             
@@ -770,7 +619,8 @@
             (state.market[cat] || []).forEach((c, idx) => {
                 const can = me.money >= c.p; const d = document.createElement('div'); d.className = "jard-card"; d.style.opacity = can?"1":"0.4";
                 let details = c.cat === 'S' ? `✨ <b>Effet :</b> ${c.desc}` : (c.cat === 'X' ? `🛡️ <b>Protège :</b> Anti-${c.prot}` : `📈 <b>Gain : +${c.g}💰</b><br>💧${c.e} ☀️${c.s}<br>🌱 ${(c.sm||[]).join(',')} | 🧺 ${(c.rc||[]).join(',')}${c.rav ? '<br>🐌 Sensible : '+c.rav : ''}`);
-                d.innerHTML = `<div class="price-tag">${c.p}💰</div><b>${c.nom}</b><br><small>${details}</small>`;
+                let iconHtml=c.icon?(c.icon.includes('http')?`<img src="${c.icon}" class="jard-card-icon" style="width:40px;height:40px;">`:`<div class="jard-card-icon">${c.icon}</div>`):'';
+                d.innerHTML = `${iconHtml}<div class="price-tag">${c.p}💰</div><b>${c.nom}</b><br><small>${details}</small>`;
                 d.title = can ? `Cliquez pour acheter ${c.nom} pour ${c.p}💰.` : `Vous n'avez pas assez d'argent pour acheter ${c.nom}.`;
                 
                 d.onclick = () => { 
@@ -866,7 +716,6 @@
         else if(obj1) { me.objectives.push(obj1); }
         addLog(`🎪 Objectif récupéré (-${cost}h).`, state.turn); localFoireOpen=false; sync();
     }
-
     window.isAdjacent = function(me, zId) {
         if(zId === 0 || zId === 14) return true;
         for(let n of adjacencyMap[zId]) { if(n === 0 || (me.zones[n] && me.zones[n].type)) return true; }
@@ -1023,14 +872,20 @@
         }
 
         me.time -= s.costRecolterTemps; let moneyGained = 0;
-        let eventBonus = (state.currentEvent && state.currentEvent.nom === "Saison exceptionnelle") ? 2 : 0;
+        let eventBonus = 0;
+        if (state.currentEvent) {
+            if (state.currentEvent.nom === "Saison exceptionnelle") eventBonus = 2;
+            if (state.currentEvent.nom === "Mauvaise saison") eventBonus = -2;
+            if (state.currentEvent.nom === "Hausse de la T.V.A") eventBonus = -1;
+        }
         
         targets.forEach(t => {
-            let gain = t.c.g + (me.upgrades[3]-1) + (t.c.amd||0);
+            let compagneBonus = (t.c.compagne) ? 1 : 0;
+            let gain = t.c.g + (me.upgrades[3]-1) + (t.c.amd||0) + compagneBonus;
             if (t.c.cat === 'A' && state.currentEvent && state.currentEvent.nom === "Grêle") { gain = Math.max(0, gain - 2); }
             moneyGained += gain;
         });
-        moneyGained += eventBonus;
+        moneyGained = Math.max(0, moneyGained + eventBonus);
 
         let currentLvl = state.coop.level; let maxAffordable = 0; let tempGain = moneyGained; let tempLvl = currentLvl;
         while(tempLvl < COOP_TRACK.length && tempGain >= COOP_TRACK[tempLvl].cost) { tempGain -= COOP_TRACK[tempLvl].cost; maxAffordable++; tempLvl++; }
@@ -1043,7 +898,7 @@
                 else if(state.annee === 3) levelsToFund = maxAffordable > 1 ? 1 : maxAffordable;
                 else levelsToFund = 0;
             } else { 
-                let input = prompt(`🧺 Récolte de ${targetC.nom} ${targets.length>1?'(x2)' : ''} (+${moneyGained}💰).\nLa Coopérative est N${currentLvl}.\nVous pouvez financer jusqu'à ${maxAffordable} niveau(x).\nCombien de niveaux financez-vous ? (0 pour tout garder)`); 
+                let input = prompt(`🧺 Récolte de ${targetC.nom} ${targets.length>1?'(x2)' : ''} (+${moneyGained}💰 nets).\nLa Coopérative est N${currentLvl}.\nVous pouvez financer jusqu'à ${maxAffordable} niveau(x).\nCombien de niveaux financez-vous ? (0 pour tout garder)`); 
                 levelsToFund = parseInt(input) || 0; 
             }
         }
@@ -1319,7 +1174,7 @@
         else { if(state.turn === 1) { state.turn = 2; addLog(`⏭️ Fin de tour.`, 1); sync(); } else resolveSeason(); } 
     }
 
-        window.startNewGame = function(mode) {
+    window.startNewGame = function(mode) {
         myId = 1; 
         
         dbConfig.once('value').then((snap) => {
@@ -1342,30 +1197,14 @@
             let decksToUse;
             if (adminData && adminData.decks) {
                 decksToUse = JSON.parse(JSON.stringify(adminData.decks));
-            } else if (typeof adminDecks !== 'undefined') {
-                decksToUse = JSON.parse(JSON.stringify(adminDecks));
             } else {
                 decksToUse = {
-                    C: [
-                        { nom: "Tomates", cat: 'L', p: 2, g: 4, e: 2, s: 2, t: 1, sm: ["P"], rc: ["E", "A"] },
-                        { nom: "Carottes", cat: 'L', p: 1, g: 3, e: 1, s: 1, t: 1, sm: ["P", "E"], rc: ["E", "A", "H"] }
-                    ],
-                    S: [
-                        { nom: "Poules", cat: 'S', p: 3, t: 1, desc: "Action rendement et protection." },
-                        { nom: "Cheval", cat: 'S', p: 5, t: 1, desc: "Action rendement et protège blessures." },
-                        { nom: "Barrière", cat: 'S', p: 2, t: 1, desc: "Sert de Clôture." },
-                        { nom: "Naissances", cat: 'S', p: 3, t: 1, desc: "Permet de jouer 2 fois l'action d'un animal." }
-                    ],
-                    A: [
-                        { nom: "Pommier", cat: 'A', p: 4, g: 6, e: 3, s: 3, t: 1, sm: ["H", "P"], rc: ["A"] }
-                    ],
-                    O: [
-                        { nom: "Ferme Autonome", desc: "Avoir Serre, Local et Composteur (7 PV)" }
-                    ],
-                    E: [
-                        { nom: "Saison exceptionnelle", type: "Positif", desc: "+2 sous à la récolte" },
-                        { nom: "Blessure", type: "Négatif", desc: "Un jardinier (temps) en moins cette saison" }
-                    ]
+                    C: [{ nom: "Tomates", cat: 'L', p: 2, g: 4, e: 2, s: 2, t: 1, sm: ["P"], rc: ["E", "A"] }],
+                    S: [{ nom: "Poules", cat: 'S', p: 3, t: 1, desc: "Action rendement et protection." }],
+                    A: [{ nom: "Pommier", cat: 'A', p: 4, g: 6, e: 3, s: 3, t: 1, sm: ["H", "P"], rc: ["A"] }],
+                    O: [{ nom: "Ferme Autonome", desc: "Avoir Serre, Local et Composteur (7 PV)" }],
+                    E: [{ nom: "Saison exceptionnelle", type: "Positif", desc: "+2 sous à la récolte" }],
+                    R: [{ nom: "Sanglier", d: 3, desc: "Perte de 3" }]
                 };
             }
 
@@ -1376,10 +1215,8 @@
                 costAmenagerPotagerOr: 2, costAmenagerPotagerTemps: 3,
                 costSerreOr: 3, costComposteurOr: 4, costLocalOr: 5,
                 costUp2Or: 4, costUp2Temps: 3, costUp3Or: 8, costUp3Temps: 5,
-                jardSlot1Temps: 3, jardSlot1Pioches: 5,
-                jardSlot2Temps: 2, jardSlot2Pioches: 3,
-                jardSlot3Temps: 2, jardSlot3Pioches: 2,
-                jardSlot4Temps: 1, jardSlot4Pioches: 1
+                jardSlot1Temps: 3, jardSlot1Pioches: 5, jardSlot2Temps: 2, jardSlot2Pioches: 3,
+                jardSlot3Temps: 2, jardSlot3Pioches: 2, jardSlot4Temps: 1, jardSlot4Pioches: 1
             };
 
             state = {
@@ -1388,20 +1225,16 @@
                 p1: initP(), p2: initP(),
                 market: { C:[], S:[], A:[] }, 
                 decks: decksToUse,
-                discards: { C:[], S:[], A:[], O:[], E:[] },
+                discards: { C:[], S:[], A:[], O:[], E:[], R:[] },
                 currentMeteo: {p:1, s:1}, currentRav: null, currentEvent: null,
                 coop: { level: 0, unlocks: {} }, foire: { camelot: 0, conseiller: 0 },
                 settings: settingsToUse
             };
-            
+
             if (adminData && adminData.decks && adminData.decks.R) {
                 state.ravPool = JSON.parse(JSON.stringify(adminData.decks.R));
             } else {
-                state.ravPool = [
-                    { nom: "Limace des jardins", d: 2 },
-                    { nom: "Puceron vert", d: 1 },
-                    { nom: "Sanglier", d: 3 }
-                ];
+                state.ravPool = [{ nom: "Limace des jardins", d: 2 }, { nom: "Sanglier", d: 3 }];
             }
 
             ['C', 'S', 'A'].forEach(cat => {
@@ -1419,7 +1252,6 @@
 
     window.showGameOver = function() {
         document.getElementById('game-over-screen').style.display = 'flex';
-
         [1, 2].forEach(pid => {
             let pData = state['p'+pid];
             if(pData && pData.scoreDetails) {
@@ -1430,7 +1262,6 @@
                 document.getElementById(`b${pid}-tot`).innerText = pData.scoreDetails.finalScore;
             }
         });
-
         let s1 = state.p1.scoreDetails ? state.p1.scoreDetails.finalScore : 0;
         let s2 = state.p2.scoreDetails ? state.p2.scoreDetails.finalScore : 0;
         let winText = "⚖️ Égalité parfaite !";
@@ -1438,15 +1269,11 @@
         else if(s2 > s1) winText = "🏆 Le Joueur 2 a la meilleure ferme !";
 
         if(state.mode === 'SOLO' || state.mode === 'IA_SOLO') {
-            document.getElementById('th-j2').style.display = 'none';
-            document.getElementById('b2-base').style.display = 'none';
-            document.getElementById('b2-m').style.display = 'none';
-            document.getElementById('b2-z').style.display = 'none';
-            document.getElementById('b2-u').style.display = 'none';
-            document.getElementById('b2-tot').style.display = 'none';
+            document.getElementById('th-j2').style.display = 'none'; document.getElementById('b2-base').style.display = 'none';
+            document.getElementById('b2-m').style.display = 'none'; document.getElementById('b2-z').style.display = 'none';
+            document.getElementById('b2-u').style.display = 'none'; document.getElementById('b2-tot').style.display = 'none';
             winText = "🏁 Bilan de votre Exploitation";
         }
-
         document.getElementById('winner-text').innerText = winText;
     };
 
@@ -1459,12 +1286,8 @@
 
     db.on('value', snap => {
         let val = snap.val();
-        if(val) {
-            state = val;
-            if(myId) render();
-        }
+        if(val) { state = val; if(myId) render(); }
     });
-
 </script>
 </body>
 </html>
