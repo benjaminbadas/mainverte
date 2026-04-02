@@ -1,30 +1,21 @@
-<!DOCTYPE html>
-<html lang="fr">
-<head>
-    <meta charset="UTF-8">
-    <title>La Main Verte - Éditeur de Base de Données (Complet)</title>
-    <script src="https://www.gstatic.com/firebasejs/9.17.1/firebase-app-compat.js"></script>
-    <script src="https://www.gstatic.com/firebasejs/9.17.1/firebase-database-compat.js"></script>
-    <style>
-        body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; background: #eceff1; padding: 20px; color: #263238; margin: 0;}
-        .container { max-width: 1400px; margin: 0 auto; background: white; padding: 20px; border-radius: 12px; box-shadow: 0 5px 20px rgba(0,0,0,0.1); }
-        h1 { color: #2e7d32; text-align: center; margin-bottom: 5px; }
-        .tabs { display: flex; border-bottom: 2px solid #2e7d32; margin-bottom: 20px; flex-wrap: wrap; gap: 5px;}
-        .tab { padding: 10px 15px; cursor: pointer; font-weight: bold; background: #e8f5e9; border: 1px solid transparent; border-bottom: none; border-radius: 8px 8px 0 0; color: #2e7d32; transition: 0.2s; }
-        .tab.active { background: #2e7d32; color: white; }
-        .tab-content { display: none; overflow-x: auto; max-height: 600px; }
-        .tab-content.active { display: block; }
-        table { width: 100%; border-collapse: collapse; font-size: 0.85em; }
-        th { background: #37474f; color: white; padding: 8px; position: sticky; top: 0; z-index: 10;}
-        td { padding: 6px; border-bottom: 1px solid #cfd8dc; }
-        input[type="text"], input[type="number"] { width: 100%; padding: 4px; box-sizing: border-box; }
-        input[type="number"] { width: 60px; text-align: center; }
-        .input-large { min-width: 250px !important; }
-        .btn-save { display: block; width: 100%; background: #ff9800; color: white; border: none; padding: 15px; font-size: 1.2em; font-weight: bold; border-radius: 8px; cursor: pointer; margin-top: 20px; }
-    </style>
-</head>
-<body>
-
+<!DOCTYPE html><html lang="fr"><head><meta charset="UTF-8"><title>Admin - La Main Verte</title>
+<script src="https://www.gstatic.com/firebasejs/9.17.1/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/9.17.1/firebase-database-compat.js"></script>
+<style>
+body{font-family:'Segoe UI',sans-serif;background:#eceff1;padding:20px;color:#263238;margin:0}
+.container{max-width:1400px;margin:0 auto;background:#fff;padding:20px;border-radius:12px;box-shadow:0 5px 20px rgba(0,0,0,.1)}
+h1{color:#2e7d32;text-align:center;margin-bottom:5px}
+.tabs{display:flex;border-bottom:2px solid #2e7d32;margin-bottom:20px;flex-wrap:wrap;gap:5px}
+.tab{padding:10px 15px;cursor:pointer;font-weight:bold;background:#e8f5e9;border-radius:8px 8px 0 0;color:#2e7d32}
+.tab.active{background:#2e7d32;color:#fff}
+.tab-content{display:none;overflow-x:auto;max-height:600px} .tab-content.active{display:block}
+table{width:100%;border-collapse:collapse;font-size:0.85em}
+th{background:#37474f;color:#fff;padding:8px;position:sticky;top:0;z-index:10}
+td{padding:6px;border-bottom:1px solid #cfd8dc}
+input[type="text"],input[type="number"]{width:100%;padding:4px;box-sizing:border-box}
+input[type="number"]{width:60px;text-align:center} .input-large{min-width:250px!important}
+.btn-save{display:block;width:100%;background:#ff9800;color:#fff;border:none;padding:15px;font-size:1.2em;font-weight:bold;border-radius:8px;cursor:pointer;margin-top:20px}
+</style></head><body>
 <div class="container">
     <h1>🗄️ Base de Données Complète</h1>
     <div class="tabs">
@@ -37,7 +28,6 @@
         <div class="tab" onclick="switchTab('objectifs')">🎯 Objectifs</div>
         <div class="tab" onclick="switchTab('events')">⚡ Événements</div>
     </div>
-
     <div id="legumes" class="tab-content active"><table id="table-legumes"></table></div>
     <div id="arbres" class="tab-content"><table id="table-arbres"></table></div>
     <div id="compagnes" class="tab-content"><table id="table-compagnes"></table></div>
@@ -46,253 +36,110 @@
     <div id="ravageurs" class="tab-content"><table id="table-ravageurs"></table></div>
     <div id="objectifs" class="tab-content"><table id="table-objectifs"></table></div>
     <div id="events" class="tab-content"><table id="table-events"></table></div>
-
     <button class="btn-save" onclick="saveToFirebase()">💾 Générer les Decks et Mettre à jour le Serveur</button>
 </div>
-
 <script>
-    const firebaseConfig = {
-        apiKey: "AIzaSyA_OHv6TDiVsn4PwM9s25gij8lBwQH8xrg",
-        authDomain: "main-verte-72483.firebaseapp.com",
-        databaseURL: "https://main-verte-72483-default-rtdb.europe-west1.firebasedatabase.app",
-        projectId: "main-verte-72483"
-    };
-    firebase.initializeApp(firebaseConfig);
-    const dbConfig = firebase.database().ref("game-config/decks");
+    firebase.initializeApp({apiKey:"AIzaSyA_OHv6TDiVsn4PwM9s25gij8lBwQH8xrg",authDomain:"main-verte-72483.firebaseapp.com",databaseURL:"https://main-verte-72483-default-rtdb.europe-west1.firebasedatabase.app",projectId:"main-verte-72483"});
+    const dbConfig = firebase.database().ref("game-config"); // CORRECTION: Pointe à la racine
 
-    // Encodage compact des données fournies
-    const dataLegumes = [
-        { nom: "Ail (Arno)", p: 1, t: 1, e: 5, s: 4, g: 3, sm: "P", rc: "E", rav: "", qte: 2 },
-        { nom: "Artichaut (Violet)", p: 2, t: 2, e: 9, s: 7, g: 5, sm: "P", rc: "A,H", rav: "", qte: 1 },
-        { nom: "Artichaut (Imperial)", p: 2, t: 1, e: 9, s: 7, g: 4, sm: "P", rc: "A", rav: "", qte: 1 },
-        { nom: "Aubergine (Dourga)", p: 1, t: 1, e: 7, s: 4, g: 4, sm: "P", rc: "E,A", rav: "", qte: 1 },
-        { nom: "Aubergine (Longue)", p: 1, t: 1, e: 7, s: 4, g: 4, sm: "P", rc: "E,A", rav: "", qte: 1 },
-        { nom: "Betterave", p: 1, t: 1, e: 7, s: 3, g: 6, sm: "P,E", rc: "A,H", rav: "", qte: 2 },
-        { nom: "Carotte (Jaune)", p: 1, t: 0, e: 9, s: 5, g: 8, sm: "P,E", rc: "A,H", rav: "Jaune, Vert, Gris, Noir", qte: 1 },
-        { nom: "Carotte (Nantaise)", p: 1, t: 0, e: 9, s: 5, g: 8, sm: "P,E", rc: "A,H", rav: "Jaune, Vert, Gris, Noir", qte: 1 },
-        { nom: "Cebette", p: 1, t: 1, e: 6, s: 4, g: 8, sm: "P", rc: "E", rav: "Jaune, Vert, Gris, Noir", qte: 2 },
-        { nom: "Céleri Branche", p: 1, t: 1, e: 7, s: 4, g: 9, sm: "P", rc: "A", rav: "Jaune, Vert, Gris, Noir", qte: 1 },
-        { nom: "Céleri Rave", p: 1, t: 1, e: 7, s: 6, g: 11, sm: "P", rc: "A", rav: "Jaune, Vert, Gris", qte: 1 },
-        { nom: "Chayotte", p: 2, t: 2, e: 5, s: 4, g: 8, sm: "P", rc: "A", rav: "Jaune, Vert, Gris", qte: 1 },
-        { nom: "Chou Brocoli (Vert)", p: 2, t: 1, e: 7, s: 5, g: 11, sm: "P", rc: "A", rav: "Jaune, Vert, Gris, Noir", qte: 1 },
-        { nom: "Chou Brocoli (Violet)", p: 2, t: 1, e: 7, s: 5, g: 11, sm: "E", rc: "H", rav: "Jaune, Vert, Gris, Noir", qte: 1 },
-        { nom: "Chou Chinois (Pe Tsaï)", p: 1, t: 1, e: 7, s: 4, g: 5, sm: "E", rc: "A", rav: "", qte: 1 },
-        { nom: "Chou Frisé Kale", p: 1, t: 1, e: 7, s: 4, g: 5, sm: "E", rc: "H", rav: "", qte: 1 },
-        { nom: "Chou-Fleur (Romanesco)", p: 1, t: 1, e: 7, s: 4, g: 2, sm: "P", rc: "A", rav: "", qte: 1 },
-        { nom: "Concombre", p: 1, t: 1, e: 6, s: 4, g: 4, sm: "P", rc: "E", rav: "", qte: 2 },
-        { nom: "Cornichon", p: 1, t: 1, e: 6, s: 4, g: 4, sm: "P", rc: "E", rav: "", qte: 1 },
-        { nom: "Côtes de Blette", p: 1, t: 2, e: 6, s: 4, g: 8, sm: "P", rc: "A", rav: "Jaune, Gris, Noir", qte: 2 },
-        { nom: "Courge (Godiva)", p: 2, t: 1, e: 5, s: 4, g: 9, sm: "P", rc: "A", rav: "Jaune, Vert, Gris, Noir", qte: 1 },
-        { nom: "Courge (Butternut)", p: 2, t: 1, e: 5, s: 4, g: 9, sm: "P", rc: "A", rav: "Jaune, Vert, Gris, Noir", qte: 1 },
-        { nom: "Courgette (Ronde)", p: 1, t: 1, e: 4, s: 3, g: 7, sm: "P", rc: "E,A", rav: "Jaune, Vert, Gris, Noir", qte: 2 },
-        { nom: "Echalote", p: 1, t: 1, e: 4, s: 3, g: 7, sm: "P", rc: "E", rav: "Jaune, Orange, Gris, Noir", qte: 2 },
-        { nom: "Epinard (Hiver)", p: 1, t: 0, e: 5, s: 2, g: 5, sm: "A", rc: "H,P", rav: "Jaune, Gris, Noir", qte: 1 },
-        { nom: "Fenouil", p: 1, t: 1, e: 6, s: 4, g: 5, sm: "E", rc: "A", rav: "", qte: 1 },
-        { nom: "Fève", p: 1, t: 1, e: 8, s: 4, g: 6, sm: "A,H", rc: "P", rav: "", qte: 2 },
-        { nom: "Haricot Nain", p: 1, t: 2, e: 4, s: 3, g: 6, sm: "P,E", rc: "E,A", rav: "Jaune, Gris, Noir", qte: 2 },
-        { nom: "Laitue (Glaces)", p: 1, t: 1, e: 6, s: 4, g: 3, sm: "P,E", rc: "E,A", rav: "", qte: 1 },
-        { nom: "Mâche", p: 1, t: 0, e: 5, s: 2, g: 5, sm: "A", rc: "H,P", rav: "Jaune, Gris, Noir", qte: 2 },
-        { nom: "Maïs", p: 1, t: 1, e: 7, s: 4, g: 6, sm: "P", rc: "E", rav: "", qte: 2 },
-        { nom: "Melon", p: 2, t: 1, e: 7, s: 4, g: 3, sm: "P", rc: "E", rav: "", qte: 2 },
-        { nom: "Navet", p: 1, t: 2, e: 9, s: 4, g: 6, sm: "P,A", rc: "E,H", rav: "", qte: 2 },
-        { nom: "Oignon", p: 1, t: 1, e: 7, s: 4, g: 6, sm: "P,A", rc: "E", rav: "", qte: 2 },
-        { nom: "Panais", p: 1, t: 1, e: 8, s: 4, g: 6, sm: "P", rc: "A,H", rav: "", qte: 1 },
-        { nom: "Pastèque", p: 2, t: 1, e: 6, s: 4, g: 3, sm: "P", rc: "E", rav: "", qte: 2 },
-        { nom: "Patate Douce", p: 2, t: 2, e: 8, s: 5, g: 4, sm: "P", rc: "A", rav: "", qte: 2 },
-        { nom: "Poireau", p: 1, t: 1, e: 6, s: 4, g: 10, sm: "P,E", rc: "A,H", rav: "", qte: 2 },
-        { nom: "Pois", p: 1, t: 1, e: 7, s: 4, g: 6, sm: "P,A", rc: "E,P", rav: "", qte: 2 },
-        { nom: "Poivron", p: 1, t: 1, e: 4, s: 3, g: 6, sm: "P", rc: "E,A", rav: "Jaune, Gris, Noir", qte: 2 },
-        { nom: "Pomme de Terre", p: 1, t: 1, e: 2, s: 2, g: 7, sm: "P", rc: "E,A", rav: "Jaune, Vert, Gris, Noir", qte: 3 },
-        { nom: "Radis", p: 1, t: 1, e: 7, s: 4, g: 6, sm: "P,E,A", rc: "P,E,A", rav: "", qte: 3 },
-        { nom: "Tomate (Ananas)", p: 2, t: 1, e: 4, s: 3, g: 7, sm: "P", rc: "E,A", rav: "Jaune, Vert, Gris, Noir", qte: 1 },
-        { nom: "Tomate (Rose)", p: 2, t: 1, e: 4, s: 3, g: 7, sm: "P", rc: "E,A", rav: "Jaune, Vert, Gris, Noir", qte: 2 }
+    const dataLegumes=[
+        {nom:"Ail",p:1,t:1,e:5,s:4,g:3,sm:"P",rc:"E",rav:"",qte:2},{nom:"Artichaut (Violet)",p:2,t:2,e:9,s:7,g:5,sm:"P",rc:"A,H",rav:"",qte:1},
+        {nom:"Aubergine",p:1,t:1,e:7,s:4,g:4,sm:"P",rc:"E,A",rav:"",qte:2},{nom:"Betterave",p:1,t:1,e:7,s:3,g:6,sm:"P,E",rc:"A,H",rav:"",qte:2},
+        {nom:"Carotte",p:1,t:0,e:9,s:5,g:8,sm:"P,E",rc:"A,H",rav:"Jaune,Vert,Gris,Noir",qte:2},{nom:"Céleri Rave",p:1,t:1,e:7,s:6,g:11,sm:"P",rc:"A",rav:"Jaune,Vert,Gris",qte:1},
+        {nom:"Chou Brocoli",p:2,t:1,e:7,s:5,g:11,sm:"P",rc:"A",rav:"Jaune,Vert,Gris,Noir",qte:2},{nom:"Concombre",p:1,t:1,e:6,s:4,g:4,sm:"P",rc:"E",rav:"",qte:2},
+        {nom:"Courgette",p:1,t:1,e:4,s:3,g:7,sm:"P",rc:"E,A",rav:"Jaune,Vert,Gris,Noir",qte:2},{nom:"Echalote",p:1,t:1,e:4,s:3,g:7,sm:"P",rc:"E",rav:"Jaune,Orange,Gris,Noir",qte:2},
+        {nom:"Epinard",p:1,t:0,e:5,s:2,g:5,sm:"A",rc:"H,P",rav:"Jaune,Gris,Noir",qte:2},{nom:"Haricot Nain",p:1,t:2,e:4,s:3,g:6,sm:"P,E",rc:"E,A",rav:"Jaune,Gris,Noir",qte:2},
+        {nom:"Laitue",p:1,t:1,e:6,s:4,g:3,sm:"P,E",rc:"E,A",rav:"",qte:2},{nom:"Mâche",p:1,t:0,e:5,s:2,g:5,sm:"A",rc:"H,P",rav:"Jaune,Gris,Noir",qte:2},
+        {nom:"Melon",p:2,t:1,e:7,s:4,g:3,sm:"P",rc:"E",rav:"",qte:2},{nom:"Oignon",p:1,t:1,e:7,s:4,g:6,sm:"P,A",rc:"E",rav:"",qte:2},
+        {nom:"Poireau",p:1,t:1,e:6,s:4,g:10,sm:"P,E",rc:"A,H",rav:"",qte:2},{nom:"Pois",p:1,t:1,e:7,s:4,g:6,sm:"P,A",rc:"E,P",rav:"",qte:2},
+        {nom:"Pomme de Terre",p:1,t:1,e:2,s:2,g:7,sm:"P",rc:"E,A",rav:"Jaune,Vert,Gris,Noir",qte:3},{nom:"Tomate",p:2,t:1,e:4,s:3,g:7,sm:"P",rc:"E,A",rav:"Jaune,Vert,Gris,Noir",qte:3},
+        {nom:"Radis",p:1,t:1,e:7,s:4,g:6,sm:"P,E,A",rc:"P,E,A",rav:"",qte:3},{nom:"Pastèque",p:2,t:1,e:6,s:4,g:3,sm:"P",rc:"E",rav:"",qte:2}
     ];
 
-    const dataArbres = [
-        { nom: "Abricotier", p: 3, t: 3, g: 10, e: 9, s: 4, sm: "A", rc: "E", qte: 1 },
-        { nom: "Cerisier", p: 3, t: 3, g: 9, e: 11, s: 4, sm: "A", rc: "P,E", qte: 1 },
-        { nom: "Pommier", p: 3, t: 3, g: 10, e: 11, s: 4, sm: "A", rc: "E,A", qte: 2 },
-        { nom: "Poirier", p: 3, t: 3, g: 9, e: 11, s: 4, sm: "A", rc: "E,A", qte: 2 },
-        { nom: "Citronnier", p: 3, t: 3, g: 8, e: 10, s: 5, sm: "P", rc: "H,P", qte: 2 },
-        { nom: "Figuier", p: 3, t: 3, g: 12, e: 8, s: 5, sm: "A,H", rc: "A,E", qte: 1 },
-        { nom: "Framboisier", p: 2, t: 2, g: 5, e: 6, s: 3, sm: "A", rc: "E", qte: 2 },
-        { nom: "Mûrier", p: 2, t: 2, g: 5, e: 6, s: 3, sm: "A", rc: "E", qte: 1 },
-        { nom: "Vigne", p: 2, t: 2, g: 7, e: 10, s: 6, sm: "P", rc: "A", qte: 2 }
+    const dataArbres=[
+        {nom:"Abricotier",p:3,t:3,g:10,e:9,s:4,sm:"A",rc:"E",qte:1},{nom:"Cerisier",p:3,t:3,g:9,e:11,s:4,sm:"A",rc:"P,E",qte:1},
+        {nom:"Pommier",p:3,t:3,g:10,e:11,s:4,sm:"A",rc:"E,A",qte:2},{nom:"Poirier",p:3,t:3,g:9,e:11,s:4,sm:"A",rc:"E,A",qte:2},
+        {nom:"Figuier",p:3,t:3,g:12,e:8,s:5,sm:"A,H",rc:"A,E",qte:1},{nom:"Vigne",p:2,t:2,g:7,e:10,s:6,sm:"P",rc:"A",qte:2}
     ];
 
-    const dataCompagnes = [
-        { nom: "Basilic", p: 1, t: 1, e: 4, s: 3, sm: "P", rc: "E,A", desc: "Réduit les besoins de la plante associée.", qte: 2 },
-        { nom: "Menthe", p: 1, t: 1, e: 3, s: 4, sm: "P", rc: "E,A", desc: "Réduit les besoins. Repousse les ravageurs.", qte: 2 },
-        { nom: "Romarin", p: 1, t: 1, e: 4, s: 4, sm: "P", rc: "E,A", desc: "Réduit les besoins de la plante associée.", qte: 2 },
-        { nom: "Thym", p: 1, t: 1, e: 4, s: 4, sm: "P", rc: "E,A", desc: "Réduit les besoins de la plante associée.", qte: 2 },
-        { nom: "Œillet d'Inde", p: 1, t: 1, e: 3, s: 4, sm: "P", rc: "E,A", desc: "Protège les racines. Limite ruissellement.", qte: 2 },
-        { nom: "Capucine", p: 1, t: 1, e: 3, s: 4, sm: "P", rc: "E", desc: "Attire les pucerons loin des légumes.", qte: 2 }
+    const dataCompagnes=[
+        {nom:"Basilic",p:1,t:1,e:4,s:3,sm:"P",rc:"E,A",desc:"Réduit les besoins en eau.",qte:2},
+        {nom:"Menthe",p:1,t:1,e:3,s:4,sm:"P",rc:"E,A",desc:"Réduit besoins. Repousse ravageurs.",qte:2},
+        {nom:"Œillet d'Inde",p:1,t:1,e:3,s:4,sm:"P",rc:"E,A",desc:"Protège racines.",qte:2},
+        {nom:"Capucine",p:1,t:1,e:3,s:4,sm:"P",rc:"E",desc:"Attire pucerons loin.",qte:2},
+        {nom:"Thym",p:1,t:1,e:4,s:4,sm:"P",rc:"E,A",desc:"Réduit besoins.",qte:2}
     ];
 
-    const dataSoutien = [
-        { nom: "Arrosoir", p: 3, t: 1, desc: "+2 Eau lors d'un arrosage", qte: 2 },
-        { nom: "Tuyau", p: 4, t: 1, desc: "Arrosage +2 Eau sans consommer la réserve.", qte: 1 },
-        { nom: "Brouette", p: 4, t: 1, desc: "Action amendement : 1 temps permet d'utiliser 2 compost", qte: 2 },
-        { nom: "Sécateur", p: 3, t: 1, desc: "Génère du compost en fin de saison si Verger/Haie", qte: 2 },
-        { nom: "Cagette", p: 4, t: 1, desc: "Lors d'une récolte, récoltez 2 cultures identiques d'un coup.", qte: 2 },
-        { nom: "Tuteur / Treillage", p: 2, t: 1, desc: "Indispensable pour plantes grimpantes", qte: 4 },
-        { nom: "Clôture", p: 3, t: 1, desc: "Indispensable pour animaux ; protège du sanglier", qte: 3 },
-        { nom: "Poules", p: 3, t: 1, desc: "Action: +1 Rendement (-1h). Protège limaces/insectes.", qte: 2 },
-        { nom: "Cheval", p: 5, t: 1, desc: "Action: +2 Rendement (-2h). Annule les blessures.", qte: 1 },
-        { nom: "Moutons", p: 4, t: 1, desc: "Action: +2 Rendement (-2h). Nécessite Prairie.", qte: 1 },
-        { nom: "Fumier", p: 2, t: 1, desc: "À composter (+2💩).", qte: 3 },
-        { nom: "Paillage", p: 2, t: 1, desc: "Effet Immédiat : Retire 2💧 et 1☀️ requis pour une zone.", qte: 2 }
+    const dataSoutien=[
+        {nom:"Arrosoir",p:3,t:1,desc:"+2 Eau lors d'un arrosage",qte:3},{nom:"Brouette",p:4,t:1,desc:"Amendement: 1 temps = 2 compost",qte:2},
+        {nom:"Sécateur",p:3,t:1,desc:"Compost fin de saison si Verger/Haie",qte:2},{nom:"Cagette",p:4,t:1,desc:"Récoltez 2 cultures d'un coup",qte:2},
+        {nom:"Tuteur",p:2,t:1,desc:"Pour plantes grimpantes",qte:3},{nom:"Clôture",p:3,t:1,desc:"Pour animaux; protège sanglier",qte:3},
+        {nom:"Poules",p:3,t:1,desc:"Action: +1 Rendement (-1h)",qte:2},{nom:"Cheval",p:5,t:1,desc:"Action: +2 Rendement (-2h). Annule blessure.",qte:1},
+        {nom:"Fumier",p:2,t:1,desc:"À composter (+2💩).",qte:3},{nom:"Tuyau",p:4,t:1,desc:"Arrosage +2 Eau sans vider réserve.",qte:2}
     ];
 
-    const dataAuxiliaires = [
-        { nom: "Coccinelle", p: 3, t: 1, prot: "Pucerons", desc: "Protège contre les pucerons", qte: 2 },
-        { nom: "Hérisson", p: 3, t: 1, prot: "Limaces", desc: "Protège contre les limaces", qte: 2 },
-        { nom: "Grenouille", p: 3, t: 1, prot: "Moustiques", desc: "Protège contre les moustiques", qte: 1 },
-        { nom: "Mésange", p: 3, t: 1, prot: "Chenilles", desc: "Protège contre les chenilles", qte: 2 },
-        { nom: "Carabe", p: 2, t: 1, prot: "Limaces", desc: "Protège contre les limaces", qte: 1 }
+    const dataAuxiliaires=[
+        {nom:"Coccinelle",p:3,t:1,prot:"Puceron",desc:"Protège contre pucerons",qte:2},{nom:"Hérisson",p:3,t:1,prot:"Limace",desc:"Protège contre limaces",qte:2},
+        {nom:"Mésange",p:3,t:1,prot:"Chenille",desc:"Protège contre chenilles",qte:2},{nom:"Carabe",p:2,t:1,prot:"Limace",desc:"Protège contre limaces",qte:1}
     ];
 
-    const dataRavageurs = [
-        { nom: "Acariens", d: 2, desc: "Perte de 2💰 si non protégé.", qte: 1 },
-        { nom: "Altise", d: 1, desc: "Perte de 1💰 si non protégé.", qte: 1 },
-        { nom: "Carpocapse", d: 2, desc: "Perte de 2💰 si non protégé.", qte: 1 },
-        { nom: "Doryphore", d: 2, desc: "Perte de 2💰 si non protégé.", qte: 1 },
-        { nom: "Limace des jardins", d: 2, desc: "Perte de 2💰 si non protégé.", qte: 2 },
-        { nom: "Puceron vert", d: 1, desc: "Perte de 1💰 si non protégé.", qte: 2 },
-        { nom: "Sanglier", d: 3, desc: "Perte de 3💰 ! Bloqué par Clôture.", qte: 1 }
+    const dataRavageurs=[
+        {nom:"Acariens",d:2,desc:"Perte 2💰",qte:1},{nom:"Altise",d:1,desc:"Perte 1💰",qte:1},{nom:"Carpocapse",d:2,desc:"Perte 2💰",qte:1},
+        {nom:"Doryphore",d:2,desc:"Perte 2💰",qte:1},{nom:"Limace des jardins",d:2,desc:"Perte 2💰",qte:2},{nom:"Puceron vert",d:1,desc:"Perte 1💰",qte:2},
+        {nom:"Sanglier",d:3,desc:"Perte 3💰! Bloqué par Clôture.",qte:1}
     ];
 
-    const dataObjectifs = [
-        { nom: "Ferme Autonome", desc: "Avoir Serre, Local et Composteur (7 PV)", qte: 1 },
-        { nom: "Grande Diversité", desc: "Avoir 4 légumes différents (5 PV)", qte: 1 },
-        { nom: "Monoculture", desc: "Avoir 4 fois le même légume (5 PV)", qte: 1 },
-        { nom: "Beau Verger", desc: "Avoir 3 arbres (6 PV)", qte: 1 }
+    const dataObjectifs=[
+        {nom:"Ferme Autonome",desc:"Avoir Serre, Local et Composteur (7 PV)",qte:1},{nom:"Grande Diversité",desc:"Avoir 4 légumes différents (5 PV)",qte:1},
+        {nom:"Monoculture",desc:"Avoir 4 fois le même légume (5 PV)",qte:1},{nom:"Beau Verger",desc:"Avoir 3 arbres (6 PV)",qte:1}
     ];
 
-    const dataEvents = [
-        { nom: "Saison exceptionnelle", type: "Positif", desc: "+2 sous à la récolte", qte: 1 },
-        { nom: "Travail en musique", type: "Positif", desc: "+2 Temps disponible", qte: 1 },
-        { nom: "Aide de la région", type: "Positif", desc: "Gain immédiat de 2 sous", qte: 1 },
-        { nom: "Grêle", type: "Négatif", desc: "Serres indisponibles, -2 rendement sur fruitiers", qte: 1 },
-        { nom: "Sécheresse", type: "Négatif", desc: "Lancez 1 dé précipitation en moins", qte: 1 },
-        { nom: "Blessure", type: "Négatif", desc: "Un jardinier (temps) en moins cette saison", qte: 1 }
+    const dataEvents=[
+        {nom:"Saison exceptionnelle",type:"Positif",desc:"+2 sous à la récolte",qte:1},{nom:"Travail en musique",type:"Positif",desc:"+2 Temps",qte:1},
+        {nom:"Aide de la région",type:"Positif",desc:"Gain de 2 sous",qte:1},{nom:"Grêle",type:"Négatif",desc:"Serres bloquées, -2 rendement fruitiers",qte:1},
+        {nom:"Sécheresse",type:"Négatif",desc:"Dé précipitations réduit",qte:1},{nom:"Blessure",type:"Négatif",desc:"-2 Temps",qte:1}
     ];
 
-    function renderTable(tableId, dataArray, columnsDef) {
-        const table = document.getElementById(tableId);
-        let headerHTML = "<tr>";
-        columnsDef.forEach(col => headerHTML += `<th>${col.label}</th>`);
-        headerHTML += "</tr>";
-        table.innerHTML = headerHTML;
-
-        dataArray.forEach((item, idx) => {
-            let rowHTML = "<tr>";
-            columnsDef.forEach(col => {
-                let val = item[col.key] !== undefined ? item[col.key] : "";
-                if(col.type === 'text' || col.type === 'large') {
-                    rowHTML += `<td><input type="text" class="${col.type==='large'?'input-large':''}" data-idx="${idx}" data-key="${col.key}" value="${val}"></td>`;
-                } else if (col.type === 'number') {
-                    rowHTML += `<td><input type="number" data-idx="${idx}" data-key="${col.key}" value="${val}"></td>`;
-                }
-            });
-            rowHTML += "</tr>";
-            table.innerHTML += rowHTML;
+    function renderTable(tId, arr, cols) {
+        let t = document.getElementById(tId); let h="<tr>"; cols.forEach(c=>h+=`<th>${c.label}</th>`); h+="</tr>"; t.innerHTML=h;
+        arr.forEach((item,i)=>{
+            let r="<tr>"; cols.forEach(c=>{
+                let v = item[c.key]!==undefined?item[c.key]:"";
+                r+= c.type==='number'?`<td><input type="number" data-idx="${i}" data-key="${c.key}" value="${v}"></td>`:`<td><input type="text" class="${c.type==='large'?'input-large':''}" data-idx="${i}" data-key="${c.key}" value="${v}"></td>`;
+            }); t.innerHTML+=r+"</tr>";
         });
     }
 
     function init() {
-        renderTable("table-legumes", dataLegumes, [
-            {label: "Nom", key: "nom", type: "text"}, {label: "Achat(💰)", key: "p", type: "number"}, {label: "Temps(⏳)", key: "t", type: "number"},
-            {label: "Gain(💰)", key: "g", type: "number"}, {label: "Eau(💧)", key: "e", type: "number"}, {label: "Soleil(☀️)", key: "s", type: "number"},
-            {label: "Semis", key: "sm", type: "text"}, {label: "Récolte", key: "rc", type: "text"}, {label: "Sensibilité(🐌)", key: "rav", type: "text"}, {label: "Qté Deck", key: "qte", type: "number"}
-        ]);
-        renderTable("table-arbres", dataArbres, [
-            {label: "Nom", key: "nom", type: "text"}, {label: "Achat(💰)", key: "p", type: "number"}, {label: "Temps(⏳)", key: "t", type: "number"},
-            {label: "Gain(💰)", key: "g", type: "number"}, {label: "Eau(💧)", key: "e", type: "number"}, {label: "Soleil(☀️)", key: "s", type: "number"},
-            {label: "Plantation", key: "sm", type: "text"}, {label: "Récolte", key: "rc", type: "text"}, {label: "Qté Deck", key: "qte", type: "number"}
-        ]);
-        renderTable("table-compagnes", dataCompagnes, [
-            {label: "Nom", key: "nom", type: "text"}, {label: "Achat(💰)", key: "p", type: "number"}, {label: "Temps(⏳)", key: "t", type: "number"},
-            {label: "Eau(💧)", key: "e", type: "number"}, {label: "Soleil(☀️)", key: "s", type: "number"}, 
-            {label: "Semis", key: "sm", type: "text"}, {label: "Récolte", key: "rc", type: "text"},
-            {label: "Effet", key: "desc", type: "large"}, {label: "Qté Deck", key: "qte", type: "number"}
-        ]);
-        renderTable("table-soutien", dataSoutien, [
-            {label: "Nom", key: "nom", type: "text"}, {label: "Achat(💰)", key: "p", type: "number"}, {label: "Temps(⏳)", key: "t", type: "number"},
-            {label: "Effet / Bonus", key: "desc", type: "large"}, {label: "Qté Deck", key: "qte", type: "number"}
-        ]);
-        renderTable("table-auxiliaires", dataAuxiliaires, [
-            {label: "Nom", key: "nom", type: "text"}, {label: "Achat(💰)", key: "p", type: "number"}, {label: "Temps(⏳)", key: "t", type: "number"},
-            {label: "Cible (Protège de)", key: "prot", type: "text"}, {label: "Effet", key: "desc", type: "large"}, {label: "Qté Deck", key: "qte", type: "number"}
-        ]);
-        renderTable("table-ravageurs", dataRavageurs, [
-            {label: "Nom", key: "nom", type: "text"}, {label: "Dégâts(💰)", key: "d", type: "number"}, {label: "Description", key: "desc", type: "large"}, {label: "Qté Deck", key: "qte", type: "number"}
-        ]);
-        renderTable("table-objectifs", dataObjectifs, [
-            {label: "Nom de l'Objectif", key: "nom", type: "text"}, {label: "Description & Conditions", key: "desc", type: "large"}, {label: "Qté Deck", key: "qte", type: "number"}
-        ]);
-        renderTable("table-events", dataEvents, [
-            {label: "Nom", key: "nom", type: "text"}, {label: "Type", key: "type", type: "text"}, {label: "Description", key: "desc", type: "large"}, {label: "Qté Deck", key: "qte", type: "number"}
-        ]);
+        renderTable("table-legumes", dataLegumes, [{label:"Nom",key:"nom",type:"text"},{label:"Achat💰",key:"p",type:"number"},{label:"Temps⏳",key:"t",type:"number"},{label:"Gain💰",key:"g",type:"number"},{label:"Eau💧",key:"e",type:"number"},{label:"Soleil☀️",key:"s",type:"number"},{label:"Semis",key:"sm",type:"text"},{label:"Récolte",key:"rc",type:"text"},{label:"Sensible 🐌",key:"rav",type:"text"},{label:"Qté",key:"qte",type:"number"}]);
+        renderTable("table-arbres", dataArbres, [{label:"Nom",key:"nom",type:"text"},{label:"Achat💰",key:"p",type:"number"},{label:"Temps⏳",key:"t",type:"number"},{label:"Gain💰",key:"g",type:"number"},{label:"Eau💧",key:"e",type:"number"},{label:"Soleil☀️",key:"s",type:"number"},{label:"Plantation",key:"sm",type:"text"},{label:"Récolte",key:"rc",type:"text"},{label:"Qté",key:"qte",type:"number"}]);
+        renderTable("table-compagnes", dataCompagnes, [{label:"Nom",key:"nom",type:"text"},{label:"Achat💰",key:"p",type:"number"},{label:"Temps⏳",key:"t",type:"number"},{label:"Eau💧",key:"e",type:"number"},{label:"Soleil☀️",key:"s",type:"number"},{label:"Semis",key:"sm",type:"text"},{label:"Récolte",key:"rc",type:"text"},{label:"Effet",key:"desc",type:"large"},{label:"Qté",key:"qte",type:"number"}]);
+        renderTable("table-soutien", dataSoutien, [{label:"Nom",key:"nom",type:"text"},{label:"Achat💰",key:"p",type:"number"},{label:"Temps⏳",key:"t",type:"number"},{label:"Effet",key:"desc",type:"large"},{label:"Qté",key:"qte",type:"number"}]);
+        renderTable("table-auxiliaires", dataAuxiliaires, [{label:"Nom",key:"nom",type:"text"},{label:"Achat💰",key:"p",type:"number"},{label:"Temps⏳",key:"t",type:"number"},{label:"Protège",key:"prot",type:"text"},{label:"Qté",key:"qte",type:"number"}]);
+        renderTable("table-ravageurs", dataRavageurs, [{label:"Nom",key:"nom",type:"text"},{label:"Dégâts💰",key:"d",type:"number"},{label:"Description",key:"desc",type:"large"},{label:"Qté",key:"qte",type:"number"}]);
+        renderTable("table-objectifs", dataObjectifs, [{label:"Nom",key:"nom",type:"text"},{label:"Conditions",key:"desc",type:"large"},{label:"Qté",key:"qte",type:"number"}]);
+        renderTable("table-events", dataEvents, [{label:"Nom",key:"nom",type:"text"},{label:"Type",key:"type",type:"text"},{label:"Description",key:"desc",type:"large"},{label:"Qté",key:"qte",type:"number"}]);
     }
-
-    function switchTab(tabId) {
-        document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
-        document.querySelectorAll('.tab-content').forEach(c => c.classList.remove('active'));
-        event.target.classList.add('active');
-        document.getElementById(tabId).classList.add('active');
+    function switchTab(id) { document.querySelectorAll('.tab').forEach(t=>t.classList.remove('active')); document.querySelectorAll('.tab-content').forEach(c=>c.classList.remove('active')); event.target.classList.add('active'); document.getElementById(id).classList.add('active'); }
+    function extract(id) {
+        let r=[]; document.getElementById(id).querySelectorAll('tr').forEach((row,i)=>{
+            if(i===0) return; let o={}; row.querySelectorAll('input').forEach(inp=>{ let k=inp.getAttribute('data-key'),v=inp.value; if(inp.type==='number') o[k]=parseInt(v)||0; else if((k==='sm'||k==='rc')&&v!=="") o[k]=v.split(',').map(s=>s.trim()); else o[k]=v; }); r.push(o);
+        }); return r;
     }
-
-    function extractData(tableId) {
-        let rows = document.getElementById(tableId).querySelectorAll('tr');
-        let res = [];
-        for(let i=1; i<rows.length; i++) {
-            let inputs = rows[i].querySelectorAll('input');
-            let obj = {};
-            inputs.forEach(inp => {
-                let key = inp.getAttribute('data-key');
-                let val = inp.value;
-                if(inp.type === 'number') obj[key] = parseInt(val) || 0;
-                else if((key === 'sm' || key === 'rc') && val !== "") obj[key] = val.split(',').map(s=>s.trim()); 
-                else obj[key] = val;
-            });
-            res.push(obj);
-        }
-        return res;
-    }
-
-    function multiplierCartes(tableau, targetDeck, extraAttributes = {}) {
-        tableau.forEach(item => {
-            let quantity = item.qte || 0;
-            for(let i = 0; i < quantity; i++) {
-                let { qte, ...carteFinale } = item;
-                targetDeck.push({ ...carteFinale, ...extraAttributes });
-            }
-        });
-    }
-
+    function multiply(arr, deck, extra) { arr.forEach(i=>{ let q=i.qte||0; for(let j=0;j<q;j++){ let {qte,...c}=i; deck.push({...c,...extra}); } }); }
+    
     window.saveToFirebase = function() {
-        let finalDecks = { C: [], S: [], A: [], O: [], E: [], R: [] };
+        let d = {C:[], S:[], A:[], O:[], E:[], R:[]};
+        multiply(extract('table-legumes'),d.C,{cat:'L'}); multiply(extract('table-arbres'),d.C,{cat:'A'});
+        multiply(extract('table-compagnes'),d.S,{cat:'S'}); multiply(extract('table-soutien'),d.S,{cat:'S'});
+        multiply(extract('table-auxiliaires'),d.A,{cat:'X'}); multiply(extract('table-objectifs'),d.O,{});
+        multiply(extract('table-events'),d.E,{cat:'E'}); multiply(extract('table-ravageurs'),d.R,{cat:'R'});
 
-        multiplierCartes(extractData('table-legumes'), finalDecks.C, { cat: 'L' });
-        multiplierCartes(extractData('table-arbres'), finalDecks.C, { cat: 'A' });
-        
-        multiplierCartes(extractData('table-compagnes'), finalDecks.S, { cat: 'S' });
-        multiplierCartes(extractData('table-soutien'), finalDecks.S, { cat: 'S' });
-        
-        multiplierCartes(extractData('table-auxiliaires'), finalDecks.A, { cat: 'X' });
-        multiplierCartes(extractData('table-objectifs'), finalDecks.O, {});
-        multiplierCartes(extractData('table-events'), finalDecks.E, { cat: 'E' });
-        multiplierCartes(extractData('table-ravageurs'), finalDecks.R, { cat: 'R' });
-
-        dbConfig.set(finalDecks).then(() => {
-            alert("✅ Base de données complète générée et envoyée à Firebase avec succès !");
-        }).catch(err => {
-            alert("❌ Erreur : " + err.message);
+        // On récupère les settings actuels pour ne pas les écraser, puis on pousse les decks
+        dbConfig.child('settings').once('value').then(snap => {
+            let currentSettings = snap.val() || {};
+            dbConfig.set({ settings: currentSettings, decks: d }).then(() => alert("✅ Base de données sauvegardée !")).catch(e => alert("❌ Erreur : "+e.message));
         });
     }
-
     window.onload = init;
-</script>
-</body>
-</html>
+</script></body></html>
