@@ -162,4 +162,101 @@
                 let k = inp.getAttribute('data-key');
                 let v = inp.value; 
                 if(inp.type === 'number') o[k] = parseInt(v) || 0; 
-                else o[k]
+                else o[k] = v; 
+            }); 
+            r.push(o);
+        }); 
+        return r;
+    }
+    
+    function multiplyAndFormat(arr, deck, extra) { 
+        arr.forEach(i => { 
+            let q = i.qte || 0; 
+            for(let j = 0; j < q; j++) { 
+                let {qte, ...c} = i; 
+                // Formatage des chaînes "P, E" en ["P", "E"]
+                if (typeof c.sm === 'string') c.sm = c.sm.split(',').map(s=>s.trim()).filter(s=>s);
+                if (typeof c.rc === 'string') c.rc = c.rc.split(',').map(s=>s.trim()).filter(s=>s);
+                deck.push({...c, ...extra}); 
+            } 
+        }); 
+    }
+
+    // =================================================================================
+    // LOGIQUE DE CHARGEMENT ET DE SAUVEGARDE
+    // =================================================================================
+
+    window.onload = function() {
+        // 1. AFFICHAGE IMMÉDIAT (Évite la page blanche)
+        renderAdmin(defaultAdminSource, defaultSettings);
+        let status = document.getElementById('status');
+
+        // 2. VÉRIFICATION FIREBASE EN ARRIÈRE-PLAN
+        dbConfig.once('value').then(snap => {
+            let dbData = snap.val();
+            if (dbData && dbData.adminSource) {
+                status.innerText = "✅ Données récupérées et synchronisées depuis Firebase avec succès !";
+                status.style.background = "#e8f5e9"; status.style.color = "#2e7d32"; status.style.borderColor = "#4caf50";
+                // Mise à jour visuelle avec les données de la base
+                renderAdmin(dbData.adminSource, dbData.settings || defaultSettings);
+            } else {
+                status.innerText = "⚠️ Votre base de données est vide. Les cartes par défaut sont affichées. (Cliquez sur Sauvegarder pour les enregistrer en ligne)";
+                status.style.background = "#fff3e0"; status.style.color = "#e65100"; status.style.borderColor = "#ffb300";
+            }
+        }).catch(err => {
+            status.innerHTML = `❌ <b>ERREUR DE CONNEXION FIREBASE :</b> ${err.message}<br>Vous pouvez tout de même modifier les cartes locales.`;
+            status.style.background = "#ffebee"; status.style.color = "#c62828"; status.style.borderColor = "#ef9a9a";
+        });
+    }
+    
+    window.saveToFirebase = function() {
+        let status = document.getElementById('status');
+        status.innerText = "⏳ Envoi en cours...";
+        status.style.background = "#fff3e0"; status.style.color = "#e65100"; status.style.borderColor = "#ffb300";
+
+        try {
+            // Extraction des paramètres
+            let finalSettings = {};
+            document.querySelectorAll('.setting-item input').forEach(inp => {
+                let key = inp.id.replace('set-', ''); 
+                finalSettings[key] = Number(inp.value);
+            });
+
+            // 1. Sauvegarde des tableaux sources EXACTEMENT tels qu'ils sont à l'écran (pour rechargement futur)
+            let currentAdminSource = {
+                legumes: extract('table-legumes'), arbres: extract('table-arbres'),
+                compagnes: extract('table-compagnes'), soutien: extract('table-soutien'),
+                auxiliaires: extract('table-auxiliaires'), ravageurs: extract('table-ravageurs'),
+                objectifs: extract('table-objectifs'), events: extract('table-events')
+            };
+
+            // 2. Fabrication des paquets de jeu (Decks) injectés directement dans le jeu
+            let d = {C:[], S:[], A:[], O:[], E:[], R:[]};
+            multiplyAndFormat(currentAdminSource.legumes, d.C, {cat:'L'});
+            multiplyAndFormat(currentAdminSource.arbres, d.C, {cat:'A'});
+            multiplyAndFormat(currentAdminSource.compagnes, d.S, {cat:'S'});
+            multiplyAndFormat(currentAdminSource.soutien, d.S, {cat:'S'});
+            multiplyAndFormat(currentAdminSource.auxiliaires, d.A, {cat:'X'});
+            multiplyAndFormat(currentAdminSource.events, d.E, {cat:'E'});
+            multiplyAndFormat(currentAdminSource.ravageurs, d.R, {cat:'R'});
+            multiplyAndFormat(currentAdminSource.objectifs, d.O, {});
+
+            // ENVOI À FIREBASE (Settings, AdminSource, Decks)
+            dbConfig.update({ settings: finalSettings, adminSource: currentAdminSource, decks: d })
+                .then(() => {
+                    status.innerText = "✅ SUCCÈS ! Base de données, cartes et paramètres enregistrés sur Firebase.";
+                    status.style.background = "#e8f5e9"; status.style.color = "#2e7d32"; status.style.borderColor = "#4caf50";
+                })
+                .catch(e => {
+                    status.innerHTML = `❌ <b>ERREUR FIREBASE (Permission refusée) :</b> ${e.message}<br><br>Avez-vous bien autorisé la lecture/écriture (".read": "true") dans les règles de la base de données ?`;
+                    status.style.background = "#ffebee"; status.style.color = "#c62828"; status.style.borderColor = "#ef9a9a";
+                });
+                
+        } catch(error) {
+            status.innerText = "❌ ERREUR DE CODE LOCAL : " + error.message;
+            status.style.background = "#ffebee"; status.style.color = "#c62828"; status.style.borderColor = "#ef9a9a";
+        }
+    }
+</script>
+</body>
+</html>
