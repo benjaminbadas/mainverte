@@ -18,6 +18,7 @@
         td { padding: 6px; border-bottom: 1px solid #cfd8dc; }
         input[type="text"], input[type="number"] { width: 100%; padding: 4px; box-sizing: border-box; }
         input[type="number"] { width: 60px; text-align: center; } .input-large { min-width: 250px !important; }
+        .input-icon { width: 60px !important; text-align: center; font-size: 1.2em; }
         .btn-save { display: block; width: 100%; background: #ff9800; color: #fff; border: none; padding: 15px; font-size: 1.2em; font-weight: bold; border-radius: 8px; cursor: pointer; margin-top: 20px; transition: 0.2s;}
         .btn-save:hover { background: #e65100; transform: scale(1.02);}
         #status { text-align: center; font-weight: bold; margin-top: 15px; font-size: 1.2em; padding: 15px; border-radius: 8px;}
@@ -30,9 +31,7 @@
 
 <div class="container">
     <h1>🗄️ Base de Données "La Main Verte"</h1>
-    <div id="status" style="background:#e3f2fd; color:#1565c0; border:2px solid #90caf9;">
-        ⏳ Chargement de l'interface locale...
-    </div>
+    <div id="status" style="background:#e3f2fd; color:#1565c0; border:2px solid #90caf9;">⏳ Connexion à Firebase en cours... Lecture des données...</div>
 
     <div class="tabs">
         <div class="tab active" onclick="switchTab('settings')">⚙️ Paramètres</div>
@@ -46,11 +45,7 @@
         <div class="tab" onclick="switchTab('events')">⚡ Événements</div>
     </div>
     
-    <div id="settings" class="tab-content active">
-        <p><i>Ces valeurs serviront de règles officielles pour le moteur du jeu.</i></p>
-        <div class="settings-grid" id="settings-grid"></div>
-    </div>
-    
+    <div id="settings" class="tab-content active"><div class="settings-grid" id="settings-grid"></div></div>
     <div id="legumes" class="tab-content"><table id="table-legumes"></table></div>
     <div id="arbres" class="tab-content"><table id="table-arbres"></table></div>
     <div id="compagnes" class="tab-content"><table id="table-compagnes"></table></div>
@@ -64,19 +59,14 @@
 </div>
 
 <script>
-    // 1. INITIALISATION FIREBASE
     firebase.initializeApp({
         apiKey: "AIzaSyA_OHv6TDiVsn4PwM9s25gij8lBwQH8xrg",
         authDomain: "main-verte-72483.firebaseapp.com",
         databaseURL: "https://main-verte-72483-default-rtdb.europe-west1.firebasedatabase.app",
         projectId: "main-verte-72483"
     });
-    
     const dbConfig = firebase.database().ref("game-config");
 
-    // =================================================================================
-    // VOS DONNÉES PAR DÉFAUT (Le "Secours" infaillible)
-    // =================================================================================
     const defaultSettings = { 
         costArroserTemps: 1, costAmenderTemps: 1, costRecolterTemps: 2, costComposterTemps: 1,
         costAmenagerPotagerOr: 2, costAmenagerPotagerTemps: 3,
@@ -86,25 +76,25 @@
         jardSlot3Temps: 2, jardSlot3Pioches: 2, jardSlot4Temps: 1, jardSlot4Pioches: 1
     };
 
-    const dL=[["Ail",1,1,5,4,3,"P","E","",2],["Artichaut (Violet)",2,2,9,7,5,"P","A,H","",1],["Artichaut (Imperial)",1,1,9,7,4,"P","A","",1],["Aubergine (Dourga)",1,1,7,4,4,"P","E,A","",1],["Aubergine (Longue)",1,1,7,4,4,"P","E,A","",1],["Betterave",1,1,7,3,6,"P,E","A,H","",2],["Carotte (Jaune)",1,0,9,5,8,"P,E","A,H","Jaune, Vert, Gris, Noir",1],["Carotte (Nantaise)",1,0,9,5,8,"P,E","A,H","Jaune, Vert, Gris, Noir",1],["Cebette",1,1,6,4,8,"P","E","Jaune, Vert, Gris, Noir",2],["Céleri Branche",1,1,7,4,9,"P","A","Jaune, Vert, Gris, Noir",1],["Céleri Rave",1,1,7,6,11,"P","A","Jaune, Vert, Gris",1],["Chayotte",2,2,5,4,8,"P","A","Jaune, Vert, Gris",1],["Chou Brocoli (Vert)",2,1,7,5,11,"P","A","Jaune, Vert, Gris, Noir",1],["Chou Brocoli (Violet)",2,1,7,5,11,"E","H","Jaune, Vert, Gris, Noir",1],["Chou Chinois (Pe Tsaï)",1,1,7,4,5,"E","A","",1],["Chou Chinois (Pak Choï)",1,1,7,4,5,"P","A","",1],["Chou Frisé Kale",1,1,7,4,5,"E","H","",1],["Chou-Fleur",1,1,7,4,2,"P","A","",1],["Concombre",1,1,6,4,4,"P","E","",2],["Cornichon",1,1,6,4,4,"P","E","",1],["Côtes de Blette",1,2,6,4,8,"P","A","Jaune, Gris, Noir",2],["Courge (Lady Godiva)",1,1,5,4,9,"P","A","Jaune, Vert, Gris, Noir",1],["Courge (Jack Be Little)",1,1,5,4,9,"P","A","Jaune, Vert, Gris, Noir",1],["Courge (Muscade)",1,1,5,4,9,"P","A","Jaune, Vert, Gris, Noir",1],["Courge (Butternut)",1,1,5,4,9,"P","A","Jaune, Vert, Gris, Noir",1],["Courgette",1,1,4,3,7,"P","E,A","Jaune, Vert, Gris, Noir",2],["Echalote (Longor)",1,1,4,3,7,"P","E","Jaune, Orange, Gris, Noir",1],["Echalote (Hermine)",1,1,4,3,8,"P","E","Jaune, Orange, Gris, Noir",1],["Epinard (Géant)",0,0,5,2,5,"A","H,P","Jaune, Gris, Noir",1],["Epinard (Matador)",0,0,5,2,5,"A","H,P","Jaune, Gris, Noir",1],["Fenouil",1,1,6,4,5,"E","A","",1],["Fève",1,1,8,4,6,"A,H","P","",2],["Fraise (Gariguette)",2,2,7,4,3,"P","E","",1],["Fraise (Mara)",2,2,7,4,3,"P","E","",1],["Haricot Beurre",1,1,6,4,3,"P","E","",1],["Haricot Grains",1,1,5,4,6,"P","A","Jaune, Gris, Noir",1],["Haricot Nain",1,2,4,3,6,"P,E","E,A","Jaune, Gris, Noir",1],["Haricot Rame",2,2,6,4,6,"P","E","",1],["Laitue (Glaces)",1,1,6,4,3,"P,E","E,A","",1],["Laitue (Flamingo)",1,1,6,4,3,"P,E","E,A","",1],["Mâche (Dorée)",0,0,5,2,5,"A","H,P","Jaune, Gris, Noir",1],["Mâche (D'Etampes)",0,0,5,2,5,"A","H,P","Jaune, Gris, Noir",1],["Maïs (True Gold)",1,1,7,4,6,"P","E","",1],["Maïs (Martian)",1,1,7,4,6,"P","E","",1],["Melon",2,1,7,4,3,"P","E","",2],["Navet (Boule)",2,2,9,4,6,"P,A","E,H","",1],["Navet (D'Auvergne)",2,2,9,4,6,"P,A","E,H","",1],["Oignon (Transylvanian)",1,1,7,4,6,"P,A","E","",1],["Oignon (Dakota)",1,1,7,4,6,"P,A","E","",1],["Panais",1,1,8,4,6,"P","A,H","",1],["Pastèque",1,1,6,4,3,"P","E","",2],["Patate Douce (Evangeline)",2,2,8,5,4,"P","A","",1],["Patate Douce (Bonita)",2,2,8,5,4,"P","A","",1],["Piment Fort",1,1,6,5,4,"P","E,A","",1],["Poireau (Bleu)",1,1,6,4,10,"P,E","A,H","",1],["Poireau (Mélange)",1,1,6,4,10,"P,E","A,H","",1],["Pois Gourmand",1,1,7,4,6,"P,A","E,P","",1],["Pois Nain",1,1,8,4,6,"P,A","E,P","",1],["Poivron (Corno)",1,1,4,3,6,"P","E,A","Jaune, Gris, Noir",1],["Poivron (Golden)",1,1,4,3,6,"P","E,A","Jaune, Gris, Noir",1],["Pomme de Terre (Charlotte)",1,1,2,2,7,"P","E,A","Jaune, Vert, Gris, Noir",1],["Pomme de Terre (Rosabelle)",1,1,2,2,7,"P","E,A","Jaune, Vert, Gris, Noir",2],["Radis (Flamboyant)",1,1,7,4,6,"P,E,A","P,E,A","",1],["Radis (Rudi)",1,1,7,4,6,"P,E,A","P,E,A","",1],["Radis Noir",2,2,6,4,9,"P,E,A","P,E,A","Jaune, Gris, Noir",1],["Tomate (Ananas)",1,1,4,3,7,"P","E,A","Jaune, Vert, Gris, Noir",1],["Tomate (Green Zebra)",1,1,4,3,7,"P","E,A","Jaune, Vert, Gris, Noir",1],["Tomate (Caro Rich)",1,1,4,3,7,"P","E,A","Jaune, Vert, Gris, Noir",1],["Tomate (Moya)",1,1,4,3,7,"P","E,A","Jaune, Vert, Gris, Noir",1],["Tomate (Rose)",1,1,4,3,7,"P","E,A","Jaune, Vert, Gris, Noir",1],["Tomate (Noire)",1,1,4,3,7,"P","E,A","Jaune, Vert, Gris, Noir",1],["Tomate (Cherry)",1,1,4,3,7,"P","E,A","Jaune, Vert, Gris, Noir",1]];
-    const dA=[["Abricotier",3,3,10,9,4,"A","E",1],["Actinidier",3,3,10,9,4,"A","E",1],["Amandier",3,3,10,9,4,"A","A",1],["Brugnonier",3,3,10,9,4,"A","E",1],["Cassissier",2,2,5,6,3,"A","E",1],["Cerisier",3,3,9,11,4,"A","P,E",1],["Châtaignier",3,3,10,9,4,"A","A,E",1],["Citronnier",3,3,8,10,5,"P","H,P",1],["Cognassier",3,3,10,9,4,"A","A",1],["Combava",3,3,8,10,5,"P","H,P",1],["Figuier",3,3,12,8,5,"A,H","A,E",1],["Framboisier",2,2,5,6,3,"A","E",1],["Grenadier",3,3,10,9,4,"A","H,P",1],["Groseillier",2,2,5,6,3,"A","E",1],["Kumquat",3,3,8,10,5,"P","H,P",1],["Mandarinier",3,3,8,10,5,"P","H,P",1],["Mûrier",2,2,5,6,3,"A","E",1],["Myrtillier",2,2,5,6,3,"A","E",1],["Noisetier",3,3,10,9,4,"A","A",1],["Noyer",3,3,10,9,4,"A","H,A",1],["Olivier",3,3,10,9,4,"A","A",1],["Oranger",3,3,8,10,5,"P","H,P",1],["Pamplemoussier",3,3,8,10,5,"P","H,P",1],["Pêcher",3,3,10,9,4,"A","E",1],["Physalis",2,2,5,6,3,"A","H,P",1],["Plaqueminier",3,3,10,9,4,"A","H,P,A",1],["Poirier",3,3,9,11,4,"A","E,A",1],["Pommier",3,3,10,11,4,"A","E,A",1],["Prunier",3,3,10,9,4,"A","E",1],["Vigne",2,2,7,10,6,"P","A",1]];
-    const dC=[["Agastache",1,1,4,4,"P","E","Réduit besoins.",1],["Aneth",1,1,4,4,"P","E","Réduit besoins.",1],["Basilic",1,1,4,3,"P","E,A","Réduit besoins.",1],["Bleuet",1,1,4,3,"P","E","Réduit besoins.",1],["Bourrache",1,1,3,4,"P","E","Réduit besoins.",1],["Capucine",1,1,3,4,"P","E","Attire pucerons.",1],["Cerfeuil",1,1,4,4,"P","E","Réduit besoins.",1],["Ciboulette",1,1,3,4,"P","E","Réduit besoins.",1],["Coriandre",1,1,3,4,"P","E","Réduit besoins.",1],["Cosmos",1,1,4,3,"P","E","Réduit besoins.",1],["Estragon",1,1,3,4,"P","E","Réduit besoins.",1],["Lin",1,1,6,4,"P","E","Réduit besoins.",1],["Marguerite",1,1,6,4,"P","E","Réduit besoins.",1],["Melilot",1,1,3,4,"P","E","Réduit besoins.",1],["Melisse",1,1,3,4,"P","E","Réduit besoins.",1],["Menthe",1,1,3,4,"P","E,A","Repousse ravageurs.",1],["Moutarde",1,1,4,4,"P","E","Réduit besoins.",1],["Œillet d'Inde",1,1,3,4,"P","E,A","Protège racines.",1],["Origan",1,1,3,4,"P","E","Réduit besoins.",1],["Persil",1,1,4,3,"P","E","Réduit besoins.",1],["Romarin",1,1,4,4,"P","E","Réduit besoins.",1],["Sarriette",1,1,5,4,"P","E","Réduit besoins.",1],["Sauge",1,1,4,3,"P","E","Réduit besoins.",1],["Serpolet",1,1,4,4,"P","E","Réduit besoins.",1],["Souci",1,1,3,4,"P","E","Réduit besoins.",1],["Tanaisie",1,1,3,4,"P","E","Réduit besoins.",1],["Thym",1,1,4,4,"P","E,A","Réduit besoins.",1],["Tournesol",1,1,4,6,"P","E","Réduit besoins.",1]];
-    const dS=[["Arrosoir",3,1,"+2 Eau lors d'un arrosage",2],["Barrière",2,1,"Sert de Clôture",1],["Bois mort",4,1,"+2 compost",1],["Brouette",4,1,"Amendement: 1 tps = 2 compost",1],["Cagette",4,1,"Récoltez 2 cultures d'un coup",1],["Carton",4,1,"+1 compost",1],["Ceinture",4,1,"Annule l'événement blessure",1],["Cheval",5,1,"Action: +2 Rendement (-2h). Annule blessure.",1],["Vache",8,1,"Action: +2 Rendement (-2h).",1],["Moutons",2,1,"Action: +2 Rendement (-1h).",1],["Chèvres",2,1,"Action: +2 Rendement (-1h).",1],["Poules",3,1,"Action: +1 Rendement (-1h).",1],["Cochon",3,1,"Action: +1 Rendement (-1h).",1],["Clôture",3,1,"Pour animaux; protège sanglier",2],["Enrouleur",8,1,"Arrosage +2 Eau",1],["Tuyau",8,1,"Arrosage +1 Eau",1],["Epouvantail",2,1,"Protège les vergers",1],["Filet",2,1,"Protège un verger",1],["Forage",8,2,"Stocke 10 eau",1],["Fumier",2,1,"À composter (+2💩)",2],["Paillage",2,1,"Retire 2 eau et 1 soleil requis",2],["Sécateur",3,1,"Compost fin de saison si Verger/Haie",1],["Tuteur",2,1,"Pour plantes grimpantes",2],["Treillage",2,1,"Pour 2 plantes grimpantes",1],["Voile",2,1,"Protège des ravageurs",1],["Purin",2,1,"Protège lors des ravageurs",1],["Naissances",3,1,"Animal x2",1]];
-    const dX=[["Araignée",2,1,"Ravageurs","Protège contre ravageurs",1],["Crapaud",2,1,"Limace des jardins","Protège contre limaces",1],["Carabe",2,1,"Limace des jardins","Protège contre limaces",1],["Rapace",3,1,"Campagnol","Protège contre rongeurs",1],["Staphylin",2,1,"Ravageurs","Protège contre ravageurs",1],["Chat",3,1,"Rat taupier","Protège contre rongeurs",1],["Hérisson",3,1,"Limace des jardins","Protège contre limaces",1],["Passereaux",2,1,"Chenille","Protège contre chenilles",1],["Syrphe",2,1,"Puceron vert","Protège contre pucerons",1],["Coccinelle",3,1,"Puceron vert","Protège contre pucerons",1],["Chrysope",2,1,"Ravageurs","Protège contre ravageurs",1],["Martre",2,1,"Rat taupier","Protège contre rongeurs",1]];
-    const dR=[["Acariens",2,"Perte 2💰",1],["Altise",1,"Perte 1💰",1],["Campagnol",2,"Perte 2💰",1],["Carpocapse",2,"Perte 2💰",1],["Cecidomyie",1,"Perte 1💰",1],["Cochenille",2,"Perte 2💰",1],["Doryphore",2,"Perte 2💰",1],["Escargot",1,"Perte 1💰",1],["Etourneau",3,"Perte 3💰",1],["Lapin",1,"Perte 1💰",1],["Limace des jardins",2,"Perte 2💰",2],["Loir",1,"Perte 1💰",1],["Merle",3,"Perte 3💰",1],["Mineuse",1,"Perte 1💰",1],["Mouche",1,"Perte 1💰",1],["Phalène",2,"Perte 2💰",1],["Puceron vert",1,"Perte 1💰",2],["Punaise",1,"Perte 1💰",1],["Rat taupier",2,"Perte 2💰",1],["Sanglier",3,"Perte 3💰! Bloqué par Clôture.",1],["Thrips",2,"Perte 2💰",1],["Teigne",1,"Perte 1💰",1],["Chevreuil",3,"Perte 3💰",1]];
-    const dO=[["Ferme Autonome", "Avoir Serre, Local et Composteur (7 PV)", 1], ["Grande Diversité", "Avoir 4 légumes différents (5 PV)", 1], ["Monoculture", "Avoir 4 fois le même légume (5 PV)", 1], ["Beau Verger", "Avoir 3 arbres (6 PV)", 1]];
-    const dE=[["Grève","Négatif","1 carte par rayon max",1],["Biodynamie","Positif","Tout va bien",1],["Grêle","Négatif","Serres bloquées, -2 rendement fruitiers",1],["Cueillette","Positif","Récolte fruits gratuite",1],["Hausse de la T.V.A","Négatif","-1 sou à la récolte",1],["Saison nuageuse","Négatif","-1 dé soleil",1],["Aide de la région","Positif","Gain de 2 sous",1],["Saison exceptionnelle","Positif","+2 sous à la récolte",1],["Blessure","Négatif","-2 Temps",1],["Mauvaise saison","Négatif","-2 sous à la récolte",1],["Concours","Positif","Piochez soutien",1],["Classe pédagogique","Négatif","-2 Temps",1],["Découverte","Négatif","Zone bloquée",1],["Vente de semis","Positif","Récolte semis",1],["Travail en musique","Positif","+2 Temps",1],["Magasin en travaux","Négatif","Jardinerie fermée",1],["Destockage à la jardinerie","Positif","Jardinerie pleine",1],["Hausse des matériaux","Négatif","Bâtiments +1 coût",1],["Sécheresse","Négatif","Dé précipitations réduit",1],["Multiplication des ravageurs","Négatif","+1 Ravageur",1],["Bonne saison","Positif","+1 sou récolte",1],["Baisse des charges","Positif","+1 sou récolte",1],["Kiss Kiss BankBank","Positif","Gain sous selon classement",1],["Manque de main-d'œuvre","Négatif","-2 temps",1],["Echange de biens","Neutre","Echange cartes",1],["Solidarité","Neutre","Echange cartes",1],["Fonte des semis","Négatif","Perte d'un semis",1],["Stagiaires","Positif","Action à -2",1],["Sécheresse extrême","Négatif","-1 pluie, pas d'auxiliaires",1],["Vent fort","Négatif","-1 leg, -2 arbres",1]];
+    // VOS CARTES AVEC LEURS ICÔNES / MINIATURES PRÉ-REMPLIES
+    const dL=[["Ail","🧄",1,1,5,4,3,"P","E","",2],["Artichaut (Violet)","🌿",2,2,9,7,5,"P","A,H","",1],["Artichaut (Imperial)","🌿",1,1,9,7,4,"P","A","",1],["Aubergine (Dourga)","🍆",1,1,7,4,4,"P","E,A","",1],["Aubergine (Longue)","🍆",1,1,7,4,4,"P","E,A","",1],["Betterave","🟣",1,1,7,3,6,"P,E","A,H","",2],["Carotte (Jaune)","🥕",1,0,9,5,8,"P,E","A,H","Jaune, Vert, Gris, Noir",1],["Carotte (Nantaise)","🥕",1,0,9,5,8,"P,E","A,H","Jaune, Vert, Gris, Noir",1],["Cebette","🧅",1,1,6,4,8,"P","E","Jaune, Vert, Gris, Noir",2],["Céleri Branche","🥬",1,1,7,4,9,"P","A","Jaune, Vert, Gris, Noir",1],["Céleri Rave","🥬",1,1,7,6,11,"P","A","Jaune, Vert, Gris",1],["Chayotte","🍐",2,2,5,4,8,"P","A","Jaune, Vert, Gris",1],["Chou Brocoli (Vert)","🥦",2,1,7,5,11,"P","A","Jaune, Vert, Gris, Noir",1],["Chou Brocoli (Violet)","🥦",2,1,7,5,11,"E","H","Jaune, Vert, Gris, Noir",1],["Chou Chinois (Pe Tsaï)","🥬",1,1,7,4,5,"E","A","",1],["Chou Chinois (Pak Choï)","🥬",1,1,7,4,5,"P","A","",1],["Chou Frisé Kale","🥬",1,1,7,4,5,"E","H","",1],["Chou-Fleur","🥦",1,1,7,4,2,"P","A","",1],["Concombre","🥒",1,1,6,4,4,"P","E","",2],["Cornichon","🥒",1,1,6,4,4,"P","E","",1],["Côtes de Blette","🥬",1,2,6,4,8,"P","A","Jaune, Gris, Noir",2],["Courge (Lady Godiva)","🎃",1,1,5,4,9,"P","A","Jaune, Vert, Gris, Noir",1],["Courge (Jack Be Little)","🎃",1,1,5,4,9,"P","A","Jaune, Vert, Gris, Noir",1],["Courge (Muscade)","🎃",1,1,5,4,9,"P","A","Jaune, Vert, Gris, Noir",1],["Courge (Butternut)","🎃",1,1,5,4,9,"P","A","Jaune, Vert, Gris, Noir",1],["Courgette","🥒",1,1,4,3,7,"P","E,A","Jaune, Vert, Gris, Noir",2],["Echalote (Longor)","🧅",1,1,4,3,7,"P","E","Jaune, Orange, Gris, Noir",1],["Echalote (Hermine)","🧅",1,1,4,3,8,"P","E","Jaune, Orange, Gris, Noir",1],["Epinard (Géant)","🍃",0,0,5,2,5,"A","H,P","Jaune, Gris, Noir",1],["Epinard (Matador)","🍃",0,0,5,2,5,"A","H,P","Jaune, Gris, Noir",1],["Fenouil","🌿",1,1,6,4,5,"E","A","",1],["Fève","🫘",1,1,8,4,6,"A,H","P","",2],["Fraise (Gariguette)","🍓",2,2,7,4,3,"P","E","",1],["Fraise (Mara)","🍓",2,2,7,4,3,"P","E","",1],["Haricot Beurre","🫘",1,1,6,4,3,"P","E","",1],["Haricot Grains","🫘",1,1,5,4,6,"P","A","Jaune, Gris, Noir",1],["Haricot Nain","🫘",1,2,4,3,6,"P,E","E,A","Jaune, Gris, Noir",1],["Haricot Rame","🫘",2,2,6,4,6,"P","E","",1],["Laitue (Glaces)","🥗",1,1,6,4,3,"P,E","E,A","",1],["Laitue (Flamingo)","🥗",1,1,6,4,3,"P,E","E,A","",1],["Mâche (Dorée)","🥗",0,0,5,2,5,"A","H,P","Jaune, Gris, Noir",1],["Mâche (D'Etampes)","🥗",0,0,5,2,5,"A","H,P","Jaune, Gris, Noir",1],["Maïs (True Gold)","🌽",1,1,7,4,6,"P","E","",1],["Maïs (Martian)","🌽",1,1,7,4,6,"P","E","",1],["Melon","🍈",2,1,7,4,3,"P","E","",2],["Navet (Boule)","🧅",2,2,9,4,6,"P,A","E,H","",1],["Navet (D'Auvergne)","🧅",2,2,9,4,6,"P,A","E,H","",1],["Oignon (Transylvanian)","🧅",1,1,7,4,6,"P,A","E","",1],["Oignon (Dakota)","🧅",1,1,7,4,6,"P,A","E","",1],["Panais","🥕",1,1,8,4,6,"P","A,H","",1],["Pastèque","🍉",1,1,6,4,3,"P","E","",2],["Patate Douce (Evangeline)","🍠",2,2,8,5,4,"P","A","",1],["Patate Douce (Bonita)","🍠",2,2,8,5,4,"P","A","",1],["Piment Fort","🌶️",1,1,6,5,4,"P","E,A","",1],["Poireau (Bleu)","🥬",1,1,6,4,10,"P,E","A,H","",1],["Poireau (Mélange)","🥬",1,1,6,4,10,"P,E","A,H","",1],["Pois Gourmand","🫘",1,1,7,4,6,"P,A","E,P","",1],["Pois Nain","🫘",1,1,8,4,6,"P,A","E,P","",1],["Poivron (Corno)","🫑",1,1,4,3,6,"P","E,A","Jaune, Gris, Noir",1],["Poivron (Golden)","🫑",1,1,4,3,6,"P","E,A","Jaune, Gris, Noir",1],["Pomme de Terre (Charlotte)","🥔",1,1,2,2,7,"P","E,A","Jaune, Vert, Gris, Noir",1],["Pomme de Terre (Rosabelle)","🥔",1,1,2,2,7,"P","E,A","Jaune, Vert, Gris, Noir",2],["Radis (Flamboyant)","🫒",1,1,7,4,6,"P,E,A","P,E,A","",1],["Radis (Rudi)","🫒",1,1,7,4,6,"P,E,A","P,E,A","",1],["Radis Noir","🫒",2,2,6,4,9,"P,E,A","P,E,A","Jaune, Gris, Noir",1],["Tomate (Ananas)","🍅",1,1,4,3,7,"P","E,A","Jaune, Vert, Gris, Noir",1],["Tomate (Green Zebra)","🍅",1,1,4,3,7,"P","E,A","Jaune, Vert, Gris, Noir",1],["Tomate (Caro Rich)","🍅",1,1,4,3,7,"P","E,A","Jaune, Vert, Gris, Noir",1],["Tomate (Moya)","🍅",1,1,4,3,7,"P","E,A","Jaune, Vert, Gris, Noir",1],["Tomate (Rose)","🍅",1,1,4,3,7,"P","E,A","Jaune, Vert, Gris, Noir",1],["Tomate (Noire)","🍅",1,1,4,3,7,"P","E,A","Jaune, Vert, Gris, Noir",1],["Tomate (Cherry)","🍅",1,1,4,3,7,"P","E,A","Jaune, Vert, Gris, Noir",1]];
+    const dA=[["Abricotier","🍑",3,3,10,9,4,"A","E",1],["Actinidier","🥝",3,3,10,9,4,"A","E",1],["Amandier","🌰",3,3,10,9,4,"A","A",1],["Brugnonier","🍑",3,3,10,9,4,"A","E",1],["Cassissier","🫐",2,2,5,6,3,"A","E",1],["Cerisier","🍒",3,3,9,11,4,"A","P,E",1],["Châtaignier","🌰",3,3,10,9,4,"A","A,E",1],["Citronnier","🍋",3,3,8,10,5,"P","H,P",1],["Cognassier","🍐",3,3,10,9,4,"A","A",1],["Combava","🍋",3,3,8,10,5,"P","H,P",1],["Figuier","🍇",3,3,12,8,5,"A,H","A,E",1],["Framboisier","🫐",2,2,5,6,3,"A","E",1],["Grenadier","🍎",3,3,10,9,4,"A","H,P",1],["Groseillier","🫐",2,2,5,6,3,"A","E",1],["Kumquat","🍊",3,3,8,10,5,"P","H,P",1],["Mandarinier","🍊",3,3,8,10,5,"P","H,P",1],["Mûrier","🫐",2,2,5,6,3,"A","E",1],["Myrtillier","🫐",2,2,5,6,3,"A","E",1],["Noisetier","🌰",3,3,10,9,4,"A","A",1],["Noyer","🌰",3,3,10,9,4,"A","H,A",1],["Olivier","🫒",3,3,10,9,4,"A","A",1],["Oranger","🍊",3,3,8,10,5,"P","H,P",1],["Pamplemoussier","🍊",3,3,8,10,5,"P","H,P",1],["Pêcher","🍑",3,3,10,9,4,"A","E",1],["Physalis","🍒",2,2,5,6,3,"A","H,P",1],["Plaqueminier","🍑",3,3,10,9,4,"A","H,P,A",1],["Poirier","🍐",3,3,9,11,4,"A","E,A",1],["Pommier","🍎",3,3,10,11,4,"A","E,A",1],["Prunier","🍑",3,3,10,9,4,"A","E",1],["Vigne","🍇",2,2,7,10,6,"P","A",1]];
+    const dC=[["Agastache","🌿",1,1,4,4,"P","E","Réduit besoins.",1],["Aneth","🌿",1,1,4,4,"P","E","Réduit besoins.",1],["Basilic","🌿",1,1,4,3,"P","E,A","Réduit besoins.",1],["Bleuet","🌼",1,1,4,3,"P","E","Réduit besoins.",1],["Bourrache","🌸",1,1,3,4,"P","E","Réduit besoins.",1],["Capucine","🌺",1,1,3,4,"P","E","Attire pucerons.",1],["Cerfeuil","🌿",1,1,4,4,"P","E","Réduit besoins.",1],["Ciboulette","🌿",1,1,3,4,"P","E","Réduit besoins.",1],["Coriandre","🌿",1,1,3,4,"P","E","Réduit besoins.",1],["Cosmos","🌸",1,1,4,3,"P","E","Réduit besoins.",1],["Estragon","🌿",1,1,3,4,"P","E","Réduit besoins.",1],["Lin","🌾",1,1,6,4,"P","E","Réduit besoins.",1],["Marguerite","🌼",1,1,6,4,"P","E","Réduit besoins.",1],["Melilot","🌿",1,1,3,4,"P","E","Réduit besoins.",1],["Melisse","🌿",1,1,3,4,"P","E","Réduit besoins.",1],["Menthe","🌿",1,1,3,4,"P","E,A","Repousse ravageurs.",1],["Moutarde","🌼",1,1,4,4,"P","E","Réduit besoins.",1],["Œillet d'Inde","🌼",1,1,3,4,"P","E,A","Protège racines.",1],["Origan","🌿",1,1,3,4,"P","E","Réduit besoins.",1],["Persil","🌿",1,1,4,3,"P","E","Réduit besoins.",1],["Romarin","🌿",1,1,4,4,"P","E","Réduit besoins.",1],["Sarriette","🌿",1,1,5,4,"P","E","Réduit besoins.",1],["Sauge","🌿",1,1,4,3,"P","E","Réduit besoins.",1],["Serpolet","🌿",1,1,4,4,"P","E","Réduit besoins.",1],["Souci","🌼",1,1,3,4,"P","E","Réduit besoins.",1],["Tanaisie","🌿",1,1,3,4,"P","E","Réduit besoins.",1],["Thym","🌿",1,1,4,4,"P","E,A","Réduit besoins.",1],["Tournesol","🌻",1,1,4,6,"P","E","Réduit besoins.",1]];
+    const dS=[["Arrosoir","🚿",3,1,"+2 Eau lors d'un arrosage",2],["Barrière","🚧",2,1,"Sert de Clôture",1],["Bois mort","🪵",4,1,"+2 compost",1],["Brouette","🛒",4,1,"Amendement: 1 tps = 2 compost",1],["Cagette","📦",4,1,"Récoltez 2 cultures d'un coup",1],["Carton","📦",4,1,"+1 compost",1],["Ceinture","🧰",4,1,"Annule l'événement blessure",1],["Cheval","🐴",5,1,"Action: +2 Rendement (-2h). Annule blessure.",1],["Vache","🐮",8,1,"Action: +2 Rendement (-2h).",1],["Moutons","🐑",2,1,"Action: +2 Rendement (-1h).",1],["Chèvres","🐐",2,1,"Action: +2 Rendement (-1h).",1],["Poules","🐔",3,1,"Action: +1 Rendement (-1h).",1],["Cochon","🐷",3,1,"Action: +1 Rendement (-1h).",1],["Clôture","🚧",3,1,"Pour animaux; protège sanglier",2],["Enrouleur","🚿",8,1,"Arrosage +2 Eau",1],["Tuyau","🚿",8,1,"Arrosage +1 Eau",1],["Epouvantail","🎃",2,1,"Protège les vergers",1],["Filet","🕸️",2,1,"Protège un verger",1],["Forage","🚰",8,2,"Stocke 10 eau",1],["Fumier","💩",2,1,"À composter (+2💩)",2],["Paillage","🍂",2,1,"Retire 2 eau et 1 soleil requis",2],["Sécateur","✂️",3,1,"Compost fin de saison si Verger/Haie",1],["Tuteur","🎋",2,1,"Pour plantes grimpantes",2],["Treillage","🎋",2,1,"Pour 2 plantes grimpantes",1],["Voile","⛺",2,1,"Protège des ravageurs",1],["Purin","🛢️",2,1,"Protège lors des ravageurs",1],["Naissances","🐣",3,1,"Animal x2",1]];
+    const dX=[["Araignée","🕷️",2,1,"Ravageurs","Protège contre ravageurs",1],["Crapaud","🐸",2,1,"Limace des jardins","Protège contre limaces",1],["Carabe","🪲",2,1,"Limace des jardins","Protège contre limaces",1],["Rapace","🦅",3,1,"Campagnol","Protège contre rongeurs",1],["Staphylin","🦗",2,1,"Ravageurs","Protège contre ravageurs",1],["Chat","🐈",3,1,"Rat taupier","Protège contre rongeurs",1],["Hérisson","🦔",3,1,"Limace des jardins","Protège contre limaces",1],["Passereaux","🐦",2,1,"Chenille","Protège contre chenilles",1],["Syrphe","🐝",2,1,"Puceron vert","Protège contre pucerons",1],["Coccinelle","🐞",3,1,"Puceron vert","Protège contre pucerons",1],["Chrysope","🦟",2,1,"Ravageurs","Protège contre ravageurs",1],["Martre","🦦",2,1,"Rat taupier","Protège contre rongeurs",1]];
+    const dR=[["Acariens","🦠",2,"Perte 2💰",1],["Altise","🪲",1,"Perte 1💰",1],["Campagnol","🐁",2,"Perte 2💰",1],["Carpocapse","🐛",2,"Perte 2💰",1],["Cecidomyie","🪰",1,"Perte 1💰",1],["Cochenille","🐞",2,"Perte 2💰",1],["Doryphore","🐛",2,"Perte 2💰",1],["Escargot","🐌",1,"Perte 1💰",1],["Etourneau","🐦‍⬛",3,"Perte 3💰",1],["Lapin","🐇",1,"Perte 1💰",1],["Limace des jardins","🐌",2,"Perte 2💰",2],["Loir","🐁",1,"Perte 1💰",1],["Merle","🐦‍⬛",3,"Perte 3💰",1],["Mineuse","🪰",1,"Perte 1💰",1],["Mouche","🪰",1,"Perte 1💰",1],["Phalène","🦋",2,"Perte 2💰",1],["Puceron vert","🦠",1,"Perte 1💰",2],["Punaise","🪲",1,"Perte 1💰",1],["Rat taupier","🐁",2,"Perte 2💰",1],["Sanglier","🐗",3,"Perte 3💰! Bloqué par Clôture.",1],["Thrips","🦟",2,"Perte 2💰",1],["Teigne","🦋",1,"Perte 1💰",1],["Chevreuil","🦌",3,"Perte 3💰",1]];
+    const dO=[["Ferme Autonome", "🎯", "Avoir Serre, Local et Composteur (7 PV)", 1], ["Grande Diversité", "🎯", "Avoir 4 légumes différents (5 PV)", 1], ["Monoculture", "🎯", "Avoir 4 fois le même légume (5 PV)", 1], ["Beau Verger", "🎯", "Avoir 3 arbres (6 PV)", 1]];
+    const dE=[["Grève","🛑","Négatif","1 carte par rayon max",1],["Biodynamie","🌻","Positif","Tout va bien",1],["Grêle","🌨️","Négatif","Serres bloquées, -2 rendement fruitiers",1],["Cueillette","🧺","Positif","Récolte fruits gratuite",1],["Hausse de la T.V.A","📉","Négatif","-1 sou à la récolte",1],["Saison nuageuse","☁️","Négatif","-1 dé soleil",1],["Aide de la région","🏛️","Positif","Gain de 2 sous",1],["Saison exceptionnelle","🌟","Positif","+2 sous à la récolte",1],["Blessure","🩹","Négatif","-2 Temps",1],["Mauvaise saison","🌧️","Négatif","-2 sous à la récolte",1],["Concours","🏆","Positif","Piochez soutien",1],["Classe pédagogique","🏫","Négatif","-2 Temps",1],["Découverte","🚧","Négatif","Zone bloquée",1],["Vente de semis","💰","Positif","Récolte semis",1],["Travail en musique","🎵","Positif","+2 Temps",1],["Magasin en travaux","🏗️","Négatif","Jardinerie fermée",1],["Destockage à la jardinerie","🛒","Positif","Jardinerie pleine",1],["Hausse des matériaux","📈","Négatif","Bâtiments +1 coût",1],["Sécheresse","🏜️","Négatif","Dé précipitations réduit",1],["Multiplication des ravageurs","🐛","Négatif","+1 Ravageur",1],["Bonne saison","☀️","Positif","+1 sou récolte",1],["Baisse des charges","📉","Positif","+1 sou récolte",1],["Kiss Kiss BankBank","🪙","Positif","Gain sous selon classement",1],["Manque de main-d'œuvre","🧑‍🌾","Négatif","-2 temps",1],["Echange de biens","🤝","Neutre","Echange cartes",1],["Solidarité","🤝","Neutre","Echange cartes",1],["Fonte des semis","🥀","Négatif","Perte d'un semis",1],["Stagiaires","🧑‍🎓","Positif","Action à -2",1],["Sécheresse extrême","🐪","Négatif","-1 pluie, pas d'auxiliaires",1],["Vent fort","🌬️","Négatif","-1 leg, -2 arbres",1]];
 
-    // Génération instantanée des objets au format attendu par les tableaux HTML
     const defaultAdminSource = {
-        legumes: dL.map(c=>({nom:c[0],p:c[1],t:c[2],e:c[3],s:c[4],g:c[5],sm:c[6],rc:c[7],rav:c[8],qte:c[9]})),
-        arbres: dA.map(c=>({nom:c[0],p:c[1],t:c[2],g:c[3],e:c[4],s:c[5],sm:c[6],rc:c[7],qte:c[8]})),
-        compagnes: dC.map(c=>({nom:c[0],p:c[1],t:c[2],e:c[3],s:c[4],sm:c[5],rc:c[6],desc:c[7],qte:c[8]})),
-        soutien: dS.map(c=>({nom:c[0],p:c[1],t:c[2],desc:c[3],qte:c[4]})),
-        auxiliaires: dX.map(c=>({nom:c[0],p:c[1],t:c[2],prot:c[3],desc:c[4],qte:c[5]})),
-        ravageurs: dR.map(c=>({nom:c[0],d:c[1],desc:c[2],qte:c[3]})),
-        objectifs: dO.map(c=>({nom:c[0],desc:c[1],qte:c[2]})),
-        events: dE.map(c=>({nom:c[0],type:c[1],desc:c[2],qte:c[3]}))
+        legumes: dL.map(c=>({nom:c[0],icon:c[1],p:c[2],t:c[3],e:c[4],s:c[5],g:c[6],sm:c[7],rc:c[8],rav:c[9],qte:c[10]})),
+        arbres: dA.map(c=>({nom:c[0],icon:c[1],p:c[2],t:c[3],g:c[4],e:c[5],s:c[6],sm:c[7],rc:c[8],qte:c[9]})),
+        compagnes: dC.map(c=>({nom:c[0],icon:c[1],p:c[2],t:c[3],e:c[4],s:c[5],sm:c[6],rc:c[7],desc:c[8],qte:c[9]})),
+        soutien: dS.map(c=>({nom:c[0],icon:c[1],p:c[2],t:c[3],desc:c[4],qte:c[5]})),
+        auxiliaires: dX.map(c=>({nom:c[0],icon:c[1],p:c[2],t:c[3],prot:c[4],desc:c[5],qte:c[6]})),
+        ravageurs: dR.map(c=>({nom:c[0],icon:c[1],d:c[2],desc:c[3],qte:c[4]})),
+        objectifs: dO.map(c=>({nom:c[0],icon:c[1],desc:c[2],qte:c[3]})),
+        events: dE.map(c=>({nom:c[0],icon:c[1],type:c[2],desc:c[3],qte:c[4]}))
     };
 
     // =================================================================================
@@ -115,15 +105,18 @@
         let t = document.getElementById(tId); 
         let h = "<tr>"; cols.forEach(c => h += `<th>${c.label}</th>`); h += "</tr>"; 
         t.innerHTML = h;
-
         if(!arr) return;
         arr.forEach((item, i) => {
             let r = "<tr>"; 
             cols.forEach(c => {
                 let v = item[c.key] !== undefined ? item[c.key] : "";
-                r += c.type === 'number' 
-                    ? `<td><input type="number" data-idx="${i}" data-key="${c.key}" value="${v}"></td>` 
-                    : `<td><input type="text" class="${c.type==='large'?'input-large':''}" data-idx="${i}" data-key="${c.key}" value="${v}"></td>`;
+                if(c.type === 'number') {
+                    r += `<td><input type="number" data-idx="${i}" data-key="${c.key}" value="${v}"></td>`;
+                } else if(c.type === 'icon') {
+                    r += `<td><input type="text" class="input-icon" data-idx="${i}" data-key="${c.key}" value="${v}" placeholder="🖼️"></td>`;
+                } else {
+                    r += `<td><input type="text" class="${c.type==='large'?'input-large':''}" data-idx="${i}" data-key="${c.key}" value="${v}"></td>`;
+                }
             }); 
             t.innerHTML += r + "</tr>";
         });
@@ -136,14 +129,14 @@
             sGrid.innerHTML += `<div class="setting-item"><label>${key}</label><input type="number" id="set-${key}" value="${settings[key]}"></div>`;
         }
 
-        renderTable("table-legumes", src.legumes, [{label:"Nom",key:"nom",type:"text"},{label:"Achat💰",key:"p",type:"number"},{label:"Temps⏳",key:"t",type:"number"},{label:"Gain💰",key:"g",type:"number"},{label:"Eau💧",key:"e",type:"number"},{label:"Soleil☀️",key:"s",type:"number"},{label:"Semis",key:"sm",type:"text"},{label:"Récolte",key:"rc",type:"text"},{label:"Sensible 🐌",key:"rav",type:"text"},{label:"Qté",key:"qte",type:"number"}]);
-        renderTable("table-arbres", src.arbres, [{label:"Nom",key:"nom",type:"text"},{label:"Achat💰",key:"p",type:"number"},{label:"Temps⏳",key:"t",type:"number"},{label:"Gain💰",key:"g",type:"number"},{label:"Eau💧",key:"e",type:"number"},{label:"Soleil☀️",key:"s",type:"number"},{label:"Plantation",key:"sm",type:"text"},{label:"Récolte",key:"rc",type:"text"},{label:"Qté",key:"qte",type:"number"}]);
-        renderTable("table-compagnes", src.compagnes, [{label:"Nom",key:"nom",type:"text"},{label:"Achat💰",key:"p",type:"number"},{label:"Temps⏳",key:"t",type:"number"},{label:"Eau💧",key:"e",type:"number"},{label:"Soleil☀️",key:"s",type:"number"},{label:"Semis",key:"sm",type:"text"},{label:"Récolte",key:"rc",type:"text"},{label:"Effet",key:"desc",type:"large"},{label:"Qté",key:"qte",type:"number"}]);
-        renderTable("table-soutien", src.soutien, [{label:"Nom",key:"nom",type:"text"},{label:"Achat💰",key:"p",type:"number"},{label:"Temps⏳",key:"t",type:"number"},{label:"Effet",key:"desc",type:"large"},{label:"Qté",key:"qte",type:"number"}]);
-        renderTable("table-auxiliaires", src.auxiliaires, [{label:"Nom",key:"nom",type:"text"},{label:"Achat💰",key:"p",type:"number"},{label:"Temps⏳",key:"t",type:"number"},{label:"Protège",key:"prot",type:"text"},{label:"Qté",key:"qte",type:"number"}]);
-        renderTable("table-ravageurs", src.ravageurs, [{label:"Nom",key:"nom",type:"text"},{label:"Dégâts💰",key:"d",type:"number"},{label:"Description",key:"desc",type:"large"},{label:"Qté",key:"qte",type:"number"}]);
-        renderTable("table-objectifs", src.objectifs, [{label:"Nom",key:"nom",type:"text"},{label:"Description",key:"desc",type:"large"},{label:"Qté",key:"qte",type:"number"}]);
-        renderTable("table-events", src.events, [{label:"Nom",key:"nom",type:"text"},{label:"Type",key:"type",type:"text"},{label:"Description",key:"desc",type:"large"},{label:"Qté",key:"qte",type:"number"}]);
+        renderTable("table-legumes", src.legumes, [{label:"Icône",key:"icon",type:"icon"},{label:"Nom",key:"nom",type:"text"},{label:"Achat💰",key:"p",type:"number"},{label:"Temps⏳",key:"t",type:"number"},{label:"Gain💰",key:"g",type:"number"},{label:"Eau💧",key:"e",type:"number"},{label:"Soleil☀️",key:"s",type:"number"},{label:"Semis",key:"sm",type:"text"},{label:"Récolte",key:"rc",type:"text"},{label:"Sensible 🐌",key:"rav",type:"text"},{label:"Qté",key:"qte",type:"number"}]);
+        renderTable("table-arbres", src.arbres, [{label:"Icône",key:"icon",type:"icon"},{label:"Nom",key:"nom",type:"text"},{label:"Achat💰",key:"p",type:"number"},{label:"Temps⏳",key:"t",type:"number"},{label:"Gain💰",key:"g",type:"number"},{label:"Eau💧",key:"e",type:"number"},{label:"Soleil☀️",key:"s",type:"number"},{label:"Plantation",key:"sm",type:"text"},{label:"Récolte",key:"rc",type:"text"},{label:"Qté",key:"qte",type:"number"}]);
+        renderTable("table-compagnes", src.compagnes, [{label:"Icône",key:"icon",type:"icon"},{label:"Nom",key:"nom",type:"text"},{label:"Achat💰",key:"p",type:"number"},{label:"Temps⏳",key:"t",type:"number"},{label:"Eau💧",key:"e",type:"number"},{label:"Soleil☀️",key:"s",type:"number"},{label:"Semis",key:"sm",type:"text"},{label:"Récolte",key:"rc",type:"text"},{label:"Effet",key:"desc",type:"large"},{label:"Qté",key:"qte",type:"number"}]);
+        renderTable("table-soutien", src.soutien, [{label:"Icône",key:"icon",type:"icon"},{label:"Nom",key:"nom",type:"text"},{label:"Achat💰",key:"p",type:"number"},{label:"Temps⏳",key:"t",type:"number"},{label:"Effet",key:"desc",type:"large"},{label:"Qté",key:"qte",type:"number"}]);
+        renderTable("table-auxiliaires", src.auxiliaires, [{label:"Icône",key:"icon",type:"icon"},{label:"Nom",key:"nom",type:"text"},{label:"Achat💰",key:"p",type:"number"},{label:"Temps⏳",key:"t",type:"number"},{label:"Protège",key:"prot",type:"text"},{label:"Effet",key:"desc",type:"large"},{label:"Qté",key:"qte",type:"number"}]);
+        renderTable("table-ravageurs", src.ravageurs, [{label:"Icône",key:"icon",type:"icon"},{label:"Nom",key:"nom",type:"text"},{label:"Dégâts💰",key:"d",type:"number"},{label:"Description",key:"desc",type:"large"},{label:"Qté",key:"qte",type:"number"}]);
+        renderTable("table-objectifs", src.objectifs, [{label:"Icône",key:"icon",type:"icon"},{label:"Nom",key:"nom",type:"text"},{label:"Description",key:"desc",type:"large"},{label:"Qté",key:"qte",type:"number"}]);
+        renderTable("table-events", src.events, [{label:"Icône",key:"icon",type:"icon"},{label:"Nom",key:"nom",type:"text"},{label:"Type",key:"type",type:"text"},{label:"Description",key:"desc",type:"large"},{label:"Qté",key:"qte",type:"number"}]);
     }
 
     window.switchTab = function(id) { 
@@ -174,7 +167,6 @@
             let q = i.qte || 0; 
             for(let j = 0; j < q; j++) { 
                 let {qte, ...c} = i; 
-                // Formatage des chaînes "P, E" en ["P", "E"]
                 if (typeof c.sm === 'string') c.sm = c.sm.split(',').map(s=>s.trim()).filter(s=>s);
                 if (typeof c.rc === 'string') c.rc = c.rc.split(',').map(s=>s.trim()).filter(s=>s);
                 deck.push({...c, ...extra}); 
@@ -182,22 +174,15 @@
         }); 
     }
 
-    // =================================================================================
-    // LOGIQUE DE CHARGEMENT ET DE SAUVEGARDE
-    // =================================================================================
-
     window.onload = function() {
-        // 1. AFFICHAGE IMMÉDIAT (Évite la page blanche)
         renderAdmin(defaultAdminSource, defaultSettings);
         let status = document.getElementById('status');
 
-        // 2. VÉRIFICATION FIREBASE EN ARRIÈRE-PLAN
         dbConfig.once('value').then(snap => {
             let dbData = snap.val();
             if (dbData && dbData.adminSource) {
                 status.innerText = "✅ Données récupérées et synchronisées depuis Firebase avec succès !";
                 status.style.background = "#e8f5e9"; status.style.color = "#2e7d32"; status.style.borderColor = "#4caf50";
-                // Mise à jour visuelle avec les données de la base
                 renderAdmin(dbData.adminSource, dbData.settings || defaultSettings);
             } else {
                 status.innerText = "⚠️ Votre base de données est vide. Les cartes par défaut sont affichées. (Cliquez sur Sauvegarder pour les enregistrer en ligne)";
@@ -215,14 +200,12 @@
         status.style.background = "#fff3e0"; status.style.color = "#e65100"; status.style.borderColor = "#ffb300";
 
         try {
-            // Extraction des paramètres
             let finalSettings = {};
             document.querySelectorAll('.setting-item input').forEach(inp => {
                 let key = inp.id.replace('set-', ''); 
                 finalSettings[key] = Number(inp.value);
             });
 
-            // 1. Sauvegarde des tableaux sources EXACTEMENT tels qu'ils sont à l'écran (pour rechargement futur)
             let currentAdminSource = {
                 legumes: extract('table-legumes'), arbres: extract('table-arbres'),
                 compagnes: extract('table-compagnes'), soutien: extract('table-soutien'),
@@ -230,7 +213,6 @@
                 objectifs: extract('table-objectifs'), events: extract('table-events')
             };
 
-            // 2. Fabrication des paquets de jeu (Decks) injectés directement dans le jeu
             let d = {C:[], S:[], A:[], O:[], E:[], R:[]};
             multiplyAndFormat(currentAdminSource.legumes, d.C, {cat:'L'});
             multiplyAndFormat(currentAdminSource.arbres, d.C, {cat:'A'});
@@ -241,14 +223,13 @@
             multiplyAndFormat(currentAdminSource.ravageurs, d.R, {cat:'R'});
             multiplyAndFormat(currentAdminSource.objectifs, d.O, {});
 
-            // ENVOI À FIREBASE (Settings, AdminSource, Decks)
             dbConfig.update({ settings: finalSettings, adminSource: currentAdminSource, decks: d })
                 .then(() => {
-                    status.innerText = "✅ SUCCÈS ! Base de données, cartes et paramètres enregistrés sur Firebase.";
+                    status.innerText = "✅ SUCCÈS ! Base de données, miniatures et paramètres enregistrés sur Firebase.";
                     status.style.background = "#e8f5e9"; status.style.color = "#2e7d32"; status.style.borderColor = "#4caf50";
                 })
                 .catch(e => {
-                    status.innerHTML = `❌ <b>ERREUR FIREBASE (Permission refusée) :</b> ${e.message}<br><br>Avez-vous bien autorisé la lecture/écriture (".read": "true") dans les règles de la base de données ?`;
+                    status.innerHTML = `❌ <b>ERREUR FIREBASE (Permission refusée) :</b> ${e.message}`;
                     status.style.background = "#ffebee"; status.style.color = "#c62828"; status.style.borderColor = "#ef9a9a";
                 });
                 
