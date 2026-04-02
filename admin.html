@@ -158,6 +158,7 @@
         dbConfig.update({ settings: finalSettings, decks: d })
             .then(() => {
                 status.innerText = "✅ Succès ! Base de données et paramètres mis à jour.";
+                console.log("Données prêtes à être envoyées :", { settings: finalSettings, decks: d });
                 status.style.color = "#2e7d32";
             }).catch(e => {
                 status.innerText = "❌ Erreur : " + e.message;
