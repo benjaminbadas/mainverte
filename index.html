@@ -2,56 +2,40 @@
 <html lang="fr">
 <head>
     <meta charset="UTF-8">
-    <title>La Main Verte - v65 (Règles Officielles)</title>
+    <title>La Main Verte - v67 (Complet & Sans Coupure)</title>
     <script src="https://www.gstatic.com/firebasejs/9.17.1/firebase-app-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/9.17.1/firebase-database-compat.js"></script>
-    
     <style>
         :root { 
             --p1: #2e7d32; --p2: #1565c0; --bg: #f4f7f1; --potager: #81c784; 
             --verger: #fff176; --amenag: #ffccbc; --batiment: #455a64; 
             --dark: #263238; --gold: #ffd700; --serre: #e1f5fe; 
         }
-        body { 
-            font-family: 'Segoe UI', sans-serif; background: var(--bg); 
-            margin: 0; display: flex; height: 100vh; overflow: hidden; 
-        }
-        
-        #lobby, #game-over-screen, #season-anim-overlay { 
-            position: fixed; top:0; left:0; width:100%; height:100%; 
-            z-index: 1000; display: flex; flex-direction: column; 
-            align-items: center; justify-content: center; color: white; 
-        }
+        body { font-family: 'Segoe UI', sans-serif; background: var(--bg); margin: 0; display: flex; height: 100vh; overflow: hidden; }
+        #lobby, #game-over-screen, #season-anim-overlay { position: fixed; top:0; left:0; width:100%; height:100%; z-index: 1000; display: flex; flex-direction: column; align-items: center; justify-content: center; color: white; }
         #lobby { background:rgba(0,0,0,0.9); }
         #game-over-screen { background:rgba(0,0,0,0.85); z-index: 3000; display: none; }
         #season-anim-overlay { background: rgba(255,255,255,0.7); z-index: 2000; display: none; opacity: 0; transition: opacity 0.5s ease-in-out; }
-        
         .anim-box { background: white; border: 5px solid var(--p1); border-radius: 20px; padding: 40px 80px; box-shadow: 0 15px 40px rgba(0,0,0,0.3); text-align: center; transform: scale(0.8); transition: transform 0.5s; }
         .btn-lobby { background: var(--p1); color: white; border: none; padding: 12px 25px; font-size: 1.1em; border-radius: 8px; margin: 8px; cursor: pointer; width: 320px; transition: 0.2s; font-weight: bold; }
         .btn-lobby:hover { filter: brightness(1.2); transform: scale(1.05); }
-        
         .score-box { background: white; color: #263238; padding: 40px; border-radius: 12px; text-align: center; box-shadow: 0 10px 40px rgba(0,0,0,0.5); min-width: 500px; }
         .score-table { width: 100%; border-collapse: collapse; margin: 20px 0; font-size: 1.1em; text-align: left; }
         .score-table th, .score-table td { padding: 10px; border-bottom: 1px solid #cfd8dc; }
         .score-table th { background: #eceff1; color: #37474f; }
         .score-table .total-row { font-weight: bold; font-size: 1.3em; background: #e8f5e9; color: var(--p1); border-top: 2px solid var(--p1); }
         .score-winner { color: var(--p1); font-size: 2em; margin-bottom: 10px; font-weight:bold; }
-        
         .main-game { flex: 1; display: flex; flex-direction: column; padding: 10px; overflow-y: auto; }
         .sidebar { width: 500px; background: white; border-left: 2px solid #ddd; padding: 10px; display: flex; flex-direction: column; overflow-y: auto;}
-        
         .hud { display: flex; justify-content: space-between; align-items: center; background: white; padding: 10px; border-radius: 8px; box-shadow: 0 2px 5px rgba(0,0,0,0.1); margin-bottom: 5px; font-weight: bold; font-size: 0.9em; border-top: 4px solid var(--p1); }
         .hud-opp { background: #e3f2fd; padding: 6px 10px; border-radius: 8px; margin-bottom: 10px; font-size: 0.8em; color: #1565c0; border: 1px solid #bbdefb; display: flex; justify-content: space-between; align-items: center;}
-        
         .farm-grid { position: relative; min-width: 620px; min-height: 380px; background: #d7ccc8; padding: 10px; border-radius: 12px; margin: 0; box-shadow: inset 0 2px 8px rgba(0,0,0,0.1); }
         .zone { position: absolute; width: 100px; height: 115px; background: #efebe9; border: 2px dashed #bcaaa4; border-radius: 8px; display: flex; flex-direction: column; align-items: center; justify-content: center; font-size: 0.70em; cursor: pointer; text-align: center; transition: 0.2s; clip-path: polygon(50% 0%, 100% 25%, 100% 75%, 50% 100%, 0% 75%, 0% 25%); z-index: 1; }
         .zone.selected { border: 3px solid #ff9800 !important; box-shadow: 0 0 10px rgba(255,152,0,0.6); transform: scale(1.05); z-index: 10;}
-        
         .zone-color-0 { background: #f3e5f5; border-color: #ce93d8; color: #7b1fa2; }
         .zone-color-1, .zone-color-2, .zone-color-3 { background: #efebe9; border-color: #bcaaa4; color: #5d4037; }
         .zone-color-4 { background: #c8e6c9; border-color: #2e7d32; color: #1b5e20; }
         .zone-color-5 { background: #1b5e20; border-color: #0a3311; color: white; }
-        
         .tuile-potager { background: var(--potager) !important; border: 2px solid #2e7d32 !important; color: #1b5e20; }
         .tuile-verger { background: var(--verger) !important; border: 2px solid #fbc02d !important; color: #5d4037; }
         .tuile-haie { background: #aed581 !important; border: 2px solid #558b2f !important; color: #33691e; }
@@ -61,25 +45,21 @@
         .tuile-composteur { background: #795548 !important; border: 2px solid #3e2723 !important; color: white; }
         .tuile-local { background: #607d8b !important; border: 2px solid #263238 !important; color: white; }
         .has-serre { box-shadow: inset 0 0 15px rgba(3, 169, 244, 0.6); border: 3px solid #03a9f4 !important; background: var(--serre) !important; }
-        
         .zone-id-0 { top: 10px; left: 10px; }   .zone-id-1 { top: 10px; left: 120px; }  .zone-id-2 { top: 10px; left: 230px; }  
         .zone-id-3 { top: 10px; left: 340px; }  .zone-id-4 { top: 10px; left: 450px; }  
         .zone-id-5 { top: 130px; left: 65px; }  .zone-id-6 { top: 130px; left: 175px; } .zone-id-7 { top: 130px; left: 285px; } 
         .zone-id-8 { top: 130px; left: 395px; } .zone-id-13 { top: 130px; left: 505px; } 
         .zone-id-14 { top: 250px; left: 10px; } .zone-id-9 { top: 250px; left: 120px; } .zone-id-10 { top: 250px; left: 230px; } 
         .zone-id-11 { top: 250px; left: 340px; } .zone-id-12 { top: 250px; left: 450px; }
-        
         .slot-container { display: flex; flex-direction: column; gap: 2px; width: 85%; margin-top: 2px;}
         .mini-plant { background: rgba(255,255,255,0.85); border: 1px solid rgba(0,0,0,0.3); border-radius: 4px; padding: 4px 2px; font-size: 0.85em; line-height: 1.1; cursor: pointer; text-align: center; }
         .mini-plant:hover { background: white; transform: scale(1.02); box-shadow: 0 2px 4px rgba(0,0,0,0.2); }
-        
         .card { border: 1px solid #ddd; border-radius: 6px; padding: 6px; margin-bottom: 4px; background: white; font-size: 0.75em; border-left: 4px solid var(--p1); cursor: help; position: relative;}
         .btn-action { width: 100%; padding: 8px; border: none; border-radius: 4px; font-weight: bold; color: white; cursor: pointer; font-size: 0.75em; margin-bottom: 3px; transition: 0.2s; }
         .btn-action:hover:not(:disabled) { filter: brightness(1.1); }
         .res-pill { background: #e8f5e9; padding: 2px 6px; border-radius: 10px; color: var(--p1); border: 1px solid var(--p1); margin-right: 3px;}
         .res-pv { background: #fff8e1; padding: 2px 6px; border-radius: 10px; color: #f57f17; border: 1px solid #fbc02d; font-weight:bold;}
         button:disabled { filter: grayscale(100%); opacity: 0.5; cursor: not-allowed; transform: none; }
-        
         .modal-overlay { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.8); z-index: 100; align-items: center; justify-content: center; }
         .modal-content { background: #fff; padding: 15px; border-radius: 12px; width: 95%; max-width: 1000px; max-height: 90vh; overflow-y: auto; box-shadow: 0 10px 30px rgba(0,0,0,0.5); }
         .rayon-grid { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 10px; }
@@ -87,21 +67,18 @@
         .btn-jard-action { width: 100%; margin-bottom: 5px; padding: 4px; font-size: 0.8em; cursor: pointer; background: #eee; border: 1px solid #ccc; border-radius: 4px; }
         .jard-card { border: 2px solid #ddd; padding: 6px; border-radius: 6px; margin-bottom: 6px; cursor: pointer; background: white; position: relative; font-size: 0.85em; transition: 0.2s;}
         .price-tag { position: absolute; top: -6px; right: -6px; background: var(--gold); padding: 1px 5px; border-radius: 8px; font-size: 0.8em; font-weight: bold; border: 1px solid #b8860b; }
-        
         .alert-rav { background: #ffebee; color: #c62828; padding: 4px; border-radius: 4px; font-size: 0.75em; margin-bottom: 5px; border: 1px solid #ef9a9a; text-align: center; font-weight: bold;}
         .alert-event { background: #f3e5f5; color: #6a1b9a; padding: 4px; border-radius: 4px; font-size: 0.8em; margin-bottom: 5px; border: 1px solid #ce93d8; text-align: center; font-weight: bold;}
         .logs { height: 180px; background: var(--dark); color: #a5d6a7; padding: 8px; font-family: monospace; font-size: 0.75em; overflow-y: auto; border-radius: 6px; margin-top:10px; border: 2px solid #455a64;}
-        
         .turn-banner { background: #ff9800; color: white; text-align: center; padding: 5px; font-weight: bold; display: none; border-radius: 4px; margin-bottom: 5px;}
         .turn-banner.active { display: block; background: #4caf50; }
-
         .market-preview-box { background: #f9f9f9; padding: 8px; border-radius: 6px; border: 1px solid #e0e0e0; margin-bottom: 8px; }
     </style>
 </head>
 <body>
 
 <div id="lobby">
-    <h1 style="font-size: 3em; margin-bottom: 10px;">🌱 La Main Verte <span style="font-size:0.4em; color:#a5d6a7; vertical-align: middle;">v65</span></h1>
+    <h1 style="font-size: 3em; margin-bottom: 10px;">🌱 La Main Verte <span style="font-size:0.4em; color:#a5d6a7; vertical-align: middle;">v67</span></h1>
     <p style="font-size: 1.2em; margin-bottom: 30px;">Choisissez un mode de jeu :</p>
     <button class="btn-lobby" onclick="startNewGame('SOLO')">👤 Jouer en Solo</button>
     <button class="btn-lobby" style="background:#8e24aa" onclick="startNewGame('IA_SOLO')">🤖 Mode Spectateur (IA Solo)</button>
@@ -117,13 +94,7 @@
     <div class="score-box">
         <div id="winner-text" class="score-winner">🏁 Bilan de l'Exploitation</div>
         <table class="score-table">
-            <thead>
-                <tr>
-                    <th>Catégorie de Points</th>
-                    <th>Joueur 1</th>
-                    <th id="th-j2">Joueur 2</th>
-                </tr>
-            </thead>
+            <thead><tr><th>Catégorie de Points</th><th>Joueur 1</th><th id="th-j2">Joueur 2</th></tr></thead>
             <tbody>
                 <tr><td>🏆 PV Acquis (Base, Coop, Objectifs)</td><td id="b1-base">0</td><td id="b2-base">0</td></tr>
                 <tr><td>💰 Oseille (1 PV / 3 sous)</td><td id="b1-m">0</td><td id="b2-m">0</td></tr>
@@ -139,12 +110,7 @@
     </div>
 </div>
 
-<div id="season-anim-overlay">
-    <div class="anim-box" id="anim-box">
-        <div id="anim-title" style="font-size: 3.5em; font-weight: bold; color: var(--p1);"></div>
-        <div id="anim-subtitle" style="font-size: 1.5em; color: #555;"></div>
-    </div>
-</div>
+<div id="season-anim-overlay"><div class="anim-box" id="anim-box"><div id="anim-title" style="font-size: 3.5em; font-weight: bold; color: var(--p1);"></div><div id="anim-subtitle" style="font-size: 1.5em; color: #555;"></div></div></div>
 
 <div class="main-game">
     <div id="turn-banner" class="turn-banner">Veuillez patienter...</div>
@@ -163,34 +129,27 @@
         <button onclick="confirmReset()" style="background:#ff5252; color:white; border:none; border-radius:4px; padding:4px 8px; cursor:pointer;">🧹 Reset</button>
     </div>
     
-    <div class="hud-opp" id="opp-hud">
-        <b>👀 Adversaire :</b> <span>💰 <span id="opp-money">0</span> | ⏳ <span id="opp-time">0</span>h | 💧 <span id="opp-water">0</span>L | 🏆 <span id="opp-pv">0</span></span>
-    </div>
-    
+    <div class="hud-opp" id="opp-hud"><b>👀 Adversaire :</b> <span>💰 <span id="opp-money">0</span> | ⏳ <span id="opp-time">0</span>h | 💧 <span id="opp-water">0</span>L | 🏆 <span id="opp-pv">0</span></span></div>
     <div id="event-zone" class="alert-event" style="display:none;"></div>
     <div id="ravageur-zone" class="alert-rav" style="display:none;"></div>
     <div id="aux-tray" style="display:none; gap:5px; margin-bottom:8px; background:#e3f2fd; padding:5px; border-radius:5px; border:1px solid #90caf9; flex-wrap:wrap; font-size:0.8em; color:#1565c0;"></div>
     
     <div style="display:flex; gap:15px; align-items:stretch; margin-top:5px; margin-bottom:5px;">
         <div class="farm-grid" id="farm-grid" style="flex:2;"></div>
-        
         <div style="flex:1; min-width: 250px; max-width: 340px; display:flex; flex-direction:column; gap:10px;">
             <div style="background:#f9a825; padding:8px; border-radius:6px; font-size:0.8em; text-align:center; color:white; box-shadow:0 2px 4px rgba(0,0,0,0.1);" title="Concours permanent. Se déclenche à la fin du jeu (An 3, Hiver). Le gagnant gagne 5 PV par concours.">
                 <b>🏆 Concours Annuels</b><br>Grosse Récolte : <span id="concours-max">--</span> | Nb Récoltes : <span id="concours-count">--</span>
             </div>
-            
             <div style="background:white; padding:10px; border-radius:8px; box-shadow:0 2px 4px rgba(0,0,0,0.1);">
                 <h3 style="margin:0 0 5px 0;" title="Renoncez à l'argent lors de vos récoltes pour financer des paliers et gagner des bonus.">🤝 Coopérative</h3>
                 <div id="coop-panel" style="background:#e8f5e9; padding:8px; border-radius:6px; font-size:0.8em; border:1px solid #4caf50;"></div>
             </div>
-            
             <div style="background:white; padding:10px; border-radius:8px; box-shadow:0 2px 4px rgba(0,0,0,0.1); flex:1;">
                 <h3 style="margin:0 0 8px 0; color: var(--p1);" title="Dépensez de l'argent et du temps pour améliorer vos capacités de fermier de façon permanente.">⚙️ Mes Améliorations</h3>
                 <div id="up-grid" style="display:grid; grid-template-columns: 1fr 1fr; gap:6px;"></div>
             </div>
         </div>
     </div>
-
     <div id="action-buttons-container" style="display: grid; grid-template-columns: repeat(4, 1fr); gap:4px; margin-top:5px;"></div>
     <div class="logs" id="game-logs"></div>
 </div>
@@ -199,10 +158,8 @@
     <h3 style="margin:0 0 5px 0;">🛒 Jardinerie</h3>
     <div id="market-preview-container" class="market-preview-box"></div>
     <div id="jard-buttons-container" style="display:grid; grid-template-columns: 1fr 1fr; gap:4px;"></div>
-    
     <h3 style="margin:15px 0 5px 0;">🎯 Mes Objectifs</h3>
     <div id="player-objectives" style="margin-bottom:10px;"></div>
-    
     <h3 style="margin:10px 0 5px 0;">🎒 Ma Main</h3>
     <div id="player-hand" style="flex:1; overflow-y:auto; padding-right:5px;"></div>
 </div>
@@ -210,7 +167,7 @@
 <div class="modal-overlay" id="jardinerie-modal"><div class="modal-content" id="modal-content-inner"></div></div>
 <div class="modal-overlay" id="foire-modal"><div class="modal-content" id="foire-content-inner"></div></div>
 
-<script>
+    <script>
     var firebaseConfig = {
         apiKey: "AIzaSyA_OHv6TDiVsn4PwM9s25gij8lBwQH8xrg",
         authDomain: "main-verte-72483.firebaseapp.com",
@@ -219,7 +176,6 @@
     };
 
     if (!firebase.apps.length) firebase.initializeApp(firebaseConfig);
-    
     var db = firebase.database().ref("game-session-001");
     var dbConfig = firebase.database().ref("game-config");
 
@@ -249,7 +205,7 @@
     var listCompagnes = ["Ail", "Aneth", "Agastache", "Basilic", "Bleuet", "Bourrache", "Capucine", "Cébette", "Cerfeuil", "Ciboulette", "Coriandre", "Cosmos", "Echalote", "Épinard", "Estragon", "Lin", "Marguerite", "Mélilot Blanc", "Mélisse", "Menthe", "Moutarde", "Oignon", "Origan", "Oeillet d'Inde", "Persil", "Romarin", "Sarriette", "Sauge", "Serpolet", "Souci", "Tanaisie", "Thym", "Tournesol"];
     var listOutils = ["Arrosoir", "Tuyau", "Enrouleur", "Brouette", "Sécateur", "Cagette", "Tuteur", "Treillage", "Barrière", "Gants", "Ceinture", "Outil"];
     var listCompost = ["Fumier", "Bois mort", "Carton", "Épluchures"];
-    var listAnimaux = ["Poules", "Moutons", "Chèvres", "Cheval", "Vache", "Cochon", "Animaux"];
+    var listAnimaux = ["Poules", "Moutons", "Chèvres", "Cheval", "Vache", "Cochon"];
 
     var COOP_TRACK = [
         { cost: 1, type: 'none', desc: "Étape de base" }, 
@@ -269,13 +225,7 @@
     var botEnabled = false; var autoTrain = false; var isBotThinking = false; var botDelay = 800; 
 
     window.discardCard = function(c) {
-        if (!state.discards) state.discards = {};
-        if (!state.discards.C) state.discards.C = [];
-        if (!state.discards.S) state.discards.S = [];
-        if (!state.discards.A) state.discards.A = [];
-        if (!state.discards.O) state.discards.O = [];
-        if (!state.discards.E) state.discards.E = [];
-        
+        if (!state.discards) state.discards = {C:[], S:[], A:[], O:[], E:[], R:[]};
         let targetDeck = 'C';
         if (c.cat === 'S') targetDeck = 'S';
         else if (c.cat === 'A' || c.cat === 'X') targetDeck = 'A';
@@ -285,7 +235,7 @@
         let cleanC = { ...c };
         delete cleanC.eCur; delete cleanC.sCur; delete cleanC.amd; 
         delete cleanC.compagne; delete cleanC.dead; delete cleanC.toRemove;
-        
+        if(!state.discards[targetDeck]) state.discards[targetDeck] = [];
         state.discards[targetDeck].push(cleanC);
     };
 
@@ -293,8 +243,7 @@
         if (!state.decks[deckType]) state.decks[deckType] = [];
         if (state.decks[deckType].length === 0) {
             if (state.discards && state.discards[deckType] && state.discards[deckType].length > 0) {
-                state.decks[deckType] = state.discards[deckType];
-                state.discards[deckType] = [];
+                state.decks[deckType] = state.discards[deckType]; state.discards[deckType] = [];
                 let nomPioche = deckType === 'C' ? 'Cultures' : (deckType === 'S' ? 'Soutiens' : (deckType === 'A' ? 'Auxiliaires' : (deckType === 'E' ? 'Événements' : 'Objectifs')));
                 addLog(`🔀 La pioche ${nomPioche} a été mélangée !`, state.turn);
             } else return null;
@@ -304,45 +253,38 @@
     };
 
     window.sync = function() {
+        if(state && !state.gameOver) {
+            [1, 2].forEach(pid => {
+                let pData = state['p'+pid];
+                if (!pData || !pData.objectives) return;
+                let vegNames = []; let treeCount = 0; let hasSerre = false, hasComposteur = false, hasLocal = false;
+                pData.zones.forEach(z => {
+                    if(z.batiment === 'SERRE') hasSerre = true; if(z.type === 'COMPOSTEUR' || z.batiment === 'COMPOSTEUR') hasComposteur = true; 
+                    if(z.type === 'LOCAL OUTILS' || z.batiment === 'LOCAL OUTILS') hasLocal = true;
+                    if(z.slots) z.slots.forEach(c => { if(c.cat === 'L') vegNames.push(c.nom); if(c.cat === 'A') treeCount++; });
+                });
+                let uniqueVeg = new Set(vegNames).size; let vegCounts = {}; vegNames.forEach(n => vegCounts[n] = (vegCounts[n] || 0) + 1);
+                let maxSameVeg = vegNames.length > 0 ? Math.max(...Object.values(vegCounts)) : 0;
+
+                pData.objectives.forEach(o => {
+                    if(o.achieved) return; 
+                    let points = 0; let match = o.desc ? o.desc.match(/(\d+)\s*PV/i) : null; 
+                    if(match) points = parseInt(match[1]);
+                    if(points === 0) { 
+                        if(o.nom.includes("Diversité")) points = 5; if(o.nom.includes("Monoculture")) points = 5; 
+                        if(o.nom.toLowerCase().includes("verger")) points = 6; if(o.nom.includes("Ferme")) points = 7; 
+                    }
+                    let achieved = false; let nL = o.nom.toLowerCase();
+                    if(nL.includes("diversité") && uniqueVeg >= 4) achieved = true;
+                    else if(nL.includes("monoculture") && maxSameVeg >= 4) achieved = true;
+                    else if(nL.includes("verger") && treeCount >= 3) achieved = true;
+                    else if(nL.includes("autonome") && hasSerre && hasComposteur && hasLocal) achieved = true;
+                    
+                    if(achieved) { o.achieved = true; pData.pv = (pData.pv || 0) + points; addLog(`🎯 Objectif accompli : ${o.nom} (+${points} 🏆) !`, pid); }
+                });
+            });
+        }
         if (state && typeof db !== 'undefined') db.set(state);
-    };
-    
-    function checkObjectives(pid) {
-        let pData = state['p'+pid];
-        if (!pData || !pData.objectives) return;
-        let vegNames = []; let treeCount = 0; let hasSerre = false, hasComposteur = false, hasLocal = false;
-        pData.zones.forEach(z => {
-            if(z.batiment === 'SERRE') hasSerre = true; 
-            if(z.type === 'COMPOSTEUR' || z.batiment === 'COMPOSTEUR') hasComposteur = true; 
-            if(z.type === 'LOCAL OUTILS' || z.batiment === 'LOCAL OUTILS') hasLocal = true;
-            if(z.slots) { z.slots.forEach(c => { if(c.cat === 'L') vegNames.push(c.nom); if(c.cat === 'A') treeCount++; }); }
-        });
-        let uniqueVeg = new Set(vegNames).size; 
-        let vegCounts = {}; vegNames.forEach(n => vegCounts[n] = (vegCounts[n] || 0) + 1);
-        let maxSameVeg = vegNames.length > 0 ? Math.max(...Object.values(vegCounts)) : 0;
-
-        pData.objectives.forEach(o => {
-            if(o.achieved) return; 
-            let points = 0; let match = o.desc ? o.desc.match(/(\d+)\s*PV/i) : null; 
-            if(match) points = parseInt(match[1]);
-            if(points === 0) { 
-                if(o.nom.includes("Diversité")) points = 5; if(o.nom.includes("Monoculture")) points = 5; 
-                if(o.nom.toLowerCase().includes("verger")) points = 6; if(o.nom.includes("Ferme")) points = 7; 
-            }
-            let achieved = false; let nomLower = o.nom.toLowerCase();
-            if(nomLower.includes("diversité") && uniqueVeg >= 4) achieved = true;
-            else if(nomLower.includes("monoculture") && maxSameVeg >= 4) achieved = true;
-            else if(nomLower.includes("verger") && treeCount >= 3) achieved = true;
-            else if(nomLower.includes("autonome") && hasSerre && hasComposteur && hasLocal) achieved = true;
-            
-            if(achieved) { o.achieved = true; pData.pv = (pData.pv || 0) + points; addLog(`🎯 Objectif accompli : ${o.nom} (+${points} 🏆) !`, pid); }
-        });
-    }
-
-    const originalSync = window.sync;
-    window.sync = function() {
-        if(state && !state.gameOver) { if(state.p1) checkObjectives(1); if(state.p2) checkObjectives(2); }
-        originalSync();
     };
 
     function isBotTurn() {
@@ -355,26 +297,15 @@
     }
     
     function safeAlert(msg) { if(isBotTurn()) console.warn("🤖 Bot alerte ignorée : " + msg); else alert(msg); }
-    function toggleBot() {
-        botEnabled = !botEnabled; let btn = document.getElementById('bot-btn');
-        if(btn) { btn.innerText = botEnabled ? "🤖 Bot: ON" : "🤖 Bot: OFF"; btn.style.background = botEnabled ? "#4caf50" : "#9c27b0"; }
-        if(botEnabled && state && state.turn === myId && !state.gameOver) triggerBot(state.turn);
-    }
-    function toggleAutoTrain() {
-        autoTrain = !autoTrain; botDelay = autoTrain ? 100 : 800; let btn = document.getElementById('auto-train-btn');
-        if(btn) { btn.innerText = autoTrain ? "🧬 Auto-Train: ON" : "🧬 Auto-Train: OFF"; btn.style.background = autoTrain ? "#4caf50" : "#009688"; }
-        if(autoTrain && !botEnabled) toggleBot();
-    }
+    function toggleBot() { botEnabled = !botEnabled; let btn = document.getElementById('bot-btn'); if(btn) { btn.innerText = botEnabled ? "🤖 Bot: ON" : "🤖 Bot: OFF"; btn.style.background = botEnabled ? "#4caf50" : "#9c27b0"; } if(botEnabled && state && state.turn === myId && !state.gameOver) triggerBot(state.turn); }
+    function toggleAutoTrain() { autoTrain = !autoTrain; botDelay = autoTrain ? 100 : 800; let btn = document.getElementById('auto-train-btn'); if(btn) { btn.innerText = autoTrain ? "🧬 Auto-Train: ON" : "🧬 Auto-Train: OFF"; btn.style.background = autoTrain ? "#4caf50" : "#009688"; } if(autoTrain && !botEnabled) toggleBot(); }
     function playChampion() { if(!state || state.gameOver) return; triggerBot(state.turn, true); }
 
     function triggerBot(pId, force = false) {
         if (isBotThinking || state.gameOver) { if(state.gameOver && autoTrain) setTimeout(() => confirmReset(true), 2500); return; }
-        let isIA = false;
-        if (state.mode === 'IA_SOLO' || state.mode === 'IA_VS_IA') isIA = true;
-        if (state.mode === 'VS_IA' && pId === 2) isIA = true;
+        let isIA = false; if (state.mode === 'IA_SOLO' || state.mode === 'IA_VS_IA') isIA = true; if (state.mode === 'VS_IA' && pId === 2) isIA = true;
         if (!force && !isIA) return;
-        isBotThinking = true;
-        setTimeout(() => { isBotThinking = false; try { executeBestAction(pId); } catch (error) { console.error("Erreur Bot :", error); actFin(); } }, botDelay);
+        isBotThinking = true; setTimeout(() => { isBotThinking = false; try { executeBestAction(pId); } catch (e) { console.error(e); actFin(); } }, botDelay);
     }
 
     function executeBestAction(pId) {
@@ -448,7 +379,7 @@
             });
             if (availableAnimals.length > 0) {
                 let chosenAnimal = availableAnimals[0]; let aniCost = chosenAnimal.includes('Poules') ? 1 : 2;
-                if (me.time >= aniCost) { let zToFertilize = me.zones.find(z => z.slots && z.slots.length > 0); if (zToFertilize) { localSelectedId = zToFertilize.id; actAnimaux(chosenAnimal); return; } }
+                if (me.time >= aniCost) { let zToFertilize = me.zones.find(z => z.slots && z.slots.length > 0); if (zToFertilize) { localSelectedId = zToFertilize.id; window.actAnimaux(chosenAnimal); return; } }
             }
         }
 
@@ -533,17 +464,14 @@
     }
 
     function setTxt(id, txt) { const el = document.getElementById(id); if(el) el.innerHTML = txt; }
-    function setTD(id, val) { const el = document.getElementById(id); if(el) el.innerText = val; }
-
     function addLog(msg, pid = myId) {
-        if(!state.gameLogs) state.gameLogs = []; 
-        let suffix = ""; 
+        if(!state.gameLogs) state.gameLogs = []; let suffix = ""; 
         if(state && state['p'+pid] && !msg.startsWith("🏆") && !msg.startsWith("> 🧹")) { let p = state['p'+pid]; suffix = ` [💰${p.money} | ⏳${p.time} | 🏆${p.pv||0}]`; }
         state.gameLogs.unshift(`[J${pid}] ` + msg + suffix);
         if(state.gameLogs.length > 250) state.gameLogs.pop(); 
     }
 
-    function plantClick(zId, idx) {
+    window.plantClick = function(zId, idx) {
         if (state.turn !== myId || state.gameOver) return;
         const me = state['p'+myId]; const z = me.zones[zId];
         if (!z || !z.slots) return; const c = z.slots[idx];
@@ -552,7 +480,7 @@
         else { safeAlert(`Cette plante n'a plus soif, elle a juste besoin de soleil (☀️${c.sCur}) pour arriver à maturité !`); }
     }
 
-    function render() {
+    window.render = function() {
         if(!state || !myId) return; 
         if(state.gameOver && document.getElementById('game-over-screen').style.display !== 'none') showGameOver();
 
@@ -1390,6 +1318,152 @@
         if(state.mode === 'SOLO' || state.mode === 'IA_SOLO') resolveSeason(); 
         else { if(state.turn === 1) { state.turn = 2; addLog(`⏭️ Fin de tour.`, 1); sync(); } else resolveSeason(); } 
     }
+
+        window.startNewGame = function(mode) {
+        myId = 1; 
+        
+        dbConfig.once('value').then((snap) => {
+            let adminData = snap.val();
+
+            let initZones = () => {
+                let z = [];
+                for(let i=0; i<15; i++) {
+                    let defaultType = (i === 14) ? 'POTAGER' : null; 
+                    z.push({id: i, num: zoneNumbersMap[i], type: defaultType, slots: [], batiment: null});
+                }
+                return z;
+            };
+            
+            let initP = () => ({
+                money: 10, time: 10, timeMax: 10, water: 0, waterMax: 0, compost: 0, pv: 0, fences: 0,
+                hand: [], upgrades: Array(8).fill(1), zones: initZones(), auxActifs: [], objectives: [], animalUses: {}
+            });
+
+            let decksToUse;
+            if (adminData && adminData.decks) {
+                decksToUse = JSON.parse(JSON.stringify(adminData.decks));
+            } else if (typeof adminDecks !== 'undefined') {
+                decksToUse = JSON.parse(JSON.stringify(adminDecks));
+            } else {
+                decksToUse = {
+                    C: [
+                        { nom: "Tomates", cat: 'L', p: 2, g: 4, e: 2, s: 2, t: 1, sm: ["P"], rc: ["E", "A"] },
+                        { nom: "Carottes", cat: 'L', p: 1, g: 3, e: 1, s: 1, t: 1, sm: ["P", "E"], rc: ["E", "A", "H"] }
+                    ],
+                    S: [
+                        { nom: "Poules", cat: 'S', p: 3, t: 1, desc: "Action rendement et protection." },
+                        { nom: "Cheval", cat: 'S', p: 5, t: 1, desc: "Action rendement et protège blessures." },
+                        { nom: "Barrière", cat: 'S', p: 2, t: 1, desc: "Sert de Clôture." },
+                        { nom: "Naissances", cat: 'S', p: 3, t: 1, desc: "Permet de jouer 2 fois l'action d'un animal." }
+                    ],
+                    A: [
+                        { nom: "Pommier", cat: 'A', p: 4, g: 6, e: 3, s: 3, t: 1, sm: ["H", "P"], rc: ["A"] }
+                    ],
+                    O: [
+                        { nom: "Ferme Autonome", desc: "Avoir Serre, Local et Composteur (7 PV)" }
+                    ],
+                    E: [
+                        { nom: "Saison exceptionnelle", type: "Positif", desc: "+2 sous à la récolte" },
+                        { nom: "Blessure", type: "Négatif", desc: "Un jardinier (temps) en moins cette saison" }
+                    ]
+                };
+            }
+
+            let fallbackSettings = (adminData && adminData.settings) ? adminData.settings : {};
+            let settingsToUse = { 
+                ...fallbackSettings,
+                costArroserTemps: 1, costAmenderTemps: 1, costRecolterTemps: 2, costComposterTemps: 1,
+                costAmenagerPotagerOr: 2, costAmenagerPotagerTemps: 3,
+                costSerreOr: 3, costComposteurOr: 4, costLocalOr: 5,
+                costUp2Or: 4, costUp2Temps: 3, costUp3Or: 8, costUp3Temps: 5,
+                jardSlot1Temps: 3, jardSlot1Pioches: 5,
+                jardSlot2Temps: 2, jardSlot2Pioches: 3,
+                jardSlot3Temps: 2, jardSlot3Pioches: 2,
+                jardSlot4Temps: 1, jardSlot4Pioches: 1
+            };
+
+            state = {
+                mode: mode, turn: 1, annee: 1, saisonIdx: 0, gameOver: false,
+                gameLogs: ["🌱 Nouvelle partie démarrée ! Phase de préparation ignorée (Saison 1)."],
+                p1: initP(), p2: initP(),
+                market: { C:[], S:[], A:[] }, 
+                decks: decksToUse,
+                discards: { C:[], S:[], A:[], O:[], E:[] },
+                currentMeteo: {p:1, s:1}, currentRav: null, currentEvent: null,
+                coop: { level: 0, unlocks: {} }, foire: { camelot: 0, conseiller: 0 },
+                settings: settingsToUse
+            };
+            
+            if (adminData && adminData.decks && adminData.decks.R) {
+                state.ravPool = JSON.parse(JSON.stringify(adminData.decks.R));
+            } else {
+                state.ravPool = [
+                    { nom: "Limace des jardins", d: 2 },
+                    { nom: "Puceron vert", d: 1 },
+                    { nom: "Sanglier", d: 3 }
+                ];
+            }
+
+            ['C', 'S', 'A'].forEach(cat => {
+                for(let i=0; i<2; i++) {
+                    let newC = draw(cat);
+                    if(newC) state.market[cat].push(newC);
+                }
+            });
+
+            document.getElementById('lobby').style.display = 'none';
+            sync();
+            render();
+        });
+    };
+
+    window.showGameOver = function() {
+        document.getElementById('game-over-screen').style.display = 'flex';
+
+        [1, 2].forEach(pid => {
+            let pData = state['p'+pid];
+            if(pData && pData.scoreDetails) {
+                document.getElementById(`b${pid}-base`).innerText = pData.scoreDetails.base + pData.scoreDetails.objPV;
+                document.getElementById(`b${pid}-m`).innerText = pData.scoreDetails.mPV;
+                document.getElementById(`b${pid}-z`).innerText = pData.scoreDetails.zPV;
+                document.getElementById(`b${pid}-u`).innerText = pData.scoreDetails.uPV;
+                document.getElementById(`b${pid}-tot`).innerText = pData.scoreDetails.finalScore;
+            }
+        });
+
+        let s1 = state.p1.scoreDetails ? state.p1.scoreDetails.finalScore : 0;
+        let s2 = state.p2.scoreDetails ? state.p2.scoreDetails.finalScore : 0;
+        let winText = "⚖️ Égalité parfaite !";
+        if(s1 > s2) winText = "🏆 Le Joueur 1 a la meilleure ferme !";
+        else if(s2 > s1) winText = "🏆 Le Joueur 2 a la meilleure ferme !";
+
+        if(state.mode === 'SOLO' || state.mode === 'IA_SOLO') {
+            document.getElementById('th-j2').style.display = 'none';
+            document.getElementById('b2-base').style.display = 'none';
+            document.getElementById('b2-m').style.display = 'none';
+            document.getElementById('b2-z').style.display = 'none';
+            document.getElementById('b2-u').style.display = 'none';
+            document.getElementById('b2-tot').style.display = 'none';
+            winText = "🏁 Bilan de votre Exploitation";
+        }
+
+        document.getElementById('winner-text').innerText = winText;
+    };
+
+    window.confirmReset = function(global = false) {
+        if (confirm("Voulez-vous vraiment réinitialiser la partie ?")) {
+            if(global) db.remove().then(() => location.reload());
+            else startNewGame(state.mode || 'SOLO');
+        }
+    };
+
+    db.on('value', snap => {
+        let val = snap.val();
+        if(val) {
+            state = val;
+            if(myId) render();
+        }
+    });
 
 </script>
 </body>
