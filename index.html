@@ -2,7 +2,7 @@
 <html lang="fr">
 <head>
     <meta charset="UTF-8">
-    <title>La Main Verte - v63 (Élevage et Rendements)</title>
+    <title>La Main Verte - v64 (Refonte Interface)</title>
     <script src="https://www.gstatic.com/firebasejs/9.17.1/firebase-app-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/9.17.1/firebase-database-compat.js"></script>
     
@@ -47,12 +47,14 @@
         .score-winner { color: var(--p1); font-size: 2em; margin-bottom: 10px; font-weight:bold; }
         
         .main-game { flex: 1; display: flex; flex-direction: column; padding: 10px; overflow-y: auto; }
-        .sidebar { width: 440px; background: white; border-left: 2px solid #ddd; padding: 10px; display: flex; flex-direction: column; overflow-y: auto;}
+        /* Agrandissement de la largeur de la sidebar pour mieux voir les cartes */
+        .sidebar { width: 550px; background: white; border-left: 2px solid #ddd; padding: 10px; display: flex; flex-direction: column; overflow-y: auto;}
         
         .hud { display: flex; justify-content: space-between; align-items: center; background: white; padding: 10px; border-radius: 8px; box-shadow: 0 2px 5px rgba(0,0,0,0.1); margin-bottom: 5px; font-weight: bold; font-size: 0.9em; border-top: 4px solid var(--p1); }
         .hud-opp { background: #e3f2fd; padding: 6px 10px; border-radius: 8px; margin-bottom: 10px; font-size: 0.8em; color: #1565c0; border: 1px solid #bbdefb; display: flex; justify-content: space-between; align-items: center;}
         
-        .farm-grid { position: relative; width: 100%; min-height: 430px; background: #d7ccc8; padding: 10px; border-radius: 12px; margin-top: 5px; margin-bottom: 5px; }
+        /* Réduction de la hauteur minimale du plateau suite au passage sur 3 lignes */
+        .farm-grid { position: relative; width: 100%; min-height: 330px; background: #d7ccc8; padding: 10px; border-radius: 12px; margin-top: 5px; margin-bottom: 5px; }
         .zone { position: absolute; width: 100px; height: 115px; background: #efebe9; border: 2px dashed #bcaaa4; border-radius: 8px; display: flex; flex-direction: column; align-items: center; justify-content: center; font-size: 0.70em; cursor: pointer; text-align: center; transition: 0.2s; clip-path: polygon(50% 0%, 100% 25%, 100% 75%, 50% 100%, 0% 75%, 0% 25%); z-index: 1; }
         .zone.selected { border: 3px solid #ff9800 !important; box-shadow: 0 0 10px rgba(255,152,0,0.6); transform: scale(1.05); z-index: 10;}
         
@@ -71,11 +73,13 @@
         .tuile-local { background: #607d8b !important; border: 2px solid #263238 !important; color: white; }
         .has-serre { box-shadow: inset 0 0 15px rgba(3, 169, 244, 0.6); border: 3px solid #03a9f4 !important; background: var(--serre) !important; }
         
+        /* POSITIONS RECALCULÉES SUR 3 LIGNES (La zone 13 est remontée en fin de ligne 2) */
         .zone-id-0 { top: 10px; left: 10px; }   .zone-id-1 { top: 10px; left: 120px; }  .zone-id-2 { top: 10px; left: 230px; }  
         .zone-id-3 { top: 10px; left: 340px; }  .zone-id-4 { top: 10px; left: 450px; }  .zone-id-5 { top: 100px; left: 65px; }  
         .zone-id-6 { top: 100px; left: 175px; } .zone-id-7 { top: 100px; left: 285px; } .zone-id-8 { top: 100px; left: 395px; } 
+        .zone-id-13 { top: 100px; left: 505px; } /* Anciennement à top:280, left:450 */
         .zone-id-9 { top: 190px; left: 120px; } .zone-id-10 { top: 190px; left: 230px; } .zone-id-11 { top: 190px; left: 340px; } 
-        .zone-id-12 { top: 190px; left: 450px; } .zone-id-13 { top: 280px; left: 450px; } .zone-id-14 { top: 190px; left: 10px; } 
+        .zone-id-12 { top: 190px; left: 450px; } .zone-id-14 { top: 190px; left: 10px; } 
         
         .slot-container { display: flex; flex-direction: column; gap: 2px; width: 85%; margin-top: 2px;}
         .mini-plant { background: rgba(255,255,255,0.85); border: 1px solid rgba(0,0,0,0.3); border-radius: 4px; padding: 4px 2px; font-size: 0.85em; line-height: 1.1; cursor: pointer; text-align: center; }
@@ -109,7 +113,7 @@
 <body>
 
 <div id="lobby">
-    <h1 style="font-size: 3em; margin-bottom: 10px;">🌱 La Main Verte <span style="font-size:0.4em; color:#a5d6a7; vertical-align: middle;">v63</span></h1>
+    <h1 style="font-size: 3em; margin-bottom: 10px;">🌱 La Main Verte <span style="font-size:0.4em; color:#a5d6a7; vertical-align: middle;">v64</span></h1>
     <p style="font-size: 1.2em; margin-bottom: 30px;">Choisissez un mode de jeu :</p>
     <button class="btn-lobby" onclick="startNewGame('SOLO')">👤 Jouer en Solo</button>
     <button class="btn-lobby" style="background:#8e24aa" onclick="startNewGame('IA_SOLO')">🤖 Mode Spectateur (IA Solo)</button>
@@ -230,10 +234,11 @@
     var ALL_SEASONS = ["P","E","A","H"];
     var zoneNumbersMap = [0, 1, 1, 4, 4, 2, 3, 3, 5, 2, 3, 4, 5, 5, null];
 
+    // Mise à jour de l'adjacencyMap pour la zone 13 qui est remontée à droite de la zone 8
     var adjacencyMap = {
-        0:[1,5], 1:[0,2,5,6], 2:[1,3,6,7], 3:[2,4,7,8], 4:[3,8],
-        5:[0,1,6,9,14], 6:[1,2,5,7,9,10], 7:[2,3,6,8,10,11], 8:[3,4,7,11,12],
-        9:[5,6,10,14], 10:[6,7,9,11], 11:[7,8,10,12], 12:[8,11,13], 13:[12], 14:[5,9]
+        0:[1,5], 1:[0,2,5,6], 2:[1,3,6,7], 3:[2,4,7,8], 4:[3,8,13],
+        5:[0,1,6,9,14], 6:[1,2,5,7,9,10], 7:[2,3,6,8,10,11], 8:[3,4,7,11,12,13],
+        9:[5,6,10,14], 10:[6,7,9,11], 11:[7,8,10,12], 12:[8,11,13], 13:[4,8,12], 14:[5,9]
     };
 
     var listPetitsFruits = ["Fraise", "Melon", "Pastèque"]; 
@@ -521,7 +526,6 @@
             if (zToAmend) { localSelectedId = zToAmend.id; actAmd(zToAmend.id); return; }
         }
 
-        // --- BOT : JOUE UN ANIMAL DE SA MAIN ---
         for (let i = 0; i < me.hand.length; i++) {
             let c = me.hand[i];
             let cost = Math.max(0, (c.t || 1) - (me.upgrades[2] - 1));
@@ -533,7 +537,6 @@
             }
         }
 
-        // --- BOT : UTILISE UN ANIMAL DEJA POSE ---
         let myAnimals = (me.auxActifs || []).filter(a => listAnimaux.some(ani => a && a.includes(ani)));
         if (myAnimals.length > 0) {
             let hasNaissances = (me.auxActifs || []).some(a => a && a.includes("Naissances"));
@@ -676,7 +679,7 @@
         }
 
         let costCons = 2 + (state.foire.conseiller || 0);
-        if (state.annee >= 2 && me.time >= costCons && state.decks.O && state.decks.O.length > 0) {
+        if (state.annee >= 2 && me.time >= costCons) {
             me.time -= costCons; state.foire.conseiller = (state.foire.conseiller || 0) + 1;
             let obj = draw('O');
             if(obj) {
@@ -960,7 +963,6 @@
         }
     }
 
-    // --- NOUVELLE ACTION : ANIMAUX ---
     window.actAnimaux = function(botChosenAnimal = null) {
         const pId = state.turn; const me = state['p'+pId];
         
@@ -1387,7 +1389,6 @@
         
         let zNum = z.num != null ? Number(z.num) : null;
 
-        // EVENEMENT : Grêle
         if(ch==="1" && state.currentEvent && state.currentEvent.nom === "Grêle") return safeAlert("Impossible de construire une Serre pendant la Grêle !");
 
         if(ch==="1") { 
@@ -1773,7 +1774,6 @@
                 }
             }
             
-            // Remise à zéro des animaux utilisés pour la nouvelle saison
             pData.animalUses = {};
             pData.time = Math.max(0, pData.timeMax + timeMod); 
         });
