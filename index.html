@@ -2,7 +2,7 @@
 <html lang="fr">
 <head>
     <meta charset="UTF-8">
-    <title>La Main Verte - v64 (Refonte Interface)</title>
+    <title>La Main Verte - v65 (Règles Officielles)</title>
     <script src="https://www.gstatic.com/firebasejs/9.17.1/firebase-app-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/9.17.1/firebase-database-compat.js"></script>
     
@@ -47,13 +47,11 @@
         .score-winner { color: var(--p1); font-size: 2em; margin-bottom: 10px; font-weight:bold; }
         
         .main-game { flex: 1; display: flex; flex-direction: column; padding: 10px; overflow-y: auto; }
-        /* Agrandissement de la largeur de la sidebar pour mieux voir les cartes */
         .sidebar { width: 550px; background: white; border-left: 2px solid #ddd; padding: 10px; display: flex; flex-direction: column; overflow-y: auto;}
         
         .hud { display: flex; justify-content: space-between; align-items: center; background: white; padding: 10px; border-radius: 8px; box-shadow: 0 2px 5px rgba(0,0,0,0.1); margin-bottom: 5px; font-weight: bold; font-size: 0.9em; border-top: 4px solid var(--p1); }
         .hud-opp { background: #e3f2fd; padding: 6px 10px; border-radius: 8px; margin-bottom: 10px; font-size: 0.8em; color: #1565c0; border: 1px solid #bbdefb; display: flex; justify-content: space-between; align-items: center;}
         
-        /* Réduction de la hauteur minimale du plateau suite au passage sur 3 lignes */
         .farm-grid { position: relative; width: 100%; min-height: 330px; background: #d7ccc8; padding: 10px; border-radius: 12px; margin-top: 5px; margin-bottom: 5px; }
         .zone { position: absolute; width: 100px; height: 115px; background: #efebe9; border: 2px dashed #bcaaa4; border-radius: 8px; display: flex; flex-direction: column; align-items: center; justify-content: center; font-size: 0.70em; cursor: pointer; text-align: center; transition: 0.2s; clip-path: polygon(50% 0%, 100% 25%, 100% 75%, 50% 100%, 0% 75%, 0% 25%); z-index: 1; }
         .zone.selected { border: 3px solid #ff9800 !important; box-shadow: 0 0 10px rgba(255,152,0,0.6); transform: scale(1.05); z-index: 10;}
@@ -73,11 +71,10 @@
         .tuile-local { background: #607d8b !important; border: 2px solid #263238 !important; color: white; }
         .has-serre { box-shadow: inset 0 0 15px rgba(3, 169, 244, 0.6); border: 3px solid #03a9f4 !important; background: var(--serre) !important; }
         
-        /* POSITIONS RECALCULÉES SUR 3 LIGNES (La zone 13 est remontée en fin de ligne 2) */
         .zone-id-0 { top: 10px; left: 10px; }   .zone-id-1 { top: 10px; left: 120px; }  .zone-id-2 { top: 10px; left: 230px; }  
         .zone-id-3 { top: 10px; left: 340px; }  .zone-id-4 { top: 10px; left: 450px; }  .zone-id-5 { top: 100px; left: 65px; }  
         .zone-id-6 { top: 100px; left: 175px; } .zone-id-7 { top: 100px; left: 285px; } .zone-id-8 { top: 100px; left: 395px; } 
-        .zone-id-13 { top: 100px; left: 505px; } /* Anciennement à top:280, left:450 */
+        .zone-id-13 { top: 100px; left: 505px; }
         .zone-id-9 { top: 190px; left: 120px; } .zone-id-10 { top: 190px; left: 230px; } .zone-id-11 { top: 190px; left: 340px; } 
         .zone-id-12 { top: 190px; left: 450px; } .zone-id-14 { top: 190px; left: 10px; } 
         
@@ -113,7 +110,7 @@
 <body>
 
 <div id="lobby">
-    <h1 style="font-size: 3em; margin-bottom: 10px;">🌱 La Main Verte <span style="font-size:0.4em; color:#a5d6a7; vertical-align: middle;">v64</span></h1>
+    <h1 style="font-size: 3em; margin-bottom: 10px;">🌱 La Main Verte <span style="font-size:0.4em; color:#a5d6a7; vertical-align: middle;">v65</span></h1>
     <p style="font-size: 1.2em; margin-bottom: 30px;">Choisissez un mode de jeu :</p>
     <button class="btn-lobby" onclick="startNewGame('SOLO')">👤 Jouer en Solo</button>
     <button class="btn-lobby" style="background:#8e24aa" onclick="startNewGame('IA_SOLO')">🤖 Mode Spectateur (IA Solo)</button>
@@ -234,7 +231,6 @@
     var ALL_SEASONS = ["P","E","A","H"];
     var zoneNumbersMap = [0, 1, 1, 4, 4, 2, 3, 3, 5, 2, 3, 4, 5, 5, null];
 
-    // Mise à jour de l'adjacencyMap pour la zone 13 qui est remontée à droite de la zone 8
     var adjacencyMap = {
         0:[1,5], 1:[0,2,5,6], 2:[1,3,6,7], 3:[2,4,7,8], 4:[3,8,13],
         5:[0,1,6,9,14], 6:[1,2,5,7,9,10], 7:[2,3,6,8,10,11], 8:[3,4,7,11,12,13],
@@ -679,7 +675,7 @@
         }
 
         let costCons = 2 + (state.foire.conseiller || 0);
-        if (state.annee >= 2 && me.time >= costCons) {
+        if (state.annee >= 2 && me.time >= costCons && state.decks.O && state.decks.O.length > 0) {
             me.time -= costCons; state.foire.conseiller = (state.foire.conseiller || 0) + 1;
             let obj = draw('O');
             if(obj) {
@@ -867,7 +863,7 @@
                         htmlSlots += `<div class="mini-plant" onclick="event.stopPropagation(); plantClick(${z.id}, ${idx})"><b>${yieldInfo}</b><br>💧${c.eCur} ☀️${c.sCur}`;
                         
                         if(c.eCur <= 0 && c.sCur <= 0) {
-                            htmlSlots += `<button style="background:var(--p1); color:white; border:none; padding:2px; width:100%; border-radius:3px; margin-top:2px; font-size:0.9em; cursor:pointer;" onclick="event.stopPropagation(); actionRecolter(${z.id}, ${idx})" ${!isMyTurn || me.time<s.costRecolterTemps || state.gameOver ? 'disabled':''}>🧺 Récolter</button>`;
+                            htmlSlots += `<button style="background:var(--p1); color:white; border:none; padding:2px; width:100%; border-radius:3px; margin-top:2px; font-size:0.9em; cursor:pointer;" onclick="event.stopPropagation(); actionRecolter(${z.id}, ${idx})" ${!isMyTurn || me.time<s.costRecolterTemps || state.gameOver ? 'disabled':''}>🧺 Récolter (-${s.costRecolterTemps}h)</button>`;
                         }
                         htmlSlots += `</div>`;
                     });
@@ -1361,7 +1357,7 @@
         me.money -= costO; me.time -= costH; zoneCible.type = t; 
         
         if(t === 'MARE') { 
-            me.waterMax += 4; 
+            me.waterMax += 7; 
             me.water = Math.min(me.waterMax, (me.water||0) + 4); 
         }
         
@@ -1389,6 +1385,7 @@
         
         let zNum = z.num != null ? Number(z.num) : null;
 
+        // EVENEMENT : Grêle
         if(ch==="1" && state.currentEvent && state.currentEvent.nom === "Grêle") return safeAlert("Impossible de construire une Serre pendant la Grêle !");
 
         if(ch==="1") { 
@@ -1711,35 +1708,49 @@
     }
 
     function resolveSeason() {
-        let curS = ALL_SEASONS[state.saisonIdx]; 
-        
-        let maxPrecip = (state.currentEvent && state.currentEvent.nom === "Sécheresse") ? 2 : 3;
-        let pBase = Math.floor(Math.random() * maxPrecip) + 1; 
-        let sBase = Math.floor(Math.random() * 2) + 1;
-        state.currentMeteo = {p: pBase, s: sBase};
-
-        if(state.ravPool && state.ravPool.length > 0 && Math.random() < 0.3) { state.currentRav = state.ravPool[Math.floor(Math.random()*state.ravPool.length)]; } else { state.currentRav = null; }
-
         let isFinalTurn = (state.saisonIdx === 3 && state.annee === 3);
 
-        [1, 2].forEach(pid => {
-            let pData = state['p'+pid]; let bClimat = pData.upgrades[4] > 1 ? 1 : 0; 
-            pData.water = Math.min(pData.waterMax || 0, (pData.water || 0) + pBase + bClimat);
+        // --- ORDRE STRICT DE LA PHASE DE PRÉPARATION ---
+        // S'il s'agit du tout premier tour (Année 1, Printemps), on ignore la phase de préparation.
+        let skipPrep = (state.annee === 1 && state.saisonIdx === 0);
 
-            pData.zones.forEach(z => { 
-                if(z && z.slots && z.slots.length > 0) { 
-                    z.slots.forEach(c => {
-                        c.eCur = Math.max(0, c.eCur - (pBase + bClimat)); c.sCur = Math.max(0, c.sCur - (sBase + bClimat)); 
-                        if (isFinalTurn && c.eCur === 0 && c.sCur === 0) { const mGain = (c.g + (pData.upgrades[3]-1) + (c.amd||0)); pData.money += mGain; c.toRemove = true; }
-                    });
-                    z.slots = z.slots.filter(c => {
-                        if (c.toRemove) discardCard(c);
-                        return !c.toRemove;
-                    });
-                } 
-            });
+        if (!skipPrep) {
+            // 1. ÉVÉNEMENT
+            if (state.currentEvent) {
+                discardCard(state.currentEvent);
+                state.currentEvent = null;
+            }
+            state.currentEvent = draw('E');
+            if (state.currentEvent && state.currentEvent.nom === "Aide de la région") {
+                [1, 2].forEach(pid => state['p'+pid].money += 2);
+                addLog("🏛️ Événement : Aide de la région (+2💰 pour tous !)", 1);
+            }
+
+            // 2. RAVAGEURS
+            if(state.ravPool && state.ravPool.length > 0 && Math.random() < 0.3) { 
+                state.currentRav = state.ravPool[Math.floor(Math.random()*state.ravPool.length)]; 
+            } else { 
+                state.currentRav = null; 
+            }
+
+            // 3. MÉTÉO
+            let maxPrecip = (state.currentEvent && state.currentEvent.nom === "Sécheresse") ? 2 : 3;
+            state.currentMeteo = {
+                p: Math.floor(Math.random() * maxPrecip) + 1, 
+                s: Math.floor(Math.random() * 2) + 1
+            };
+        }
+
+        let pBase = state.currentMeteo.p;
+        let sBase = state.currentMeteo.s;
+
+        // --- RÉSOLUTION POUR CHAQUE JOUEUR ---
+        [1, 2].forEach(pid => {
+            let pData = state['p'+pid]; 
+            let bClimat = pData.upgrades[4] > 1 ? 1 : 0; 
             
-            if(state.currentRav) {
+            // Application des attaques de Ravageurs
+            if(!skipPrep && state.currentRav) {
                 let ravName = state.currentRav.n || state.currentRav.nom;
                 let isProtected = false;
                 
@@ -1755,7 +1766,36 @@
                     pData.money = Math.max(0, pData.money - state.currentRav.d);
                 }
             }
+
+            // Remplissage des réserves d'eau
+            pData.water = Math.min(pData.waterMax || 0, (pData.water || 0) + pBase + bClimat);
+
+            // 4. PLANTES COMPAGNES & APPLICATION MÉTÉO SUR LES CULTURES
+            pData.zones.forEach(z => { 
+                if(z && z.slots && z.slots.length > 0) { 
+                    z.slots.forEach(c => {
+                        let compBonusE = 0;
+                        if (c.compagne && (c.compagne.includes("Basilic") || c.compagne.includes("Thym") || c.compagne.includes("Romarin") || c.compagne.includes("Menthe"))) {
+                            compBonusE = 1; // La compagne aromatique réduit le besoin en eau de 1
+                        }
+
+                        c.eCur = Math.max(0, c.eCur - (pBase + bClimat + compBonusE)); 
+                        c.sCur = Math.max(0, c.sCur - (sBase + bClimat)); 
+                        
+                        if (isFinalTurn && c.eCur === 0 && c.sCur === 0) { 
+                            const mGain = (c.g + (pData.upgrades[3]-1) + (c.amd||0)); 
+                            pData.money += mGain; 
+                            c.toRemove = true; 
+                        }
+                    });
+                    z.slots = z.slots.filter(c => {
+                        if (c.toRemove) discardCard(c);
+                        return !c.toRemove;
+                    });
+                } 
+            });
             
+            // Fin de saison : Composteur automatique via Sécateur
             let hasSecateur = (pData.auxActifs || []).some(a => a && a.includes("Sécateur"));
             let hasVergerOrHaie = pData.zones.some(z => z.type === 'VERGER' || z.type === 'HAIE');
             let hasComposteur = pData.zones.some(z => z.type === 'COMPOSTEUR' || z.batiment === 'COMPOSTEUR');
@@ -1765,6 +1805,7 @@
                 addLog(`✂️ Sécateur : ${pData.time}h restantes ➔ +${pData.time}💩`, pid);
             }
 
+            // Réinitialisation du Temps et des Animaux
             let timeMod = 0;
             if (state.currentEvent) {
                 if (state.currentEvent.nom === "Travail en musique") timeMod = 2;
@@ -1778,10 +1819,12 @@
             pData.time = Math.max(0, pData.timeMax + timeMod); 
         });
 
+        // Concours Annuel (A la fin de l'Hiver)
         if(state.saisonIdx === 3) {
             let s1 = state.p1.stats || {maxHarvest:0, harvestCount:0}; let s2 = state.p2.stats || {maxHarvest:0, harvestCount:0};
             if(s1.maxHarvest > s2.maxHarvest) { state.p1.pv += 5; addLog("🏆 Concours Grosse Récolte remporté ! (+5 PV)", 1); } else if(s2.maxHarvest > s1.maxHarvest) { state.p2.pv += 5; addLog("🏆 Concours Grosse Récolte remporté ! (+5 PV)", 2); }
             if(s1.harvestCount > s2.harvestCount) { state.p1.pv += 5; addLog("🏆 Concours Nb Récoltes remporté ! (+5 PV)", 1); } else if(s2.harvestCount > s1.harvestCount) { state.p2.pv += 5; addLog("🏆 Concours Nb Récoltes remporté ! (+5 PV)", 2); }
+            
             state.p1.stats = {maxHarvest:0, harvestCount:0}; state.p2.stats = {maxHarvest:0, harvestCount:0}; state.foire = { camelot: 0, conseiller: 0 };
             
             if(isFinalTurn) {
@@ -1794,8 +1837,10 @@
             }
         }
 
+        // Avancement de la Saison
         state.saisonIdx++; if(state.saisonIdx > 3) { state.saisonIdx = 0; state.annee++; }
 
+        // Fin de Partie : Calcul des Scores
         if(state.annee > 3 && !state.gameOver) {
             [1, 2].forEach(pid => {
                 let pData = state['p'+pid];
@@ -1824,24 +1869,10 @@
             state.gameOver = true; addLog("🏁 Fin des 3 années de jeu. Décompte final !", myId); sync(); return;
         }
 
+        // Vérification de la mortalité après transition de saison
         let newSeason = ALL_SEASONS[state.saisonIdx];
-        
-        if (state.currentEvent) {
-            discardCard(state.currentEvent);
-            state.currentEvent = null;
-        }
-        
-        if (!(state.annee === 1 && state.saisonIdx === 0)) {
-            state.currentEvent = draw('E');
-            if (state.currentEvent && state.currentEvent.nom === "Aide de la région") {
-                [1, 2].forEach(pid => state['p'+pid].money += 2);
-                addLog("🏛️ Événement - Aide de la région : +2💰 pour tous !", 1);
-            }
-        }
-
         [1, 2].forEach(pid => {
             let pData = state['p'+pid];
-            
             pData.zones.forEach(z => { 
                 if(z && z.slots && z.slots.length > 0) { 
                     z.slots.forEach(c => {
@@ -1936,7 +1967,7 @@
             }
 
             let settingsToUse = (adminData && adminData.settings) ? adminData.settings : { 
-                costArroserTemps: 1, costAmenderTemps: 1, costRecolterTemps: 1, costComposterTemps: 1,
+                costArroserTemps: 1, costAmenderTemps: 1, costRecolterTemps: 2, costComposterTemps: 1, // Récolte corrigée à 2h
                 costAmenagerPotagerOr: 2, costAmenagerPotagerTemps: 3,
                 costSerreOr: 3, costComposteurOr: 4, costLocalOr: 5,
                 costUp2Or: 4, costUp2Temps: 3, costUp3Or: 8, costUp3Temps: 5,
