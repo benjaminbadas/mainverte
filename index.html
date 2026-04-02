@@ -2,7 +2,7 @@
 <html lang="fr">
 <head>
     <meta charset="UTF-8">
-    <title>La Main Verte - v62 (Animaux & Clôtures)</title>
+    <title>La Main Verte - v63 (Élevage et Rendements)</title>
     <script src="https://www.gstatic.com/firebasejs/9.17.1/firebase-app-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/9.17.1/firebase-database-compat.js"></script>
     
@@ -109,7 +109,7 @@
 <body>
 
 <div id="lobby">
-    <h1 style="font-size: 3em; margin-bottom: 10px;">🌱 La Main Verte <span style="font-size:0.4em; color:#a5d6a7; vertical-align: middle;">v62</span></h1>
+    <h1 style="font-size: 3em; margin-bottom: 10px;">🌱 La Main Verte <span style="font-size:0.4em; color:#a5d6a7; vertical-align: middle;">v63</span></h1>
     <p style="font-size: 1.2em; margin-bottom: 30px;">Choisissez un mode de jeu :</p>
     <button class="btn-lobby" onclick="startNewGame('SOLO')">👤 Jouer en Solo</button>
     <button class="btn-lobby" style="background:#8e24aa" onclick="startNewGame('IA_SOLO')">🤖 Mode Spectateur (IA Solo)</button>
@@ -241,7 +241,7 @@
     var listCompagnes = ["Ail", "Aneth", "Agastache", "Basilic", "Bleuet", "Bourrache", "Capucine", "Cébette", "Cerfeuil", "Ciboulette", "Coriandre", "Cosmos", "Echalote", "Épinard", "Estragon", "Lin", "Marguerite", "Mélilot Blanc", "Mélisse", "Menthe", "Moutarde", "Oignon", "Origan", "Oeillet d'Inde", "Persil", "Romarin", "Sarriette", "Sauge", "Serpolet", "Souci", "Tanaisie", "Thym", "Tournesol"];
     var listOutils = ["Arrosoir", "Tuyau", "Enrouleur", "Brouette", "Sécateur", "Cagette", "Tuteur", "Treillage", "Barrière", "Gants", "Ceinture", "Outil"];
     var listCompost = ["Fumier", "Bois mort", "Carton", "Épluchures"];
-    var listAnimaux = ["Poules", "Moutons", "Chèvres", "Cheval", "Vache", "Cochon"];
+    var listAnimaux = ["Poules", "Moutons", "Chèvres", "Cheval", "Vache", "Cochon", "Animaux"];
 
     var COOP_TRACK = [
         { cost: 1, type: 'none', desc: "Étape de base" }, 
@@ -284,7 +284,7 @@
         let targetDeck = 'C';
         if (c.cat === 'S') targetDeck = 'S';
         else if (c.cat === 'A' || c.cat === 'X') targetDeck = 'A';
-        else if (c.cat === 'E' || c.type) targetDeck = 'E'; // Défausse événement
+        else if (c.cat === 'E' || c.type) targetDeck = 'E'; 
         else if (!c.cat) targetDeck = 'O';
 
         let cleanC = { ...c };
@@ -464,6 +464,7 @@
         if (!me.auxActifs) me.auxActifs = [];
         if (!me.upgrades) me.upgrades = Array(8).fill(1);
         if (me.fences === undefined) me.fences = 0;
+        if (!me.animalUses) me.animalUses = {};
 
         const curS = ALL_SEASONS[state.saisonIdx];
         const hasTuteur = me.auxActifs.some(a => a && (a.includes("Tuteur") || a.includes("Treillage")));
@@ -520,7 +521,7 @@
             if (zToAmend) { localSelectedId = zToAmend.id; actAmd(zToAmend.id); return; }
         }
 
-        // Jouer un Animal
+        // --- BOT : JOUE UN ANIMAL DE SA MAIN ---
         for (let i = 0; i < me.hand.length; i++) {
             let c = me.hand[i];
             let cost = Math.max(0, (c.t || 1) - (me.upgrades[2] - 1));
@@ -528,6 +529,34 @@
             if (isAnimal && me.time >= cost) {
                 if (hasFence && (c.nom.includes("Poules") || hasPrairie)) {
                      playC(i, null); return;
+                }
+            }
+        }
+
+        // --- BOT : UTILISE UN ANIMAL DEJA POSE ---
+        let myAnimals = (me.auxActifs || []).filter(a => listAnimaux.some(ani => a && a.includes(ani)));
+        if (myAnimals.length > 0) {
+            let hasNaissances = (me.auxActifs || []).some(a => a && a.includes("Naissances"));
+            let naissancesUsed = Object.values(me.animalUses).some(uses => uses >= 2);
+            
+            let availableAnimals = myAnimals.filter(a => {
+                let uses = me.animalUses[a] || 0;
+                let maxUses = 1;
+                if (hasNaissances && !naissancesUsed) maxUses = 2;
+                else if (hasNaissances && naissancesUsed && uses >= 1) maxUses = 1;
+                return uses < maxUses;
+            });
+
+            if (availableAnimals.length > 0) {
+                let chosenAnimal = availableAnimals[0];
+                let aniCost = chosenAnimal.includes('Poules') ? 1 : 2;
+                if (me.time >= aniCost) {
+                    let zToFertilize = me.zones.find(z => z.slots && z.slots.length > 0);
+                    if (zToFertilize) {
+                        localSelectedId = zToFertilize.id;
+                        actAnimaux(chosenAnimal); 
+                        return;
+                    }
                 }
             }
         }
@@ -932,21 +961,66 @@
     }
 
     // --- NOUVELLE ACTION : ANIMAUX ---
-    window.actAnimaux = function() {
+    window.actAnimaux = function(botChosenAnimal = null) {
         const pId = state.turn; const me = state['p'+pId];
-        if(me.time < 2) return safeAlert("Il vous faut 2h pour vous occuper des animaux !");
+        
         if(localSelectedId === null || localSelectedId === undefined) return safeAlert("Sélectionnez la zone de culture à fertiliser sur le plateau !");
         let z = me.zones[localSelectedId];
         if(!z || !z.slots || z.slots.length === 0) return safeAlert("La zone sélectionnée ne contient aucune culture !");
+
+        let myAnimals = (me.auxActifs || []).filter(a => listAnimaux.some(ani => a && a.includes(ani)));
+        if (myAnimals.length === 0) return safeAlert("Vous n'avez pas d'animaux actifs !");
+
+        if (!me.animalUses) me.animalUses = {};
+        let hasNaissances = (me.auxActifs || []).some(a => a && a.includes("Naissances"));
+        let naissancesUsed = Object.values(me.animalUses).some(uses => uses >= 2);
+
+        let availableAnimals = myAnimals.filter(a => {
+            let uses = me.animalUses[a] || 0;
+            let maxUses = 1;
+            if (hasNaissances && !naissancesUsed) maxUses = 2;
+            else if (hasNaissances && naissancesUsed && uses >= 1) maxUses = 1;
+            return uses < maxUses;
+        });
+
+        if (availableAnimals.length === 0) return safeAlert("Tous vos animaux se reposent pour cette saison !");
+
+        let chosenAnimal = botChosenAnimal || availableAnimals[0];
         
-        me.time -= 2;
-        // On répartit +2 rendement
-        if(z.slots.length === 1) {
-            z.slots[0].amd = (z.slots[0].amd || 0) + 2;
-        } else {
-            z.slots.forEach(c => { c.amd = (c.amd || 0) + 1; });
+        if (!botChosenAnimal && availableAnimals.length > 1 && !isBotTurn()) {
+            let animalStr = availableAnimals.map((a, i) => `${i+1}: ${a} (-${a.includes('Poules') ? 1 : 2}h, +${a.includes('Poules') ? 1 : 2} rend.)`).join('\n');
+            let choice = prompt(`Quel animal utiliser ?\n${animalStr}`);
+            if (!choice) return;
+            let idx = parseInt(choice) - 1;
+            if (isNaN(idx) || idx < 0 || idx >= availableAnimals.length) return safeAlert("Choix invalide.");
+            chosenAnimal = availableAnimals[idx];
         }
-        addLog(`🐾 Action Animaux sur Z${z.id===14?'PO':z.num} (+2 Rendement, -2h).`, pId);
+
+        let cost = chosenAnimal.includes('Poules') ? 1 : 2;
+        let bonus = chosenAnimal.includes('Poules') ? 1 : 2;
+
+        if (me.time < cost) return safeAlert(`Il vous faut ${cost}h pour vous occuper de : ${chosenAnimal} !`);
+        
+        me.time -= cost;
+        me.animalUses[chosenAnimal] = (me.animalUses[chosenAnimal] || 0) + 1;
+
+        if(z.slots.length === 1) {
+            z.slots[0].amd = (z.slots[0].amd || 0) + bonus;
+        } else {
+            if (bonus === 2) {
+                z.slots[0].amd = (z.slots[0].amd || 0) + 1;
+                z.slots[1].amd = (z.slots[1].amd || 0) + 1;
+            } else {
+                if (isBotTurn()) {
+                    z.slots[0].amd = (z.slots[0].amd || 0) + 1;
+                } else {
+                    let slotChoice = prompt(`Sur quelle plante mettre le +1 rendement ?\n1: ${z.slots[0].nom}\n2: ${z.slots[1].nom}`);
+                    let sIdx = parseInt(slotChoice) === 2 ? 1 : 0;
+                    z.slots[sIdx].amd = (z.slots[sIdx].amd || 0) + 1;
+                }
+            }
+        }
+        addLog(`🐾 Action Animaux (${chosenAnimal}) sur Z${z.id===14?'PO':z.num} (+${bonus} Rend., -${cost}h).`, pId);
         sync();
     }
 
@@ -990,7 +1064,7 @@
                 <button class="btn-action" style="background:#607d8b" onclick="actB()" ${dis||me.time<4?'disabled':''}>🏠 Bâtiment (-4h)</button>
                 <button class="btn-action" style="background:#2196f3" onclick="actArr()" ${dis||me.time<s.costArroserTemps||!canWater?'disabled':''}>💧 Arroser Zone (-1h)</button>
                 <button class="btn-action" style="background:#795548" onclick="actAmd()" ${dis||me.time<s.costAmenderTemps||me.compost<1||!hasComposteur?'disabled':''}>💩 Amender Zone</button>
-                <button class="btn-action" style="background:#8d6e63" onclick="actAnimaux()" ${dis||me.time<2||!hasAnimal?'disabled':''}>🐾 Animaux (-2h)</button>
+                <button class="btn-action" style="background:#8d6e63" onclick="actAnimaux()" ${dis||!hasAnimal?'disabled':''}>🐾 Action Animaux</button>
                 <button class="btn-action" style="background:#9c27b0" onclick="openFoire()" ${dis?'disabled':''}>🎪 FOIRE AGRICOLE</button>
                 <button class="btn-action" style="background:#e53935; font-size:1em; grid-column: span 4;" onclick="actFin()" ${dis?'disabled':''}>💤 Fin de Saison</button>
             `;
@@ -1664,19 +1738,15 @@
                 } 
             });
             
-            // --- RAVAGEURS & PROTECTIONS (Animaux & Clôtures) ---
             if(state.currentRav) {
                 let ravName = state.currentRav.n || state.currentRav.nom;
                 let isProtected = false;
                 
-                // Protection de base (Auxiliaires)
                 if (pData.auxActifs && pData.auxActifs.includes(ravName)) isProtected = true;
                 
-                // Protection Clôture vs Sanglier
                 let hasFence = (pData.fences > 0) || (pData.auxActifs && pData.auxActifs.includes("Barrière"));
                 if (ravName === "Sanglier" && hasFence) isProtected = true;
                 
-                // Protection Poules vs Limaces/Insectes
                 let hasPoules = (pData.auxActifs && pData.auxActifs.includes("Poules"));
                 if (hasPoules && (ravName.includes("Limace") || ravName.includes("escargot") || ravName.includes("Chenille") || ravName.includes("Puceron"))) isProtected = true;
 
@@ -1694,15 +1764,17 @@
                 addLog(`✂️ Sécateur : ${pData.time}h restantes ➔ +${pData.time}💩`, pid);
             }
 
-            // Événements qui modifient le temps
             let timeMod = 0;
             if (state.currentEvent) {
                 if (state.currentEvent.nom === "Travail en musique") timeMod = 2;
                 if (state.currentEvent.nom === "Blessure") {
                     let hasCheval = (pData.auxActifs && pData.auxActifs.includes("Cheval"));
-                    if (!hasCheval) timeMod = -2; // Le Cheval annule la blessure
+                    if (!hasCheval) timeMod = -2; 
                 }
             }
+            
+            // Remise à zéro des animaux utilisés pour la nouvelle saison
+            pData.animalUses = {};
             pData.time = Math.max(0, pData.timeMax + timeMod); 
         });
 
@@ -1830,7 +1902,7 @@
             
             let initP = () => ({
                 money: 10, time: 10, timeMax: 10, water: 0, waterMax: 0, compost: 0, pv: 0, fences: 0,
-                hand: [], upgrades: Array(8).fill(1), zones: initZones(), auxActifs: [], objectives: []
+                hand: [], upgrades: Array(8).fill(1), zones: initZones(), auxActifs: [], objectives: [], animalUses: {}
             });
 
             let decksToUse;
@@ -1847,7 +1919,8 @@
                     S: [
                         { nom: "Poules", cat: 'S', p: 3, t: 1, desc: "Action rendement et protection." },
                         { nom: "Cheval", cat: 'S', p: 5, t: 1, desc: "Action rendement et protège blessures." },
-                        { nom: "Barrière", cat: 'S', p: 2, t: 1, desc: "Sert de Clôture." }
+                        { nom: "Barrière", cat: 'S', p: 2, t: 1, desc: "Sert de Clôture." },
+                        { nom: "Naissances", cat: 'S', p: 3, t: 1, desc: "Permet de jouer 2 fois l'action d'un animal." }
                     ],
                     A: [
                         { nom: "Pommier", cat: 'A', p: 4, g: 6, e: 3, s: 3, t: 1, sm: ["H", "P"], rc: ["A"] }
