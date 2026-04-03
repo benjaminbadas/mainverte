@@ -5,26 +5,188 @@
     <title>La Main Verte - Le Jeu (v68)</title>
     <script src="https://www.gstatic.com/firebasejs/9.17.1/firebase-app-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/9.17.1/firebase-database-compat.js"></script>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;600;800&display=swap" rel="stylesheet">
     <style>
-        :root { --p1: #2e7d32; --p2: #1565c0; --bg: #f4f7f1; --potager: #81c784; --verger: #fff176; --amenag: #ffccbc; --batiment: #455a64; --dark: #263238; --gold: #ffd700; --serre: #e1f5fe; }
-        body { font-family: 'Segoe UI', sans-serif; background: var(--bg); margin: 0; display: flex; height: 100vh; overflow: hidden; }
-        #lobby, #game-over-screen, #season-anim-overlay { position: fixed; top:0; left:0; width:100%; height:100%; z-index: 1000; display: flex; flex-direction: column; align-items: center; justify-content: center; color: white; }
-        #lobby { background:rgba(0,0,0,0.9); } #game-over-screen { background:rgba(0,0,0,0.85); z-index: 3000; display: none; } #season-anim-overlay { background: rgba(255,255,255,0.7); z-index: 2000; display: none; opacity: 0; transition: opacity 0.5s ease-in-out; }
-        .anim-box { background: white; border: 5px solid var(--p1); border-radius: 20px; padding: 40px 80px; box-shadow: 0 15px 40px rgba(0,0,0,0.3); text-align: center; transform: scale(0.8); transition: transform 0.5s; }
-        .btn-lobby { background: var(--p1); color: white; border: none; padding: 12px 25px; font-size: 1.1em; border-radius: 8px; margin: 8px; cursor: pointer; width: 320px; transition: 0.2s; font-weight: bold; } .btn-lobby:hover { filter: brightness(1.2); transform: scale(1.05); }
-        .score-box { background: white; color: #263238; padding: 40px; border-radius: 12px; text-align: center; box-shadow: 0 10px 40px rgba(0,0,0,0.5); min-width: 500px; } .score-table { width: 100%; border-collapse: collapse; margin: 20px 0; font-size: 1.1em; text-align: left; } .score-table th, .score-table td { padding: 10px; border-bottom: 1px solid #cfd8dc; } .score-table th { background: #eceff1; color: #37474f; } .score-table .total-row { font-weight: bold; font-size: 1.3em; background: #e8f5e9; color: var(--p1); border-top: 2px solid var(--p1); } .score-winner { color: var(--p1); font-size: 2em; margin-bottom: 10px; font-weight:bold; }
-        .main-game { flex: 1; display: flex; flex-direction: column; padding: 10px; overflow-y: auto; }
-        .sidebar { width: 500px; background: white; border-left: 2px solid #ddd; padding: 10px; display: flex; flex-direction: column; overflow-y: auto;}
-        .hud { display: flex; justify-content: space-between; align-items: center; background: white; padding: 10px; border-radius: 8px; box-shadow: 0 2px 5px rgba(0,0,0,0.1); margin-bottom: 5px; font-weight: bold; font-size: 0.9em; border-top: 4px solid var(--p1); } .hud-opp { background: #e3f2fd; padding: 6px 10px; border-radius: 8px; margin-bottom: 10px; font-size: 0.8em; color: #1565c0; border: 1px solid #bbdefb; display: flex; justify-content: space-between; align-items: center;}
-        .farm-grid { position: relative; min-width: 620px; min-height: 380px; background: #d7ccc8; padding: 10px; border-radius: 12px; margin: 0; box-shadow: inset 0 2px 8px rgba(0,0,0,0.1); } .zone { position: absolute; width: 100px; height: 115px; background: #efebe9; border: 2px dashed #bcaaa4; border-radius: 8px; display: flex; flex-direction: column; align-items: center; justify-content: center; font-size: 0.70em; cursor: pointer; text-align: center; transition: 0.2s; clip-path: polygon(50% 0%, 100% 25%, 100% 75%, 50% 100%, 0% 75%, 0% 25%); z-index: 1; } .zone.selected { border: 3px solid #ff9800 !important; box-shadow: 0 0 10px rgba(255,152,0,0.6); transform: scale(1.05); z-index: 10;}
-        .zone-color-0 { background: #f3e5f5; border-color: #ce93d8; color: #7b1fa2; } .zone-color-1, .zone-color-2, .zone-color-3 { background: #efebe9; border-color: #bcaaa4; color: #5d4037; } .zone-color-4 { background: #c8e6c9; border-color: #2e7d32; color: #1b5e20; } .zone-color-5 { background: #1b5e20; border-color: #0a3311; color: white; }
-        .tuile-potager { background: var(--potager) !important; border: 2px solid #2e7d32 !important; color: #1b5e20; } .tuile-verger { background: var(--verger) !important; border: 2px solid #fbc02d !important; color: #5d4037; } .tuile-haie { background: #aed581 !important; border: 2px solid #558b2f !important; color: #33691e; } .tuile-forêt { background: #388e3c !important; border: 2px solid #1b5e20 !important; color: white; } .tuile-prairie { background: #dce775 !important; border: 2px solid #9e9d24 !important; color: #827717; } .tuile-mare { background: #4fc3f7 !important; border: 2px solid #0277bd !important; color: #01579b; } .tuile-composteur { background: #795548 !important; border: 2px solid #3e2723 !important; color: white; } .tuile-local { background: #607d8b !important; border: 2px solid #263238 !important; color: white; } .has-serre { box-shadow: inset 0 0 15px rgba(3, 169, 244, 0.6); border: 3px solid #03a9f4 !important; background: var(--serre) !important; }
-        .zone-id-0 { top: 10px; left: 10px; } .zone-id-1 { top: 10px; left: 120px; } .zone-id-2 { top: 10px; left: 230px; } .zone-id-3 { top: 10px; left: 340px; } .zone-id-4 { top: 10px; left: 450px; } .zone-id-5 { top: 130px; left: 65px; } .zone-id-6 { top: 130px; left: 175px; } .zone-id-7 { top: 130px; left: 285px; } .zone-id-8 { top: 130px; left: 395px; } .zone-id-13 { top: 130px; left: 505px; } .zone-id-14 { top: 250px; left: 10px; } .zone-id-9 { top: 250px; left: 120px; } .zone-id-10 { top: 250px; left: 230px; } .zone-id-11 { top: 250px; left: 340px; } .zone-id-12 { top: 250px; left: 450px; }
-        .slot-container { display: flex; flex-direction: column; gap: 2px; width: 85%; margin-top: 2px;} .mini-plant { background: rgba(255,255,255,0.85); border: 1px solid rgba(0,0,0,0.3); border-radius: 4px; padding: 4px 2px; font-size: 0.85em; line-height: 1.1; cursor: pointer; text-align: center; } .mini-plant:hover { background: white; transform: scale(1.02); box-shadow: 0 2px 4px rgba(0,0,0,0.2); }
-        .card { border: 1px solid #ddd; border-radius: 6px; padding: 6px; margin-bottom: 4px; background: white; font-size: 0.75em; border-left: 4px solid var(--p1); cursor: help; position: relative;} .btn-action { width: 100%; padding: 8px; border: none; border-radius: 4px; font-weight: bold; color: white; cursor: pointer; font-size: 0.75em; margin-bottom: 3px; transition: 0.2s; } .btn-action:hover:not(:disabled) { filter: brightness(1.1); } .res-pill { background: #e8f5e9; padding: 2px 6px; border-radius: 10px; color: var(--p1); border: 1px solid var(--p1); margin-right: 3px;} .res-pv { background: #fff8e1; padding: 2px 6px; border-radius: 10px; color: #f57f17; border: 1px solid #fbc02d; font-weight:bold;} button:disabled { filter: grayscale(100%); opacity: 0.5; cursor: not-allowed; transform: none; }
-        .modal-overlay { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.8); z-index: 100; align-items: center; justify-content: center; } .modal-content { background: #fff; padding: 15px; border-radius: 12px; width: 95%; max-width: 1000px; max-height: 90vh; overflow-y: auto; box-shadow: 0 10px 30px rgba(0,0,0,0.5); } .rayon-grid { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 10px; } .rayon { background: #f9f9f9; padding: 8px; border-radius: 8px; border: 1px solid #ccc; display: flex; flex-direction: column; justify-content: space-between; } .btn-jard-action { width: 100%; margin-bottom: 5px; padding: 4px; font-size: 0.8em; cursor: pointer; background: #eee; border: 1px solid #ccc; border-radius: 4px; } .jard-card { border: 2px solid #ddd; padding: 6px; border-radius: 6px; margin-bottom: 6px; cursor: pointer; background: white; position: relative; font-size: 0.85em; transition: 0.2s;} .price-tag { position: absolute; top: -6px; right: -6px; background: var(--gold); padding: 1px 5px; border-radius: 8px; font-size: 0.8em; font-weight: bold; border: 1px solid #b8860b; z-index: 10; }
-        .alert-rav { background: #ffebee; color: #c62828; padding: 4px; border-radius: 4px; font-size: 0.75em; margin-bottom: 5px; border: 1px solid #ef9a9a; text-align: center; font-weight: bold;} .alert-event { background: #f3e5f5; color: #6a1b9a; padding: 4px; border-radius: 4px; font-size: 0.8em; margin-bottom: 5px; border: 1px solid #ce93d8; text-align: center; font-weight: bold;} .logs { height: 180px; background: var(--dark); color: #a5d6a7; padding: 8px; font-family: monospace; font-size: 0.75em; overflow-y: auto; border-radius: 6px; margin-top:10px; border: 2px solid #455a64;} .turn-banner { background: #ff9800; color: white; text-align: center; padding: 5px; font-weight: bold; display: none; border-radius: 4px; margin-bottom: 5px;} .turn-banner.active { display: block; background: #4caf50; } .market-preview-box { background: #f9f9f9; padding: 8px; border-radius: 6px; border: 1px solid #e0e0e0; margin-bottom: 8px; }
-        .card-icon { position: absolute; top: 4px; right: 4px; font-size: 1.8em; } .jard-card-icon { position: absolute; bottom: 4px; right: 4px; font-size: 2.2em; opacity: 0.8; }
+        :root { 
+            --p1: #2e7d32; --p2: #1565c0; --bg: #f4f7f1; 
+            --potager: rgba(129, 199, 132, 0.85); --verger: rgba(255, 241, 118, 0.85); 
+            --haie: rgba(174, 213, 129, 0.85); --foret: rgba(56, 142, 60, 0.85);
+            --prairie: rgba(220, 231, 117, 0.85); --mare: rgba(79, 195, 247, 0.85);
+            --composteur: rgba(121, 85, 72, 0.85); --local: rgba(96, 125, 139, 0.85);
+            --dark: #1e293b; --gold: #ffd700; --serre: rgba(225, 245, 254, 0.85); 
+            --glass-bg: rgba(255, 255, 255, 0.7); --glass-border: rgba(255, 255, 255, 0.5);
+            --glass-shadow: 0 8px 32px 0 rgba(7, 36, 11, 0.1);
+        }
+        
+        body { 
+            font-family: 'Outfit', sans-serif; 
+            margin: 0; display: flex; height: 100vh; overflow: hidden; 
+            background: linear-gradient(-45deg, #a8e063, #56ab2f, #2e7d32, #4facfe);
+            background-size: 400% 400%;
+            animation: gradientBG 15s ease infinite;
+            color: var(--dark);
+        }
+        
+        @keyframes gradientBG {
+            0% { background-position: 0% 50%; }
+            50% { background-position: 100% 50%; }
+            100% { background-position: 0% 50%; }
+        }
+
+        
+        /* Saisons Backgrounds */
+        body.saison-printemps { background: linear-gradient(-45deg, #a8e063, #56ab2f, #2e7d32, #60ad4d) !important; background-size: 400% 400% !important;}
+        body.saison-ete { background: linear-gradient(-45deg, #fceabb, #f8b500, #ff8f00, #e6b800) !important; background-size: 400% 400% !important;}
+        body.saison-automne { background: linear-gradient(-45deg, #e65c00, #F9D423, #d35400, #e67e22) !important; background-size: 400% 400% !important;}
+        body.saison-hiver { background: linear-gradient(-45deg, #e0eafc, #cfdef3, #90caf9, #b3e5fc) !important; background-size: 400% 400% !important;}
+        /* Fin Saisons Backgrounds */
+
+        /* Glassmorphism Classes */
+        .glass-panel {
+            background: var(--glass-bg);
+            backdrop-filter: blur(12px);
+            -webkit-backdrop-filter: blur(12px);
+            border: 1px solid var(--glass-border);
+            box-shadow: var(--glass-shadow);
+            border-radius: 16px;
+        }
+
+        /* Overlays */
+        #lobby, #game-over-screen, #season-anim-overlay { 
+            position: fixed; top:0; left:0; width:100%; height:100%; z-index: 1000; 
+            display: flex; flex-direction: column; align-items: center; justify-content: center; 
+        }
+        #lobby { background:rgba(15, 30, 20, 0.85); backdrop-filter: blur(10px); color: white; } 
+        #game-over-screen { background:rgba(0,0,0,0.85); backdrop-filter: blur(10px); z-index: 3000; display: none; } 
+        #season-anim-overlay { background: rgba(255,255,255,0.7); backdrop-filter: blur(8px); z-index: 2000; display: none; opacity: 0; transition: opacity 0.5s ease-in-out; }
+        
+        .anim-box { 
+            background: rgba(255, 255, 255, 0.95); border: 4px solid var(--p1); border-radius: 20px; 
+            padding: 40px 80px; box-shadow: 0 15px 40px rgba(0,0,0,0.3); text-align: center; 
+            transform: scale(0.8); transition: transform 0.5s; 
+        }
+        
+        /* Buttons */
+        .btn-lobby { 
+            background: linear-gradient(135deg, var(--p1), #43a047); color: white; border: 1px solid rgba(255,255,255,0.2); 
+            padding: 14px 28px; font-size: 1.1em; border-radius: 12px; margin: 8px; cursor: pointer; 
+            width: 320px; font-weight: 600; box-shadow: 0 4px 15px rgba(0,0,0,0.2);
+            transition: all 0.3s cubic-bezier(0.25, 0.8, 0.25, 1); 
+        } 
+        .btn-lobby:hover { transform: translateY(-3px); box-shadow: 0 8px 25px rgba(0,0,0,0.3); filter: brightness(1.1); }
+        
+        .btn-action { 
+            width: 100%; padding: 10px; border: none; border-radius: 8px; font-weight: 600; color: white; 
+            cursor: pointer; font-size: 0.8em; margin-bottom: 5px; 
+            transition: all 0.2s; box-shadow: 0 2px 8px rgba(0,0,0,0.15); text-transform: uppercase; letter-spacing: 0.5px;
+        } 
+        .btn-action:hover:not(:disabled) { transform: translateY(-2px); box-shadow: 0 4px 12px rgba(0,0,0,0.25); filter: brightness(1.1); } 
+        button:disabled { filter: grayscale(100%); opacity: 0.5; cursor: not-allowed; transform: none !important; box-shadow: none !important; }
+
+        /* Game Layout */
+        .main-game { flex: 1; display: flex; flex-direction: column; padding: 15px; overflow-y: auto; gap: 10px; }
+        .sidebar { 
+            width: 480px; background: rgba(255, 255, 255, 0.6); backdrop-filter: blur(15px); border-left: 1px solid rgba(255,255,255,0.5); 
+            padding: 15px; display: flex; flex-direction: column; overflow-y: auto; box-shadow: -5px 0 25px rgba(0,0,0,0.05); gap: 8px;
+        }
+        
+        /* HUD & Panels */
+        .hud { 
+            display: flex; justify-content: space-between; align-items: center; 
+            padding: 12px 20px; font-weight: 600; font-size: 0.95em; border-top: 4px solid var(--p1); 
+        } 
+        .hud b { color: var(--p1); }
+        .hud-opp { 
+            background: rgba(227, 242, 253, 0.8); backdrop-filter: blur(5px); padding: 8px 15px; border-radius: 12px; 
+            font-size: 0.85em; color: #1565c0; border: 1px solid rgba(187, 222, 251, 0.8); 
+            display: flex; justify-content: space-between; align-items: center; font-weight: 600;
+        }
+        
+        /* Cards */
+        .card, .jard-card { 
+            background: rgba(255, 255, 255, 0.9); border: 1px solid rgba(255,255,255,0.8); border-radius: 10px; 
+            padding: 8px 10px; margin-bottom: 6px; font-size: 0.8em; border-left: 5px solid var(--p1); cursor: help; 
+            position: relative; box-shadow: 0 4px 10px rgba(0,0,0,0.05); transition: all 0.2s ease;
+        } 
+        .jard-card { cursor: pointer; border-left: 2px solid #ddd; }
+        .card:hover, .jard-card:hover { transform: translateY(-2px); box-shadow: 0 6px 15px rgba(0,0,0,0.1); }
+        .card-icon { position: absolute; top: 6px; right: 6px; font-size: 2em; filter: drop-shadow(0 2px 4px rgba(0,0,0,0.2)); } 
+        .jard-card-icon { position: absolute; bottom: 6px; right: 6px; font-size: 2.5em; opacity: 0.8; filter: drop-shadow(0 2px 4px rgba(0,0,0,0.2)); }
+
+        /* Farm Grid & Zones */
+        .farm-grid { 
+            position: relative; min-width: 620px; min-height: 380px; 
+            background: rgba(215, 204, 200, 0.4); padding: 15px; border-radius: 20px; 
+            box-shadow: inset 0 4px 15px rgba(0,0,0,0.1), 0 8px 32px rgba(0,0,0,0.1); 
+            backdrop-filter: blur(10px); border: 1px solid rgba(255,255,255,0.4);
+        } 
+        .zone { 
+            position: absolute; width: 105px; height: 120px; background: rgba(239, 235, 233, 0.8); 
+            border: 2px dashed rgba(188, 170, 164, 0.8); display: flex; flex-direction: column; 
+            align-items: center; justify-content: center; font-size: 0.70em; cursor: pointer; 
+            text-align: center; transition: all 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275); 
+            clip-path: polygon(50% 0%, 100% 25%, 100% 75%, 50% 100%, 0% 75%, 0% 25%); z-index: 1; 
+            backdrop-filter: blur(5px);
+        } 
+        .zone:hover { transform: scale(1.08); z-index: 5; box-shadow: 0 0 15px rgba(255, 255, 255, 0.8); }
+        .zone.selected { border: 3px solid #ff9800 !important; box-shadow: 0 0 20px rgba(255,152,0,0.8); transform: scale(1.1); z-index: 10; background: rgba(255, 255, 255, 0.95); }
+        
+        .zone-color-0 { background: rgba(243, 229, 245, 0.85); border-color: #ce93d8; color: #7b1fa2; } 
+        .zone-color-1, .zone-color-2, .zone-color-3 { background: rgba(239, 235, 233, 0.85); border-color: #bcaaa4; color: #5d4037; } 
+        .zone-color-4 { background: rgba(200, 230, 201, 0.85); border-color: #2e7d32; color: #1b5e20; } 
+        .zone-color-5 { background: rgba(27, 94, 32, 0.85); border-color: #0a3311; color: white; }
+        
+        .tuile-potager { background: var(--potager) !important; border: 2px solid #2e7d32 !important; color: #1b5e20; } 
+        .tuile-verger { background: var(--verger) !important; border: 2px solid #fbc02d !important; color: #5d4037; } 
+        .tuile-haie { background: var(--haie) !important; border: 2px solid #558b2f !important; color: #33691e; } 
+        .tuile-forêt { background: var(--foret) !important; border: 2px solid #1b5e20 !important; color: white; } 
+        .tuile-prairie { background: var(--prairie) !important; border: 2px solid #9e9d24 !important; color: #827717; } 
+        .tuile-mare { background: var(--mare) !important; border: 2px solid #0277bd !important; color: #01579b; } 
+        .tuile-composteur { background: var(--composteur) !important; border: 2px solid #3e2723 !important; color: white; } 
+        .tuile-local { background: var(--local) !important; border: 2px solid #263238 !important; color: white; } 
+        .has-serre { box-shadow: inset 0 0 20px rgba(3, 169, 244, 0.8); border: 3px solid #03a9f4 !important; background: var(--serre) !important; }
+
+        /* Planting Slots */
+        .slot-container { display: flex; flex-direction: column; gap: 3px; width: 85%; margin-top: 4px; z-index: 2;} 
+        .mini-plant { 
+            background: rgba(255,255,255,0.9); border: 1px solid rgba(0,0,0,0.15); border-radius: 6px; 
+            padding: 4px; font-size: 0.9em; line-height: 1.1; cursor: pointer; text-align: center; 
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1); transition: all 0.2s;
+        } 
+        .mini-plant:hover { background: white; transform: scale(1.05); box-shadow: 0 4px 8px rgba(0,0,0,0.2); }
+
+        /* Hex Grid Positioning */
+        .zone-id-0 { top: 15px; left: 15px; } .zone-id-1 { top: 15px; left: 125px; } .zone-id-2 { top: 15px; left: 235px; } .zone-id-3 { top: 15px; left: 345px; } .zone-id-4 { top: 15px; left: 455px; } 
+        .zone-id-5 { top: 110px; left: 70px; } .zone-id-6 { top: 110px; left: 180px; } .zone-id-7 { top: 110px; left: 290px; } .zone-id-8 { top: 110px; left: 400px; } .zone-id-13 { top: 110px; left: 510px; } 
+        .zone-id-14 { top: 205px; left: 15px; } .zone-id-9 { top: 205px; left: 125px; } .zone-id-10 { top: 205px; left: 235px; } .zone-id-11 { top: 205px; left: 345px; } .zone-id-12 { top: 205px; left: 455px; }
+
+        /* Score & Modals */
+        .score-box { background: rgba(255,255,255,0.95); color: #1e293b; padding: 40px; border-radius: 20px; text-align: center; box-shadow: 0 20px 60px rgba(0,0,0,0.5); min-width: 550px; } 
+        .score-table { width: 100%; border-collapse: separate; border-spacing: 0 5px; margin: 20px 0; font-size: 1.1em; text-align: left; } 
+        .score-table th, .score-table td { padding: 12px; background: rgba(0,0,0,0.02); } 
+        .score-table th { background: #f1f5f9; color: #334155; border-radius: 6px; } 
+        .score-table .total-row td { font-weight: 800; font-size: 1.3em; background: #dcfce7; color: var(--p1); border-radius: 6px; } 
+        .score-winner { color: var(--p1); font-size: 2.2em; margin-bottom: 10px; font-weight:800; }
+        
+        .modal-overlay { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(15,23,42,0.8); backdrop-filter: blur(5px); z-index: 1000; align-items: center; justify-content: center; } 
+        .modal-content { background: rgba(255,255,255,0.95); padding: 25px; border-radius: 20px; width: 95%; max-width: 1000px; max-height: 90vh; overflow-y: auto; box-shadow: 0 20px 50px rgba(0,0,0,0.4); } 
+        .rayon-grid { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 15px; } 
+        .rayon { background: #f8fafc; padding: 15px; border-radius: 12px; border: 1px solid #e2e8f0; display: flex; flex-direction: column; justify-content: space-between; gap: 10px; } 
+        
+        /* Pills & Badges */
+        .res-pill { background: rgba(255,255,255,0.8); padding: 4px 10px; border-radius: 20px; color: var(--dark); border: 1px solid rgba(0,0,0,0.1); margin-right: 5px; font-weight: 600; box-shadow: 0 2px 4px rgba(0,0,0,0.05);} 
+        .res-pv { background: linear-gradient(to right, #fef08a, #fde047); padding: 4px 10px; border-radius: 20px; color: #854d0e; border: 1px solid #facc15; font-weight:800; box-shadow: 0 2px 6px rgba(250, 204, 21, 0.4);}
+        .price-tag { position: absolute; top: -8px; right: -8px; background: linear-gradient(135deg, #fbbf24, #d97706); color: white; padding: 4px 8px; border-radius: 12px; font-size: 0.9em; font-weight: 800; border: 1px solid #b45309; z-index: 10; box-shadow: 0 2px 5px rgba(0,0,0,0.2);}
+        
+        /* Alerts & Misc */
+        .alert-rav { background: rgba(254, 226, 226, 0.9); color: #991b1b; padding: 8px; border-radius: 8px; font-size: 0.85em; margin-bottom: 5px; border: 1px solid #fca5a5; text-align: center; font-weight: 600;} 
+        .alert-event { background: rgba(243, 232, 255, 0.9); color: #6b21a8; padding: 8px; border-radius: 8px; font-size: 0.85em; margin-bottom: 5px; border: 1px solid #d8b4fe; text-align: center; font-weight: 600;} 
+        .logs { height: 160px; background: rgba(15, 23, 42, 0.85); color: #a7f3d0; padding: 12px; font-family: 'Courier New', monospace; font-size: 0.8em; overflow-y: auto; border-radius: 12px; margin-top:5px; border: 1px solid rgba(255,255,255,0.1); box-shadow: inset 0 4px 10px rgba(0,0,0,0.5);} 
+        .turn-banner { background: linear-gradient(to right, #f59e0b, #d97706); color: white; text-align: center; padding: 8px; font-weight: 800; display: none; border-radius: 12px; margin-bottom: 8px; box-shadow: 0 4px 10px rgba(0,0,0,0.15);} 
+        .turn-banner.active { background: linear-gradient(to right, #10b981, #059669); } 
+        .market-preview-box { background: rgba(255,255,255,0.7); padding: 10px; border-radius: 12px; border: 1px solid rgba(255,255,255,0.5); margin-bottom: 8px; box-shadow: 0 2px 10px rgba(0,0,0,0.05);}
     </style>
 </head>
 <body>
@@ -121,6 +283,7 @@
 
 <div class="modal-overlay" id="jardinerie-modal"><div class="modal-content" id="modal-content-inner"></div></div>
 <div class="modal-overlay" id="foire-modal"><div class="modal-content" id="foire-content-inner"></div></div>
+<div class="modal-overlay" id="base-custom-modal" style="z-index: 5000; align-items:center; justify-content:center; display:none;"></div>
 <script>
     var firebaseConfig = { apiKey: "AIzaSyA_OHv6TDiVsn4PwM9s25gij8lBwQH8xrg", authDomain: "main-verte-72483.firebaseapp.com", databaseURL: "https://main-verte-72483-default-rtdb.europe-west1.firebasedatabase.app", projectId: "main-verte-72483" };
     if (!firebase.apps.length) firebase.initializeApp(firebaseConfig);
@@ -184,13 +347,90 @@
         if (state && typeof db !== 'undefined') db.set(state);
     };
 
-    const originalSync = window.sync;
-    window.sync = function() {
-        if(state && !state.gameOver) { if(state.p1) originalSync(); }
-    };
-
     function isBotTurn() { if(!state) return false; if(botEnabled) { if(state.mode === 'IA_SOLO' || state.mode === 'IA_VS_IA') return true; if(state.mode === 'VS_IA' && state.turn === 2) return true; } return false; }
-    function safeAlert(msg) { if(isBotTurn()) console.warn("🤖 Bot alerte ignorée : " + msg); else alert(msg); }
+    
+    window.customAlert = function(msg) {
+        return new Promise(resolve => {
+            const overlay = document.getElementById('base-custom-modal');
+            overlay.style.display = 'flex';
+            overlay.innerHTML = `<div class="anim-box" style="max-width:500px;text-align:center;">
+                <h3 style="color:var(--p1); font-size:1.5em; margin-bottom:15px;">⚠️ Information</h3>
+                <p style="font-size:1.1em; color:#333; margin-bottom:20px; white-space:pre-wrap;">${msg}</p>
+                <button class="btn-lobby" style="width:100%; border-radius:8px;" id="c-btn-ok">OK</button>
+            </div>`;
+            document.getElementById('c-btn-ok').onclick = () => { overlay.style.display = 'none'; resolve(); };
+        });
+    }
+
+    window.customConfirm = function(msg) {
+        if (typeof isBotTurn !== "undefined" && isBotTurn()) return Promise.resolve(true); 
+        return new Promise(resolve => {
+            const overlay = document.getElementById('base-custom-modal');
+            overlay.style.display = 'flex';
+            overlay.innerHTML = `<div class="anim-box" style="max-width:500px;text-align:center;">
+                <h3 style="color:#f57f17; font-size:1.5em; margin-bottom:15px;">❓ Demande de confirmation</h3>
+                <p style="font-size:1.1em; color:#333; margin-bottom:20px; white-space:pre-wrap;">${msg}</p>
+                <div style="display:flex; gap:10px;">
+                    <button class="btn-lobby" style="background:#d32f2f; margin:0;" id="c-btn-no">Annuler</button>
+                    <button class="btn-lobby" style="background:var(--p1); margin:0;" id="c-btn-yes">Confirmer</button>
+                </div>
+            </div>`;
+            document.getElementById('c-btn-yes').onclick = () => { overlay.style.display = 'none'; resolve(true); };
+            document.getElementById('c-btn-no').onclick = () => { overlay.style.display = 'none'; resolve(false); };
+        });
+    }
+
+    window.customPrompt = function(msg, defaultVal = '') {
+        if (typeof isBotTurn !== "undefined" && isBotTurn()) return Promise.resolve("1"); 
+        return new Promise(resolve => {
+            const overlay = document.getElementById('base-custom-modal');
+            overlay.style.display = 'flex';
+            overlay.innerHTML = `<div class="anim-box" style="max-width:500px;text-align:center;">
+                <h3 style="color:var(--p2); font-size:1.5em; margin-bottom:15px;">💬 Choix requis</h3>
+                <p style="font-size:1.1em; color:#333; margin-bottom:15px; white-space:pre-wrap; text-align:left;">${msg}</p>
+                <input type="text" id="c-prompt-input" value="${defaultVal}" style="width:calc(100% - 24px); padding:10px; font-size:1.1em; border:2px solid var(--p1); border-radius:8px; margin-bottom:20px;" autocomplete="off">
+                <div style="display:flex; gap:10px;">
+                    <button class="btn-lobby" style="background:#e0e0e0; color:#333; margin:0;" id="c-btn-cancel">Annuler</button>
+                    <button class="btn-lobby" style="background:var(--p1); margin:0;" id="c-btn-submit">Valider</button>
+                </div>
+            </div>`;
+            setTimeout(() => {
+                const inp = document.getElementById('c-prompt-input'); if(inp) inp.focus();
+            }, 100);
+            document.getElementById('c-btn-submit').onclick = () => { overlay.style.display = 'none'; resolve(document.getElementById('c-prompt-input').value); };
+            document.getElementById('c-btn-cancel').onclick = () => { overlay.style.display = 'none'; resolve(null); };
+            document.getElementById('c-prompt-input').onkeyup = (e) => { if(e.key === 'Enter') { overlay.style.display = 'none'; resolve(document.getElementById('c-prompt-input').value); } };
+        });
+    }
+
+    
+    window.customChoice = function(title, msg, options) {
+        if (typeof isBotTurn !== "undefined" && isBotTurn()) {
+            const keys = Object.keys(options);
+            return Promise.resolve(keys[Math.floor(Math.random() * keys.length)]); 
+        }
+        return new Promise(resolve => {
+            const overlay = document.getElementById('base-custom-modal');
+            overlay.style.display = 'flex';
+            let optionsHtml = '';
+            for (let key in options) {
+                optionsHtml += `<button class="btn-lobby" style="width:100%; margin-bottom:8px; border-radius:8px;" onclick="document.getElementById('base-custom-modal').style.display='none'; window.__resolveChoice('${key}')">${options[key]}</button>`;
+            }
+            window.__resolveChoice = (val) => resolve(val);
+            overlay.innerHTML = `<div class="anim-box" style="max-width:500px;text-align:center;">
+                <h3 style="color:var(--p2); font-size:1.5em; margin-bottom:15px;">💬 ${title}</h3>
+                <p style="font-size:1.1em; color:#333; margin-bottom:15px; white-space:pre-wrap; text-align:left;">${msg}</p>
+                <div style="display:flex; flex-direction:column; gap:5px;">
+                    ${optionsHtml}
+                    <button class="btn-lobby" style="background:#e0e0e0; color:#333; margin-top:10px; width:100%; border-radius:8px;" id="c-btn-cancel">Annuler</button>
+                </div>
+            </div>`;
+            document.getElementById('c-btn-cancel').onclick = () => { overlay.style.display = 'none'; resolve(null); };
+        });
+    }
+
+    function safeAlert(msg) { if(typeof isBotTurn !== "undefined" && isBotTurn()) console.warn("🤖 Bot alerte ignorée : " + msg); else customAlert(msg); }
+
     function toggleBot() { botEnabled = !botEnabled; let btn = document.getElementById('bot-btn'); if(btn) { btn.innerText = botEnabled ? "🤖 Bot: ON" : "🤖 Bot: OFF"; btn.style.background = botEnabled ? "#4caf50" : "#9c27b0"; } if(botEnabled && state && state.turn === myId && !state.gameOver) triggerBot(state.turn); }
     function toggleAutoTrain() { autoTrain = !autoTrain; botDelay = autoTrain ? 100 : 800; let btn = document.getElementById('auto-train-btn'); if(btn) { btn.innerText = autoTrain ? "🧬 Auto-Train: ON" : "🧬 Auto-Train: OFF"; btn.style.background = autoTrain ? "#4caf50" : "#009688"; } if(autoTrain && !botEnabled) toggleBot(); }
     function playChampion() { if(!state || state.gameOver) return; triggerBot(state.turn, true); }
@@ -332,6 +572,14 @@
 
         const me = state['p'+myId]; const opp = state['p'+(myId === 1 ? 2 : 1)]; const isMyTurn = state.turn === myId; const s = state.settings;
         document.getElementById('opp-hud').style.display = (state.mode === 'SOLO' || state.mode === 'IA_SOLO') ? 'none' : 'flex';
+        
+        const bodyEl = document.body;
+        bodyEl.classList.remove('saison-printemps', 'saison-ete', 'saison-automne', 'saison-hiver');
+        if (state.saisonIdx === 0) bodyEl.classList.add('saison-printemps');
+        else if (state.saisonIdx === 1) bodyEl.classList.add('saison-ete');
+        else if (state.saisonIdx === 2) bodyEl.classList.add('saison-automne');
+        else if (state.saisonIdx === 3) bodyEl.classList.add('saison-hiver');
+
         const banner = document.getElementById('turn-banner');
         if(isMyTurn) { banner.innerText = "🎮 C'est à votre tour !"; banner.className = "turn-banner active"; } 
         else { banner.innerText = `⏳ Veuillez patienter...`; banner.className = "turn-banner"; }
@@ -467,7 +715,7 @@
         }
     }
 
-    window.actAnimaux = function(botChosenAnimal = null) {
+    window.actAnimaux = async function(botChosenAnimal = null) {
         const pId = state.turn; const me = state['p'+pId];
         if(localSelectedId === null || localSelectedId === undefined) return safeAlert("Sélectionnez la zone de culture à fertiliser sur le plateau !");
         let z = me.zones[localSelectedId];
@@ -490,8 +738,9 @@
 
         let chosenAnimal = botChosenAnimal || availableAnimals[0];
         if (!botChosenAnimal && availableAnimals.length > 1 && !isBotTurn()) {
-            let animalStr = availableAnimals.map((a, i) => `${i+1}: ${a} (-${a.includes('Poules') ? 1 : 2}h, +${a.includes('Poules') ? 1 : 2} rend.)`).join('\n');
-            let choice = prompt(`Quel animal utiliser ?\n${animalStr}`);
+            let animalOptions = {};
+            availableAnimals.forEach((a, i) => { animalOptions[(i+1).toString()] = `${a} (-${a.includes('Poules') ? 1 : 2}h, +${a.includes('Poules') ? 1 : 2} rend.)` });
+            let choice = await customChoice("Choix de l'Animal", "Quel animal utiliser ?", animalOptions);
             if (!choice) return;
             let idx = parseInt(choice) - 1;
             if (isNaN(idx) || idx < 0 || idx >= availableAnimals.length) return safeAlert("Choix invalide.");
@@ -509,7 +758,7 @@
             else {
                 if (isBotTurn()) { z.slots[0].amd = (z.slots[0].amd || 0) + 1; } 
                 else {
-                    let slotChoice = prompt(`Sur quelle plante mettre le +1 rendement ?\n1: ${z.slots[0].nom}\n2: ${z.slots[1].nom}`);
+                    let slotChoice = await customChoice("Choix de la Plante", "Sur quelle plante mettre le +1 rendement ?", { "1": z.slots[0].nom, "2": z.slots[1].nom });
                     let sIdx = parseInt(slotChoice) === 2 ? 1 : 0;
                     z.slots[sIdx].amd = (z.slots[sIdx].amd || 0) + 1;
                 }
@@ -540,17 +789,17 @@
         if(me.amenagementMode) {
             htmlBtns += `
                 <button class="btn-action" style="background:#e53935; grid-column: span 4;" onclick="toggleAmenagement()" title="Fermer le menu de biodiversité">❌ Fermer le Menu Biodiversité</button>
-                <button class="btn-action" style="background:#aed581; color:#33691e;" onclick="actT('HAIE')" title="Aménage une Haie (Zones 3 à 5). Utile pour la biodiversité et le Sécateur.">🌿 Haie Z3-5 (-3💰, -3h)</button>
-                <button class="btn-action" style="background:#388e3c" onclick="actT('FORÊT')" title="Aménage une Forêt (Zones 3 à 5). Indispensable pour certains auxiliaires.">🌲 Forêt Z3-5 (-3💰, -3h)</button>
-                <button class="btn-action" style="background:#dce775; color:#827717;" onclick="actT('PRAIRIE')" title="Aménage une Prairie (Zones 4 et 5). Indispensable pour vos animaux (Moutons, Vaches...).">🌾 Prairie Z4-5 (-3💰, -3h)</button>
-                <button class="btn-action" style="background:#4fc3f7; color:#01579b;" onclick="actT('MARE')" title="Aménage une Mare (Zones 2 à 4). Augmente la capacité de stockage d'eau de +7L.">💧 Mare Z2-4 (-4💰, -3h)</button>
+                <button class="btn-action" style="background:#aed581; color:#33691e;" onclick="actT('HAIE')" ${dis||me.time<3||me.money<3?'disabled':''} title="Aménage une Haie (Zones 3 à 5). Utile pour la biodiversité et le Sécateur.">🌿 Haie Z3-5 (-3💰, -3h)</button>
+                <button class="btn-action" style="background:#388e3c" onclick="actT('FORÊT')" ${dis||me.time<3||me.money<3?'disabled':''} title="Aménage une Forêt (Zones 3 à 5). Indispensable pour certains auxiliaires.">🌲 Forêt Z3-5 (-3💰, -3h)</button>
+                <button class="btn-action" style="background:#dce775; color:#827717;" onclick="actT('PRAIRIE')" ${dis||me.time<3||me.money<3?'disabled':''} title="Aménage une Prairie (Zones 4 et 5). Indispensable pour vos animaux (Moutons, Vaches...).">🌾 Prairie Z4-5 (-3💰, -3h)</button>
+                <button class="btn-action" style="background:#4fc3f7; color:#01579b;" onclick="actT('MARE')" ${dis||me.time<3||me.money<4?'disabled':''} title="Aménage une Mare (Zones 2 à 4). Augmente la capacité de stockage d'eau de +7L.">💧 Mare Z2-4 (-4💰, -3h)</button>
             `;
         } else {
             htmlBtns += `
                 <button class="btn-action" style="background:#4caf50" onclick="actT('POTAGER')" ${dis||me.time<s.costAmenagerPotagerTemps||me.money<costP_Or?'disabled':''} title="Aménage un Potager (Zones 1 ou 2) pour y planter des légumes.">🏗️ Potager (-${costP_Or}💰, -3h)</button>
                 <button class="btn-action" style="background:#fbc02d;color:#333" onclick="actT('VERGER')" ${dis||me.time<s.costAmenagerPotagerTemps||me.money<costP_Or?'disabled':''} title="Aménage un Verger (Zones 2 à 5) pour y planter des arbres ou petits fruits.">🏗️ Verger (-${costP_Or}💰, -3h)</button>
                 <button class="btn-action" style="background:#ff5722" onclick="toggleAmenagement()" ${dis?'disabled':''} title="Ouvrir le menu pour aménager des Haies, Forêts, Prairies ou Mares.">🌳 Biodiversité</button>
-                <button class="btn-action" style="background:#607d8b" onclick="actB()" ${dis||me.time<4?'disabled':''} title="Construit un bâtiment : Serre (3💰), Composteur (4💰) ou Local Outils (5💰).">🏠 Bâtiment (-4h)</button>
+                <button class="btn-action" style="background:#607d8b" onclick="actB()" ${dis||me.time<4||me.money<3?'disabled':''} title="Construit un bâtiment : Serre (3💰), Composteur (4💰) ou Local Outils (5💰).">🏠 Bâtiment (-4h)</button>
                 <button class="btn-action" style="background:#2196f3" onclick="actArr()" ${dis||me.time<s.costArroserTemps||!canWater?'disabled':''} title="Dépense 1h et de l'eau en stock pour réduire les besoins 💧 des plantes d'une zone sélectionnée.">💧 Arroser Zone (-1h)</button>
                 <button class="btn-action" style="background:#795548" onclick="actAmd()" ${dis||me.time<s.costAmenderTemps||me.compost<1||!hasComposteur?'disabled':''} title="Ajoute du compost (💩) aux plantes de la zone pour augmenter leur valeur de récolte.">💩 Amender Zone</button>
                 <button class="btn-action" style="background:#8d6e63" onclick="actAnimaux()" ${dis||!hasAnimal?'disabled':''} title="Utilise un animal de votre ferme pour ajouter des cubes de rendement (+1 ou +2) à une culture ciblée.">🐾 Action Animaux</button>
@@ -637,11 +886,11 @@
         });
     }
 
-    window.jardP = function(cat) { 
+    window.jardP = async function(cat) { 
         const pId=state.turn, me=state['p'+pId], c=draw(cat); 
         if(c) { 
             if(c.p<=me.money) { 
-                if(isBotTurn() || confirm(`Tiré : ${c.nom} (${c.p}💰). L'acheter ?`)) { me.money-=c.p; if(!me.hand) me.hand=[]; me.hand.push(c); addLog(`🎲 Pioche aveugle : ${c.nom} (-${c.p}💰).`, pId); consm(); } 
+                if(isBotTurn() || (await customConfirm(`Tiré : ${c.nom} (${c.p}💰). L'acheter ?`))) { me.money-=c.p; if(!me.hand) me.hand=[]; me.hand.push(c); addLog(`🎲 Pioche aveugle : ${c.nom} (-${c.p}💰).`, pId); consm(); } 
                 else { discardCard(c); consm(); } 
             } else { safeAlert(`Fonds insuffisants pour ${c.nom} (${c.p}💰). Elle est défaussée.`); discardCard(c); consm(); } 
         } else { safeAlert("La pioche ET la défausse sont vides !"); }
@@ -696,7 +945,7 @@
         addLog(`🎪 Achat Clôture (-3💰, -${cost}h).`, state.turn); sync(); 
     }
     
-    window.actFoireConseiller = function() {
+    window.actFoireConseiller = async function() {
         const me = state['p'+state.turn]; const cost = 2 + (state.foire.conseiller||0); if(me.time<cost) return;
         let obj1 = draw('O'); let obj2 = draw('O'); if(!obj1 && !obj2) return safeAlert("Pioche d'objectifs vide (et défausse vide) !");
         
@@ -705,7 +954,7 @@
             if(isBotTurn()) { choice = Math.random() < 0.5 ? 1 : 2; } 
             else { 
                 let info1 = obj1.desc || obj1.effet || "Objectif inconnu"; let info2 = obj2.desc || obj2.effet || "Objectif inconnu"; 
-                choice = parseInt(prompt(`Choisissez un objectif (tapez 1 ou 2):\n\n1) ${obj1.nom} : ${info1}\n\n2) ${obj2.nom} : ${info2}`)) === 2 ? 2 : 1; 
+                choice = parseInt(await customChoice("Objectif du Conseiller", "Choisissez un objectif :", {"1": `${obj1.nom} : ${info1}\n`, "2": `${obj2.nom} : ${info2}\n`})) === 2 ? 2 : 1;
             }
         }
         
@@ -752,7 +1001,7 @@
         addLog(`🏗️ ${t} sur Z${zId===14 ? 'PO' : num} (-${costO}💰${costH>0?`, -${costH}h`:''}).`, pId); localSelectedId = null; sync(); 
     }
 
-    window.actB = function(zId = localSelectedId, botChoice = null) { 
+    window.actB = async function(zId = localSelectedId, botChoice = null) { 
         const pId = state.turn; const me = state['p'+pId], z=me.zones[zId], s=state.settings; 
         if(zId === null || zId === undefined) return safeAlert("Veuillez d'abord sélectionner une zone sur le plateau !");
         if(me.time < 4) return safeAlert("Construire un bâtiment coûte 4 unités de temps !");
@@ -760,7 +1009,11 @@
         let ch = botChoice;
         if(!ch) { 
             if(isBotTurn()) { ch = ["1", "2", "3"][Math.floor(Math.random() * 3)]; } 
-            else { ch = prompt(`Bâtiments (Coût action: -4h) :\n1: Serre (${s.costSerreOr}💰 - Sur Potager existant)\n2: Composteur (${s.costComposteurOr}💰 - Sur Zone 1 ou 2 VIDE)\n3: Local (${s.costLocalOr}💰 - Sur zone VIDE)`); } 
+            else { ch = await customChoice("Choix du Bâtiment", "Coût action: -4h", {
+               "1": `Serre (${s.costSerreOr}💰 - Sur Potager existant)`,
+               "2": `Composteur (${s.costComposteurOr}💰 - Sur Zone 1 ou 2 VIDE)`,
+               "3": `Local (${s.costLocalOr}💰 - Sur zone VIDE)`
+           }); } 
         }
         if(!ch) return;
         
@@ -848,7 +1101,7 @@
         addLog(`⚙️ UP ${UP_NAMES[i]} L${me.upgrades[i]}.`, pId); sync(); 
     }
     
-    window.actionRecolter = function(id, slotIdx) { 
+    window.actionRecolter = async function(id, slotIdx) { 
         const pId = state.turn; const me = state['p'+pId], z = me.zones[id], s=state.settings; 
         if(me.time < s.costRecolterTemps) return;
         const targetC = z.slots[slotIdx]; 
@@ -898,7 +1151,7 @@
                 else if(state.annee === 3) levelsToFund = maxAffordable > 1 ? 1 : maxAffordable;
                 else levelsToFund = 0;
             } else { 
-                let input = prompt(`🧺 Récolte de ${targetC.nom} ${targets.length>1?'(x2)' : ''} (+${moneyGained}💰 nets).\nLa Coopérative est N${currentLvl}.\nVous pouvez financer jusqu'à ${maxAffordable} niveau(x).\nCombien de niveaux financez-vous ? (0 pour tout garder)`); 
+                let input = await customPrompt(`🧺 Récolte de ${targetC.nom} ${targets.length>1?'(x2)' : ''} (+${moneyGained}💰 nets).\nLa Coopérative est N${currentLvl}.\nVous pouvez financer jusqu'à ${maxAffordable} niveau(x).\nCombien de niveaux financez-vous ? (0 pour tout garder)`); 
                 levelsToFund = parseInt(input) || 0; 
             }
         }
@@ -1127,7 +1380,7 @@
                 });
 
                 let mPV = Math.floor(pData.money / 3); let zonesComplete = 0;
-                for(let n=1; n<=5; n++) { let hexes = pData.zones.filter(z => z.num === n); if(hexes.length > 0 && hexes.every(z => z.type !== null)) zonesComplete++; }
+                for(let n=1; n<=5; n++) { let hexes = pData.zones.filter(z => z.num === n); if(hexes.length > 0 && hexes.every(z => !!z.type)) zonesComplete++; }
                 let zPV = zonesComplete === 5 ? 15 : (zonesComplete === 4 ? 7 : (zonesComplete >= 3 ? 3 : 0));
                 let uPV = pData.upgrades.reduce((sum, lvl) => sum + (lvl === 3 ? 5 : (lvl === 2 ? 2 : 0)), 0);
 
@@ -1277,8 +1530,8 @@
         document.getElementById('winner-text').innerText = winText;
     };
 
-    window.confirmReset = function(global = false) {
-        if (confirm("Voulez-vous vraiment réinitialiser la partie ?")) {
+    window.confirmReset = async function(global = false) {
+        if (await customConfirm("Voulez-vous vraiment réinitialiser la partie ?")) {
             if(global) db.remove().then(() => location.reload());
             else startNewGame(state.mode || 'SOLO');
         }
