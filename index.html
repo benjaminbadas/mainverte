@@ -305,7 +305,7 @@
 
     window.discardCard = function(c) {
         if (!state.discards) state.discards = {C:[], S:[], A:[], O:[], E:[], R:[]};
-        let targetDeck = 'C'; if (c.cat === 'S') targetDeck = 'S'; else if (c.cat === 'A' || c.cat === 'X') targetDeck = 'A'; else if (c.cat === 'E' || c.type) targetDeck = 'E'; else if (!c.cat) targetDeck = 'O';
+        let targetDeck = 'C'; if (c.cat === 'S') { if (listCompagnes.includes(c.nom)) targetDeck = 'C'; else targetDeck = 'S'; } else if (c.cat === 'A' || c.cat === 'X') targetDeck = 'A'; else if (c.cat === 'E' || c.type) targetDeck = 'E'; else if (!c.cat) targetDeck = 'O';
         let cleanC = { ...c }; delete cleanC.eCur; delete cleanC.sCur; delete cleanC.amd; delete cleanC.compagne; delete cleanC.dead; delete cleanC.toRemove;
         if(!state.discards[targetDeck]) state.discards[targetDeck] = []; state.discards[targetDeck].push(cleanC);
     };
